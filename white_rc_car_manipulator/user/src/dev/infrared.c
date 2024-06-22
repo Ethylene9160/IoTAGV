@@ -25,36 +25,32 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
+#include "devices.h"
 #include "tutorial_lib.h"
 
-uint8_t sonic_id;
-sonic_sensor_t sonic_val[4];
 
-void    sonic_mesg_handler(uint8_t send_id, sonic_sensor_t    *data)
-{
-  sonic_id = send_id;
+uint8_t infrared_id;
+infrared_sensor_t infrared_val[4];
 
-  switch (send_id)
-  {
-    case 1:
-      memcpy(sonic_val, data, sizeof(sonic_sensor_t));
-    break;
 
-    case 2:
-      memcpy(sonic_val+1, data, sizeof(sonic_sensor_t));
-    break;
+void infrared_mesg_handler(uint8_t send_id, infrared_sensor_t *data) {
+    infrared_id = send_id;
 
-    case 3:
-      memcpy(sonic_val+2, data, sizeof(sonic_sensor_t));
-    break;
+    switch (send_id) {
+        case 1:
+            memcpy(infrared_val, data, sizeof(infrared_sensor_t));
+            break;
 
-    case 4:
-      memcpy(sonic_val+3, data, sizeof(sonic_sensor_t));
-    break;
-  }
+        case 2:
+            memcpy(infrared_val + 1, data, sizeof(infrared_sensor_t));
+            break;
+
+        case 3:
+            memcpy(infrared_val + 2, data, sizeof(infrared_sensor_t));
+            break;
+
+        case 4:
+            memcpy(infrared_val + 3, data, sizeof(infrared_sensor_t));
+            break;
+    }
 }
-
-
-
-

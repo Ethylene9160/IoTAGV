@@ -25,35 +25,32 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
+#include "devices.h"
 #include "tutorial_lib.h"
+
 
 uint8_t gyro_id;
 gyro_sensor_t gyro_val[4];
 
-void     gyro_mesg_handler(uint8_t send_id, gyro_sensor_t     *data)
-{
-  gyro_id = send_id;
 
-  switch (send_id)
-  {
-    case 1:
-      memcpy(gyro_val, data, sizeof(gyro_sensor_t));
-    break;
+void gyro_mesg_handler(uint8_t send_id, gyro_sensor_t *data) {
+    gyro_id = send_id;
 
-    case 2:
-      memcpy(gyro_val+1, data, sizeof(gyro_sensor_t));
-    break;
+    switch (send_id) {
+        case 1:
+            memcpy(gyro_val, data, sizeof(gyro_sensor_t));
+            break;
 
-    case 3:
-      memcpy(gyro_val+2, data, sizeof(gyro_sensor_t));
-    break;
+        case 2:
+            memcpy(gyro_val+1, data, sizeof(gyro_sensor_t));
+            break;
 
-    case 4:
-      memcpy(gyro_val+3, data, sizeof(gyro_sensor_t));
-    break;
-  }
+        case 3:
+            memcpy(gyro_val+2, data, sizeof(gyro_sensor_t));
+            break;
+
+        case 4:
+            memcpy(gyro_val+3, data, sizeof(gyro_sensor_t));
+            break;
+    }
 }
-
-
-

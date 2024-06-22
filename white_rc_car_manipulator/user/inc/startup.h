@@ -23,14 +23,11 @@
   * V1.0.0      June-26-2018   ric.luo
   * @verbatim
   *********************** (C) COPYRIGHT 2018 DJI **********************
-  */ 
- 
-
+  */
 
 #ifndef __START_UP_H__
 #define __START_UP_H__
 
-#include "sys.h"
 #include "cmsis_os.h"
 #include "class_task.h"
 
@@ -39,7 +36,6 @@
 //#define USER_TASK3
 //#define USER_TASK4
 //#define USER_TASK5
-
 
 void sys_start_task(void);
 

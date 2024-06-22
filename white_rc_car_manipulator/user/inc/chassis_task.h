@@ -23,16 +23,10 @@
   * V1.0.0      January-15-2018   ric.luo
   * @verbatim
   *********************** (C) COPYRIGHT 2018 DJI **********************
-  */ 
- 
-
-
+  */
   
 #ifndef __CHASSIS_TASK_H__
 #define __CHASSIS_TASK_H__
-
-#include "sys.h"
-
 
 /**
   * @brief     底盘控制模式枚举

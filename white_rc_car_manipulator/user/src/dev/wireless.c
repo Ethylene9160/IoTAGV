@@ -25,38 +25,33 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
+#include "devices.h"
 #include "tutorial_lib.h"
-
-uint8_t hall_id;
-hall_sensor_t hall_val[4];
-
-void     hall_mesg_handler(uint8_t send_id, hall_sensor_t     *data)
-{
-  hall_id = send_id;
-
-  switch (send_id)
-  {
-    case 1:
-      memcpy(hall_val, data, sizeof(hall_sensor_t));
-    break;
-
-    case 2:
-      memcpy(hall_val+1, data, sizeof(hall_sensor_t));
-    break;
-
-    case 3:
-      memcpy(hall_val+2, data, sizeof(hall_sensor_t));
-    break;
-
-    case 4:
-      memcpy(hall_val+3, data, sizeof(hall_sensor_t));
-    break;
-  }
+#include "chassis_task.h"
 
 
+uint8_t wireless_id;
+wireless_data_t wireless_val[4];
+
+
+void wireless_recv_handler(uint8_t send_id, wireless_data_t *data) {
+    wireless_id = send_id;
+
+    switch (send_id) {
+        case 1:
+            memcpy(wireless_val, data, sizeof(wireless_data_t));
+            break;
+
+        case 2:
+            memcpy(wireless_val + 1, data, sizeof(wireless_data_t));
+            break;
+
+        case 3:
+            memcpy(wireless_val + 2, data, sizeof(wireless_data_t));
+            break;
+
+        case 4:
+            memcpy(wireless_val + 3, data, sizeof(wireless_data_t));
+            break;
+    }
 }
-
-
-
-

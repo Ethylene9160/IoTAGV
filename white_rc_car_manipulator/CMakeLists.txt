@@ -45,25 +45,25 @@ elseif ("${CMAKE_BUILD_TYPE}" STREQUAL "MinSizeRel")
     add_compile_options(-Os)
 else ()
     message(STATUS "Minimal optimization, debug info included")
-    #    add_compile_options(-Og -g)
+#    add_compile_options(-Og -g)
     add_compile_options(-O0)
 endif ()
 
 include_directories(
-    LibInc/hal/
-    LibInc/hal/Legacy/
-    LibInc/inc/
-    LibInc/inc/user/
-    LibInc/m3/
-    LibInc/os/
-    User/inc/
+    core/hal/
+    core/hal/Legacy/
+    core/inc/
+    core/inc/user/
+    core/m3/
+    core/os/
+    user/inc/
 )
 
 add_definitions(-DUSE_HAL_DRIVER -DSTM32F427xx)
 
 file(GLOB_RECURSE SOURCES
-    "LibInc/src/*.*"
-    "User/src/*.*"
+    "core/src/*.*"
+    "user/src/*.*"
 )
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F427IIHx_FLASH.ld)
@@ -74,7 +74,7 @@ add_link_options(-T ${LINKER_SCRIPT})
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
 
-set(LIBRM_STATIC_LIB_PATH "${CMAKE_SOURCE_DIR}/LibInc/src/librm_lib_1.0.a")
+set(LIBRM_STATIC_LIB_PATH "${CMAKE_SOURCE_DIR}/core/src/librm_lib_1.0.a")
 target_link_libraries(${PROJECT_NAME}.elf ${LIBRM_STATIC_LIB_PATH})
 
 # Arm-math - [USER]
@@ -85,8 +85,9 @@ target_link_libraries(${PROJECT_NAME}.elf ${LIBRM_STATIC_LIB_PATH})
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)
 
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${HEX_FILE}
-        COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
-        COMMENT "Building ${HEX_FILE}
-Building ${BIN_FILE}")
+add_custom_command(
+    TARGET ${PROJECT_NAME}.elf POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${HEX_FILE}
+    COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
+    COMMENT "Building ${HEX_FILE} Building ${BIN_FILE}"
+)

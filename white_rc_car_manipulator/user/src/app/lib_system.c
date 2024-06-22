@@ -25,38 +25,50 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
-#include "tutorial_lib.h"
+#include "startup.h"
 
-uint8_t infrared_id;
-infrared_sensor_t infrared_val[4];
 
-void infrared_mesg_handler(uint8_t send_id, infrared_sensor_t *data)
-{
-  infrared_id = send_id;
+#ifdef USER_TASK1
+  extern osThreadId task1_t;
+#endif
+#ifdef USER_TASK2
+  extern osThreadId task2_t;
+#endif
+#ifdef USER_TASK3
+  extern osThreadId task3_t;
+#endif
+#ifdef USER_TASK4
+  extern osThreadId task4_t;
+#endif
+#ifdef USER_TASK5
+  extern osThreadId task5_t;
+#endif
 
-  switch (send_id)
-  {
-    case 1:
-      memcpy(infrared_val, data, sizeof(infrared_sensor_t));
-    break;
 
-    case 2:
-      memcpy(infrared_val+1, data, sizeof(infrared_sensor_t));
-    break;
+void sys_start_task(void) {
+#ifdef USER_TASK1
+    osThreadDef(ostask1, USER_TASK1, osPriorityAboveNormal, 0, 128);
+    task1_t = osThreadCreate(osThread(ostask1), NULL);
+#endif
 
-    case 3:
-      memcpy(infrared_val+2, data, sizeof(infrared_sensor_t));
-    break;
+#ifdef USER_TASK2
+    osThreadDef(ostask2, USER_TASK2, osPriorityAboveNormal, 0, 128);
+    task2_t = osThreadCreate(osThread(ostask2), NULL);
+#endif
 
-    case 4:
-      memcpy(infrared_val+3, data, sizeof(infrared_sensor_t));
-    break;
-  }
+#ifdef USER_TASK3
+    osThreadDef(ostask3, USER_TASK3, osPriorityNormal, 0, 128);
+    task3_t = osThreadCreate(osThread(ostask3), NULL);
+#endif
+
+#ifdef USER_TASK4
+    osThreadDef(ostask4, USER_TASK4, osPriorityNormal, 0, 128);
+    task4_t = osThreadCreate(osThread(ostask4), NULL);
+#endif
+
+#ifdef USER_TASK5
+    osThreadDef(ostask5, USER_TASK5, osPriorityNormal, 0, 128);
+    task5_t = osThreadCreate(osThread(ostask5), NULL);
+#endif
+
 }
-
-
-
-
-
-

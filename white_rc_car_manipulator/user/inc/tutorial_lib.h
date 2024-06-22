@@ -28,53 +28,49 @@
 #ifndef __TUTORIAL_LIB_H__
 #define __TUTORIAL_LIB_H__
 
-#include "dev.h"
+#include "devices.h"
 
-/**
-  * @brief    Wait for Timeout (Time Delay)
-  * @param    millisec      time delay value
-  */
-void task_delay(uint32_t millisec);
+
+void task_delay(uint32_t millisec); // Wait for Timeout (Time Delay)
 
 
 /********************** MST request ************************/
-void    led_ctrl_data(uint8_t recv_id, led_ctrl_t    ctrl_data);
+void led_ctrl_data(uint8_t recv_id, led_ctrl_t    ctrl_data);
 void buzzer_ctrl_data(uint8_t recv_id, buzzer_ctrl_t ctrl_data);
-void    num_ctrl_data(uint8_t recv_id, num_ctrl_t    ctrl_data);
-void  relay_ctrl_data(uint8_t recv_id, relay_ctrl_t  ctrl_data);
-void  servo_ctrl_data(uint8_t recv_id, servo_ctrl_t  ctrl_data);
-void  motor_ctrl_data(uint8_t recv_id, motor_ctrl_t  ctrl_data);
+void num_ctrl_data(uint8_t recv_id, num_ctrl_t    ctrl_data);
+void relay_ctrl_data(uint8_t recv_id, relay_ctrl_t  ctrl_data);
+void servo_ctrl_data(uint8_t recv_id, servo_ctrl_t  ctrl_data);
+void motor_ctrl_data(uint8_t recv_id, motor_ctrl_t  ctrl_data);
 
 void wireless_config_data(uint8_t recv_id, wireless_config_t config_data);
-void   wireless_send_data(uint8_t recv_id, wireless_data_t   send_data);
+void wireless_send_data(uint8_t recv_id, wireless_data_t   send_data);
+
 
 /********************** REQ request ************************/
-void    motor_mesg_request(uint8_t recv_id);
-void    poten_mesg_request(uint8_t recv_id);
-void    sonic_mesg_request(uint8_t recv_id);
-void     gyro_mesg_request(uint8_t recv_id);
-void    stick_mesg_request(uint8_t recv_id);
-void     hall_mesg_request(uint8_t recv_id);
+void motor_mesg_request(uint8_t recv_id);
+void poten_mesg_request(uint8_t recv_id);
+void sonic_mesg_request(uint8_t recv_id);
+void gyro_mesg_request(uint8_t recv_id);
+void stick_mesg_request(uint8_t recv_id);
+void hall_mesg_request(uint8_t recv_id);
 
-void    motor_mesg_handler(uint8_t send_id, motor_sensor_t    *data);
+void motor_mesg_handler(uint8_t send_id, motor_sensor_t *data);
 void infrared_mesg_handler(uint8_t send_id, infrared_sensor_t *data);
-void    poten_mesg_handler(uint8_t send_id, poten_sensor_t    *data);
-void    sonic_mesg_handler(uint8_t send_id, sonic_sensor_t    *data);
-void     gyro_mesg_handler(uint8_t send_id, gyro_sensor_t     *data);
-void    stick_mesg_handler(uint8_t send_id, stick_sensor_t    *data);
-void     hall_mesg_handler(uint8_t send_id, hall_sensor_t     *data);
+void poten_mesg_handler(uint8_t send_id, poten_sensor_t *data);
+void sonic_mesg_handler(uint8_t send_id, sonic_sensor_t *data);
+void gyro_mesg_handler(uint8_t send_id, gyro_sensor_t *data);
+void stick_mesg_handler(uint8_t send_id, stick_sensor_t *data);
+void hall_mesg_handler(uint8_t send_id, hall_sensor_t *data);
+
 
 /************************* ACK *****************************/
-void      key_mesg_handler(uint8_t send_id, key_sensor_t      *data);
-void wireless_recv_handler(uint8_t send_id, wireless_data_t   *data);
+void key_mesg_handler(uint8_t send_id, key_sensor_t *data);
+void wireless_recv_handler(uint8_t send_id, wireless_data_t *data);
 
 
 /************************* UART *****************************/
-void     dbus_uart_handler(uint8_t *buff);
-void     dbus_mesg_handler(rc_info_t *rc, uint8_t *buff);
-
+void dbus_uart_handler(uint8_t *buff);
+void dbus_mesg_handler(rc_info_t *rc, uint8_t *buff);
 
 
 #endif
-
-

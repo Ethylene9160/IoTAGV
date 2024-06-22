@@ -25,38 +25,32 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
+#include "devices.h"
 #include "tutorial_lib.h"
 
-uint8_t stick_id;
-stick_sensor_t stick_val[4];
 
-void    stick_mesg_handler(uint8_t send_id, stick_sensor_t    *data)
-{
-  stick_id = send_id;
+uint8_t poten_id;
+poten_sensor_t poten_val[4];
 
-  switch (send_id)
-  {
-    case 1:
-      memcpy(stick_val, data, sizeof(stick_sensor_t));
-    break;
 
-    case 2:
-      memcpy(stick_val+1, data, sizeof(stick_sensor_t));
-    break;
+void poten_mesg_handler(uint8_t send_id, poten_sensor_t *data) {
+    poten_id = send_id;
 
-    case 3:
-      memcpy(stick_val+2, data, sizeof(stick_sensor_t));
-    break;
+    switch (send_id) {
+        case 1:
+            memcpy(poten_val, data, sizeof(poten_sensor_t));
+            break;
 
-    case 4:
-      memcpy(stick_val+3, data, sizeof(stick_sensor_t));
-    break;
-  }
+        case 2:
+            memcpy(poten_val + 1, data, sizeof(poten_sensor_t));
+            break;
+
+        case 3:
+            memcpy(poten_val + 2, data, sizeof(poten_sensor_t));
+            break;
+
+        case 4:
+            memcpy(poten_val + 3, data, sizeof(poten_sensor_t));
+            break;
+    }
 }
-
-
-
-
-
-

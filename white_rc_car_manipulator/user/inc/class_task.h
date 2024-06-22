@@ -6,14 +6,9 @@ extern "C"
 {
 #endif
 
-
-#include "sys.h"
-
-
 void chassis_task(void const *argu);
 
 void class_test_task(void const *argu);
-
 
 #ifdef __cplusplus
 }

@@ -25,42 +25,32 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
+#include "devices.h"
 #include "tutorial_lib.h"
 
-uint8_t key_id;
-key_sensor_t key_val[4];
 
-void      key_mesg_handler(uint8_t send_id, key_sensor_t      *data)
-{
-  key_id = send_id;
+uint8_t hall_id;
+hall_sensor_t hall_val[4];
 
-  switch (send_id)
-  {
-    case 1:
-    {
-      memcpy(key_val, data, sizeof(key_sensor_t));
+
+void hall_mesg_handler(uint8_t send_id, hall_sensor_t *data) {
+    hall_id = send_id;
+
+    switch (send_id) {
+        case 1:
+            memcpy(hall_val, data, sizeof(hall_sensor_t));
+            break;
+
+        case 2:
+            memcpy(hall_val + 1, data, sizeof(hall_sensor_t));
+            break;
+
+        case 3:
+            memcpy(hall_val + 2, data, sizeof(hall_sensor_t));
+            break;
+
+        case 4:
+            memcpy(hall_val + 3, data, sizeof(hall_sensor_t));
+            break;
     }
-    break;
-
-    case 2:
-    {
-      memcpy(key_val+1, data, sizeof(key_sensor_t));
-    }
-    break;
-
-    case 3:
-      memcpy(key_val+2, data, sizeof(key_sensor_t));
-    break;
-
-    case 4:
-      memcpy(key_val+3, data, sizeof(key_sensor_t));
-    break;
-  }
 }
-
-
-
-
-
-

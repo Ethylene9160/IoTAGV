@@ -25,40 +25,20 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
+#include "devices.h"
 #include "tutorial_lib.h"
 
-#include "chassis_task.h"
 
-uint8_t wireless_id;
-wireless_data_t wireless_val[4];
+uint8_t motor_id;
+motor_sensor_t motor_val;
 
-void wireless_recv_handler(uint8_t send_id, wireless_data_t   *data)
-{
-  wireless_id = send_id;
 
-  switch (send_id)
-  {
-    case 1:
-      memcpy(wireless_val, data, sizeof(wireless_data_t));
-    break;
+void motor_mesg_handler(uint8_t send_id, motor_sensor_t *data) {
+    motor_id = send_id;
 
-    case 2:
-      memcpy(wireless_val+1, data, sizeof(wireless_data_t));
-    break;
-
-    case 3:
-      memcpy(wireless_val+2, data, sizeof(wireless_data_t));
-    break;
-
-    case 4:
-      memcpy(wireless_val+3, data, sizeof(wireless_data_t));
-    break;
-  }
-
+    switch (send_id) {
+        case 1:
+            memcpy(&motor_val, data, sizeof(motor_sensor_t));
+            break;
+    }
 }
-
-
-
-
-
