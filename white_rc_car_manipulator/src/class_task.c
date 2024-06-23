@@ -25,7 +25,7 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "devices.h"
+#include "dev.h"
 #include "tutorial_lib.h"
 
 #include "chassis_task.h"
@@ -87,7 +87,7 @@ void chassis_task(void const *argu) {
     chassis.mode = CHASSIS_NORMAL;
 
     while(1) {
-        sonic_mesg_request(1);
+//        sonic_mesg_request(1);
 
         if (white_rc.sw1 == 1) { // 上
             chassis.mode = CHASSIS_NORMAL;
@@ -106,15 +106,18 @@ void chassis_task(void const *argu) {
                 break;
 
             case CHASSIS_AVOID:
-                chassis.vx = 0;
+//                chassis.vx = 0;
+//                if (sonic_val[0].distance <= 700 && sonic_val[0].distance != 0) {
+//                    chassis.vy = 0;
+//                    chassis.vw = 200;
+//                } else {
+//                    chassis.vy = 150;
+//                    chassis.vw = 0;
+//                }
 
-                if (sonic_val[0].distance <= 700 && sonic_val[0].distance != 0) {
-                    chassis.vy = 0;
-                    chassis.vw = 200;
-                } else {
-                    chassis.vy = 150;
-                    chassis.vw = 0;
-                }
+                chassis.vy = 150;
+                chassis.vw = 0;
+
                 break;
 
             case CHASSIS_STOP:

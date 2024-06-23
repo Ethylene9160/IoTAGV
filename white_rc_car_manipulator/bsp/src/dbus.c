@@ -25,7 +25,7 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "devices.h"
+#include "dev.h"
 #include "tutorial_lib.h"
 
 
@@ -61,7 +61,7 @@ void dbus_mesg_handler(rc_info_t *rc, uint8_t *buff) {
 
     if ((abs(rc->ch1) > 660) || (abs(rc->ch2) > 660) || (abs(rc->ch3) > 660) || (abs(rc->ch4) > 660)) {
         memset(rc, 0, sizeof(rc_info_t));
-        return ;
+        return;
     }
 
     rc->mouse.x = buff[6] | (buff[7] << 8); // x axis

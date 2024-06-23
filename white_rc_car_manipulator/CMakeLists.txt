@@ -50,20 +50,22 @@ else ()
 endif ()
 
 include_directories(
+    bsp/inc/
     core/hal/
     core/hal/Legacy/
     core/inc/
     core/inc/user/
     core/m3/
     core/os/
-    user/inc/
+    inc/
 )
 
 add_definitions(-DUSE_HAL_DRIVER -DSTM32F427xx)
 
 file(GLOB_RECURSE SOURCES
+    "bsp/src/*.*"
     "core/src/*.*"
-    "user/src/*.*"
+    "src/*.*"
 )
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F427IIHx_FLASH.ld)
@@ -74,7 +76,7 @@ add_link_options(-T ${LINKER_SCRIPT})
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
 
-set(LIBRM_STATIC_LIB_PATH "${CMAKE_SOURCE_DIR}/core/src/librm_lib_1.0.a")
+set(LIBRM_STATIC_LIB_PATH "${CMAKE_SOURCE_DIR}/bsp/src/librm_lib_1.0.a")
 target_link_libraries(${PROJECT_NAME}.elf ${LIBRM_STATIC_LIB_PATH})
 
 # Arm-math - [USER]
