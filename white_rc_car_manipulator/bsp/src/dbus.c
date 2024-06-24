@@ -71,5 +71,5 @@ void dbus_mesg_handler(rc_info_t *rc, uint8_t *buff) {
     rc->mouse.l = buff[12];
     rc->mouse.r = buff[13];
 
-    rc->key_code = buff[14] | buff[15] << 8; // key borad code
+    rc->key_code = buff[14] | buff[15] << 8; // key code
 }

@@ -25,8 +25,8 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#ifndef __RM_DEVICE_H__
-#define __RM_DEVICE_H__
+#ifndef RM_DEVICE_H_
+#define RM_DEVICE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +37,7 @@ extern "C" {
 #include "stdint.h"
 
 
-// 1 led module
+// led module
 typedef struct {
     uint8_t led1: 1;
     uint8_t led2: 1;
@@ -49,7 +49,7 @@ typedef struct {
     uint8_t led8: 1;
 } led_ctrl_t;
 
-// 2 key module
+// key module
 typedef struct {
     uint8_t key1: 1;
     uint8_t key2: 1;
@@ -62,13 +62,13 @@ typedef struct {
     uint8_t key9: 1;
 } key_sensor_t;
 
-// 3 buzzer module
+// buzzer module
 typedef struct {
     uint8_t  enable;
     uint16_t freq;      //nHz
 } buzzer_ctrl_t;
 
-// 4 digital module
+// digital module
 typedef struct {
     uint8_t enable_1;  // 1: en, 0: dis
     uint8_t num_1;     // 0 ~ 9
@@ -84,12 +84,12 @@ typedef struct {
     uint8_t pnt_4;
 } num_ctrl_t;
 
-// 5 relay module
+// relay module
 typedef struct {
     uint8_t ctrl; // 0: close, 1: open
 } relay_ctrl_t;
 
-// 6 servo module
+// servo module
 typedef struct {
     uint16_t s1;  // 500 ~ 2500
     uint16_t s2;
@@ -97,7 +97,7 @@ typedef struct {
     uint16_t s4;
 } servo_ctrl_t;
 
-// 7 motor translate module
+// motor translate module
 typedef struct {
     int8_t  m1_enable;  // 0: dis, 1: en
     int16_t m1_rpm;
@@ -120,7 +120,7 @@ typedef struct {
     int16_t m4_rpm;
 } motor_sensor_t;
 
-// 8 infrared module
+// infrared module
 typedef struct {
     uint8_t in1;    //0: reflex 1: no reflex
     uint8_t in2;
@@ -128,17 +128,17 @@ typedef struct {
     uint8_t in4;
 } infrared_sensor_t;
 
-// 9 resistance module
+// resistance module
 typedef struct {
     uint16_t pos;  // 0 ~ 4095
 } poten_sensor_t;
 
-// 10 sonic module
+// sonic module
 typedef struct {
     int16_t  distance;  // mm
 } sonic_sensor_t;
 
-// 11 gyro module
+// gyro module
 typedef struct {
     float gyro_x;  // degree/s
     float gyro_y;  // degree/s
@@ -148,13 +148,13 @@ typedef struct {
     float angle_z; // degree
 } gyro_sensor_t;
 
-// 12 stick module
+// stick module
 typedef struct {
     int16_t pos_x;  //-1000 ~ 1000
     int16_t pos_y;
 } stick_sensor_t;
 
-// 13 wireless module
+// wireless module
 typedef struct {
     uint8_t channel;   // 0 ~ 50
     uint8_t dir;       // 1: rx, 2: tx
@@ -164,12 +164,12 @@ typedef struct {
     uint8_t data[16];
 } wireless_data_t;
 
-// 14 hall module
+// hall module
 typedef struct {
     uint16_t value;  // 0 ~ 4095
 } hall_sensor_t;
 
-// 15 remote control
+// remote control
 typedef struct {
     int16_t ch1;
     int16_t ch2;
