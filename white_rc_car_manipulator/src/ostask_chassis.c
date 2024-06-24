@@ -1,14 +1,9 @@
 #include "ostask_chassis.h"
 
-#include "dev.h" // device data structure declarations
-#include "tutorial_lib.h" // device operating functions declarations, here for `task_delay` and `dbus_uart_handler`
+#include "librm.h"
 
 
-
-rc_info_t      white_rc;
-
-
-//static int16_t chassis_moto_speed_ref[4];
+rc_info_t white_rc;
 
 
 /**
@@ -17,7 +12,7 @@ rc_info_t      white_rc;
   * @param vy 前后平移速度 (mm/s), 前为正方向
   * @param vw 底盘旋转速度 (degree/s), 逆时针为正方向
   * @param speed[] 四个电机转速 (rpm)
-  * @note 电机轮子左前为 0, 逆时针顺序编号 0 ~ 3; 电调 SET 时的序号则是顺时针 (还是逆时针?) 1 ~ 4, 左前 (还是右前?) 为 1. (TODO)
+  * @note 数组索引中左前轮电机为 0, 逆时针顺序编号 0 ~ 3; 对应实机电调 SET 时的序号则是逆时针 1 ~ 4, 右前为 1.
   */
 void calc_motor_velocities(float vx, float vy, float vw, int16_t *speed) {
     static float rotate_ratio_f = ((WHEELBASE + WHEELTRACK) / 2.0f - GIMBAL_OFFSET) * RADIAN_COEF;

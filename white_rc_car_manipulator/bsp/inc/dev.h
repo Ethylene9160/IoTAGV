@@ -21,6 +21,7 @@
   * @history
   * Version     Date           Author           Modification
   * V1.0.0      June-15-2018   ric.luo
+  *             June-25-2024
   * @verbatim
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
@@ -122,7 +123,7 @@ typedef struct {
 
 // infrared module
 typedef struct {
-    uint8_t in1;    //0: reflex 1: no reflex
+    uint8_t in1;    // 0: reflex, 1: no reflex
     uint8_t in2;
     uint8_t in3;
     uint8_t in4;
@@ -150,7 +151,7 @@ typedef struct {
 
 // stick module
 typedef struct {
-    int16_t pos_x;  //-1000 ~ 1000
+    int16_t pos_x;  // -1000 ~ 1000
     int16_t pos_y;
 } stick_sensor_t;
 

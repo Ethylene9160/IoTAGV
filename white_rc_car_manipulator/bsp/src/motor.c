@@ -25,7 +25,6 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
 #include "tutorial_lib.h"
 
 
@@ -33,6 +32,9 @@ uint8_t motor_id;
 motor_sensor_t motor_val;
 
 
+/**
+ * @note TODO: `motor_mesg_handler` 并没有在 `tutorial_lib.o` 中被作为外部符号调用, 不确定其它地方有没有, 至少单步调试不经过该函数. 删去不影响功能, 暂时保留.
+ */
 void motor_mesg_handler(uint8_t send_id, motor_sensor_t *data) {
     motor_id = send_id;
 

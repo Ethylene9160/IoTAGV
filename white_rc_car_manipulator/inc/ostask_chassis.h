@@ -15,7 +15,7 @@
 #define RADIAN_COEF 0.017453f // 角度转弧度系数, pi / 180
 #define PERIMETER 76 // 底盘轮子周长 (mm)
 #define CHASSIS_DECELE_RATIO (1.0f / 36.0f) // 底盘电机减速比
-#define MAX_WHEEL_RPM 15000   // 单个电机速度极限 (rpm), 15000 rpm = 528 mm/s
+#define MAX_WHEEL_RPM 15000 // 单个电机速度极限 (rpm), 15000 rpm = 528 mm/s
 
 #define VAL_LIMIT(val, min, max) if ((val) <= (min)) { (val) = (min); } else if ((val) >= (max)) { (val) = (max); }
 
