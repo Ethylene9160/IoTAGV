@@ -25,38 +25,22 @@
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */
 
-#include "dev.h"
 #include "tutorial_lib.h"
 
-uint8_t poten_id;
-poten_sensor_t poten_val[4];
 
-void    poten_mesg_handler(uint8_t send_id, poten_sensor_t    *data)
-{
-  poten_id = send_id;
-
-  switch (send_id)
-  {
-    case 1:
-      memcpy(poten_val, data, sizeof(poten_sensor_t));
-    break;
-
-    case 2:
-      memcpy(poten_val+1, data, sizeof(poten_sensor_t));
-    break;
-
-    case 3:
-      memcpy(poten_val+2, data, sizeof(poten_sensor_t));
-    break;
-
-    case 4:
-      memcpy(poten_val+3, data, sizeof(poten_sensor_t));
-    break;
-  }
+uint8_t motor_id;
+motor_sensor_t motor_val;
 
 
+/**
+ * @note TODO: `motor_mesg_handler` 并没有在 `tutorial_lib.o` 中被作为外部符号调用, 不确定其它地方有没有, 至少单步调试不经过该函数. 删去不影响功能, 暂时保留.
+ */
+void motor_mesg_handler(uint8_t send_id, motor_sensor_t *data) {
+    motor_id = send_id;
+
+    switch (send_id) {
+        case 1:
+            memcpy(&motor_val, data, sizeof(motor_sensor_t));
+            break;
+    }
 }
-
-
-
-
