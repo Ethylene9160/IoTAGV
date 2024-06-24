@@ -2,7 +2,7 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_VERSION 1)
 cmake_minimum_required(VERSION 3.23)
 
-# specify cross-compilers and tools
+# specify cross-compilers and tools (hint: environment variable PATH for gnu-arm-none-eabi)
 set(CMAKE_C_COMPILER arm-none-eabi-gcc)
 set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
 set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
@@ -17,12 +17,11 @@ project(white_rc_car_manipulator C CXX ASM)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
-#Uncomment for hardware floating point
+# Uncomment for hardware floating point
 add_compile_definitions(ARM_MATH_CM4;ARM_MATH_MATRIX_CHECK;ARM_MATH_ROUNDING)
 add_compile_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
 add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
-
-#Uncomment for software floating point
+# Uncomment for software floating point
 #add_compile_options(-mfloat-abi=soft)
 
 add_compile_options(-mcpu=cortex-m4 -mthumb -mthumb-interwork)
@@ -65,6 +64,7 @@ add_definitions(-DUSE_HAL_DRIVER -DSTM32F427xx)
 file(GLOB_RECURSE SOURCES
     "bsp/src/*.*"
     "core/src/*.*"
+    "core/startup/startup_stm32f427xx.s"
     "src/*.*"
 )
 
