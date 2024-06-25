@@ -1,5 +1,8 @@
 #include "ostask_chassis.h"
 
+#include "stdio.h"
+
+#include "cmsis_os.h"
 #include "librm.h"
 
 
@@ -44,18 +47,49 @@ void calc_motor_velocities(float vx, float vy, float vw, int16_t *speed) {
         for (uint8_t i = 0; i < 4; i++)
             wheel_rpm[i] *= rate;
     }
-    memcpy(speed, wheel_rpm, 4*sizeof(int16_t));
+    memcpy(speed, wheel_rpm, 4 * sizeof(int16_t));
 }
 
+void test_reg_handler(uint8_t *p_buf, uint16_t len) {
+    uint16_t data_len = len - 14; // *((uint16_t *) (p_buf + 5));
+    uint8_t recv_data[data_len];
+    memcpy(recv_data, p_buf + 12, data_len);
+    char str[50];
+    sprintf(str, "Value = %d, Len = %d.\n", (int) recv_data[0], data_len);
+    bsp_uart1_sendbuf((uint8_t *) str, strlen(str));
+}
 
 void ostask_chassis(void const *argu) {
     task_delay(1000);
+
+    // Examples (下次 Commit 即删除):
+    // 5A RT RI ST SI  LEN   SEQ   CMD  C8 DA  C16
+
+    // 执行指令 (0x5A, 0xF0, 0x00, ... 或 0x5A, 0xFF, 0xFF, ...):
+    // 注册回调:
+    module_ack_register(0x0080u, test_reg_handler);
+    // 数据为 00:
+    // 5A F0 00 01 01 01 00 00 00 80 00 4E 00 99 0B
+    // 5A FF FF 01 01 01 00 00 00 80 00 9A 00 2B 6B
+    // 数据为 01:
+    // 5A F0 00 01 01 01 00 01 00 80 00 C1 01 3F 11
+    // 5A FF FF 01 01 01 00 01 00 80 00 15 01 8D 71
+
+    // 发送数据转发回来 (0x5A, 0x80, 0x00, ...):
+    // 5A 80 00 01 01 01 00 00 00 80 00 B3 00 E1 AE
+//    uint8_t data_0[1] = {0x00};
+//    send_pc_pack_cmd(1u, 1u, 0x0080u, data_0, 1);
 
     while (1) {
         chassis_mode_e mode;
         float vx, vy, w;
 
-        if (white_rc.sw1 == 3) { // 中
+        rc_info_t rc;
+        taskENTER_CRITICAL();
+        memcpy(&rc, &white_rc, sizeof(white_rc));
+        taskEXIT_CRITICAL();
+
+        if (rc.sw1 == 3) { // 中
             mode = CHASSIS_NORMAL;
         } else {
             mode = CHASSIS_STOP;
@@ -64,15 +98,9 @@ void ostask_chassis(void const *argu) {
         switch (mode) {
             case CHASSIS_NORMAL:
                 // 控制信息转化为标准单位，平移为 (mm/s) 旋转为 (degree/s)
-                vx = (float) -white_rc.ch1 / RC_MAX_VALUE * MAX_CHASSIS_VX_SPEED;
-                vy = (float) white_rc.ch2 / RC_MAX_VALUE * MAX_CHASSIS_VY_SPEED;
-                w = (float) white_rc.ch3 / RC_MAX_VALUE * MAX_CHASSIS_VR_SPEED;
-                break;
-
-            case CHASSIS_STOP:
-                vy = 0;
-                vx = 0;
-                w = 0;
+                vx = (float) -rc.ch1 / RC_MAX_VALUE * MAX_CHASSIS_VX_SPEED;
+                vy = (float) rc.ch2 / RC_MAX_VALUE * MAX_CHASSIS_VY_SPEED;
+                w = (float) rc.ch3 / RC_MAX_VALUE * MAX_CHASSIS_VR_SPEED;
                 break;
 
             default:

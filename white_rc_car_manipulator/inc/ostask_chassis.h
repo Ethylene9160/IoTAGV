@@ -1,6 +1,10 @@
 #ifndef CHASSIS_TASK_H_
 #define CHASSIS_TASK_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "stdint.h" // for intx_t
 
 
@@ -44,5 +48,9 @@ typedef struct {
  * @param argu
  */
 void ostask_chassis(void const *argu);
+
+#ifdef __cplusplus
+};
+#endif
 
 #endif
