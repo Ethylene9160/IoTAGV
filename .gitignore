@@ -2,3 +2,4 @@ white_rc_car_manipulator/cmake-build-debug-mingw_stm32/
 white_rc_car_manipulator/cmake-build-release-mingw_stm32/
 white_rc_car_manipulator/.idea/
 CMakeLists.txt
+*.pdf
