@@ -58,8 +58,8 @@ uint32_t get_stamp(void) {
     return (uint32_t) xTaskGetTickCount();
 }
 
-uint8_t is_expired(uint32_t stamp, uint32_t expired_time) { // RTOS 配置的 1 tick = 1 ms
-    return get_stamp() - stamp > expired_time ? 1 : 0;
+uint8_t is_expired(uint32_t stamp, uint32_t time_limit) {
+    return get_stamp() - stamp > pdMS_TO_TICKS(time_limit) ? 1 : 0;
 }
 
 /*
@@ -103,7 +103,7 @@ void chassis_set_expired_time_reg_handler(uint8_t *p_buf, uint16_t len) {
     taskEXIT_CRITICAL();
 
     char str[128];
-    sprintf(str, "Set expired time: %lu ms (ticks).\n", *((uint32_t *) data));
+    sprintf(str, "Set expired time: %lu ms.\n", *((uint32_t *) data));
     bsp_uart1_sendbuf((uint8_t *) str, strlen(str));
 }
 
