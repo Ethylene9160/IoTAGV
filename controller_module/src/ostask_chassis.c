@@ -63,7 +63,7 @@ uint8_t is_expired(uint32_t stamp, uint32_t expired_limit) {
 /*
  * 用户指令:
  *    cmd_id    data format                                     desc
- *    0x0100    vx (float:32), vy (float:32), w (float:32)      控制底盘速度. stamp 由 xTaskGetTickCount() 得到. vx, vy, w 单位分别为 mm/s 和 deg/s.
+ *    0x0100    vx (float:32), vy (float:32), w (float:32)      控制底盘速度. vx, vy, w 单位分别为 mm/s 和 deg/s.
  *                                                              e.g. 5A F0 00 00 00 0C 00 00 00 00 01 0B 00 00 20 41 00 00 00 00 00 00 00 00 A0 BD
      *                                                               5A F0 00 00 00 0C 00 00 00 00 01 0B 00 00 20 C1 00 00 00 00 00 00 00 00 77 79
      *                                                          使用 `cartesian_velocity_msg_gen.py` 和 `gen_msg.py` 可以手动生成数据帧.
@@ -122,7 +122,7 @@ void ostask_chassis(void const *argu) {
                 break;
 
             case CHASSIS_CAN_CONTROL:
-                if (velocity.stamp && is_expired(velocity.stamp, 1000)) {
+                if (velocity.stamp && is_expired(velocity.stamp, 2000)) {
                     velocity.stamp = 0;
                     velocity.vx = 0;
                     velocity.vy = 0;
