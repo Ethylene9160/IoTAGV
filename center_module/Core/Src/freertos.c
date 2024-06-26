@@ -130,10 +130,10 @@ void StartDefaultTask(void *argument)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+    while (1) {
+        HAL_GPIO_TogglePin(LED0_GPIO_Port, LED0_Pin);
+        osDelay(pdMS_TO_TICKS(500));
+    }
   /* USER CODE END StartDefaultTask */
 }
 
