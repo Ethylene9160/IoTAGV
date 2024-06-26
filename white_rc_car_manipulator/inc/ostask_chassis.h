@@ -1,6 +1,10 @@
 #ifndef CHASSIS_TASK_H_
 #define CHASSIS_TASK_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "stdint.h" // for intx_t
 
 
@@ -24,7 +28,8 @@
   * @brief 底盘控制模式
   */
 typedef enum {
-    CHASSIS_NORMAL,         // 正常
+    CHASSIS_REMOTE_CONTROL, // 正常
+    CHASSIS_CAN_CONTROL,    // 外部控制
     CHASSIS_STOP            // 停止
 } chassis_mode_e;
 
@@ -32,11 +37,11 @@ typedef enum {
   * @brief 底盘控制数据
   */
 typedef struct {
-    chassis_mode_e mode;    // 控制模式
+    uint32_t stamp;         // 时间戳
     float vx;               // x 速度
     float vy;               // y 速度
-    float vw;               // 角速度
-} chassis_t;
+    float w;                // 角速度
+} chassis_cartesian_velocity_stamped_t;
 
 
 /**
@@ -44,5 +49,9 @@ typedef struct {
  * @param argu
  */
 void ostask_chassis(void const *argu);
+
+#ifdef __cplusplus
+};
+#endif
 
 #endif

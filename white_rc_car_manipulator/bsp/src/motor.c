@@ -21,6 +21,7 @@
   * @history
   * Version     Date           Author           Modification
   * V1.0.0      June-26-2018   ric.luo
+  *             June-25-2024
   * @verbatim
   *********************** (C) COPYRIGHT 2018 DJI **********************
   */

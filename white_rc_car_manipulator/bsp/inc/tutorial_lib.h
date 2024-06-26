@@ -29,6 +29,10 @@
 #ifndef LIBRM_H_
 #define LIBRM_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "dev.h"
 
 
@@ -42,7 +46,7 @@ void task_delay(uint32_t millisec);
 /**
  * @brief 发送控制指令
  * @note 这些函数都被实现在了 `librm_lib_1.0.a` 的 `tutorial_lib.o` 中.
- *       TODO: recv_id 是什么, 下同 (猜测是与 send_id 对应, 以确保可以配对发送和接收的消息)
+ *       TODO: recv_id 是什么, 下同
  */
 void led_ctrl_data(uint8_t recv_id, led_ctrl_t ctrl_data);
 void buzzer_ctrl_data(uint8_t recv_id, buzzer_ctrl_t ctrl_data);
@@ -67,7 +71,8 @@ void hall_mesg_request(uint8_t recv_id);
 /**
  * @brief 消息回调函数
  * @note 这些函数都在 `librm_lib_1.0.a` 的 `tutorial_lib.o` 中被作为外部符号调用, 可由用户覆写实现.
- *       TODO: `key_mesg_handler` 与 `wireless_recv_handler` 原先注为 ACK 是何意
+ *       在 `librm_lib_1.0.a` 的 `protocol_parser.o` 中有 WEAK 的空实现, 故不使用的可以不写.
+ *       静态库中将 UART 和 CAN 接口的消息全都统一, 允许互相转发和作为指令执行, 对于后者用户可以自己注册指令对应的回调函数, 消息帧格式与注册机制详见对应注释 (目前在 `threads.c`).
  */
 void motor_mesg_handler(uint8_t send_id, motor_sensor_t *data); // `tutorial_lib.o` 里没有该函数, 详见 `motor.c`
 void infrared_mesg_handler(uint8_t send_id, infrared_sensor_t *data);
@@ -84,5 +89,9 @@ void wireless_recv_handler(uint8_t send_id, wireless_data_t *data);
  * @note 该函数可由用户覆写实现, 分析详见 bsp_usart.h 中 `uart_recv_handler` 的注释.
  */
 void dbus_uart_handler(uint8_t *buff);
+
+#ifdef __cplusplus
+};
+#endif
 
 #endif
