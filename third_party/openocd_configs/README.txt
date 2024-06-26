@@ -1,0 +1,2 @@
+1. Put these .cfg files into ${YOUR_OPENOCD_FOLDER}/share/openocd/scripts/target/.
+2. Use ${PROJECT_FOLDER}/openocd.cfg as the `Board config file` for CLion in your run configuration under `Run/Debug Configurations - OpenOCD Download & Run`.
