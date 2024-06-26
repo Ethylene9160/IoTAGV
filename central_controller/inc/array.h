@@ -5,12 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_SIZE 0xFFFFFFFF
+uint32_t const MAX_SIZE = 0xFFFFFFFF;
 
 /*
-动态数组。
-实现类似于std::vector的功能，用来存储元素。
-元素内部全部采用空指针以充当简化泛型。
+  动态数组。
+  实现类似于std::vector的功能，用来存储元素。
+  元素内部全部采用空指针以充当简化泛型。
+  还没有检验。
 */
 typedef struct {
     uint32_t size;
@@ -52,7 +53,7 @@ uint8_t _check_size(array* arr) {
 
 void push_back(array* arr, void* elem) {
     if (!_check_size(arr)) {
-        // handle error
+        // TODO: handle error
         return;
     }
     memcpy((char*)arr->p + arr->size * arr->elem_size, elem, arr->elem_size);
