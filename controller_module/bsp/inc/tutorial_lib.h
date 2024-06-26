@@ -37,13 +37,6 @@ extern "C" {
 
 
 /**
- * @brief 令线程等待一段时间
- * @param millisec
- * @note 被实现在了 `librm_lib_1.0.a` 的 `freertos.o` 中, 实际上就是调用了一下 osDelay.
- */
-void task_delay(uint32_t millisec);
-
-/**
  * @brief 发送控制指令
  * @note 这些函数都被实现在了 `librm_lib_1.0.a` 的 `tutorial_lib.o` 中.
  *       TODO: recv_id 是什么, 下同

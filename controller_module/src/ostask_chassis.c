@@ -108,7 +108,7 @@ void chassis_set_expired_time_reg_handler(uint8_t *p_buf, uint16_t len) {
 }
 
 void ostask_chassis(void const *argu) {
-    task_delay(100);
+    osDelay(100);
 
     chassis_mode_e mode;
     rc_info_t rc;
@@ -196,6 +196,6 @@ void ostask_chassis(void const *argu) {
         moto_ctrl.m4_rpm = chassis_moto_speed_ref[3];
         motor_ctrl_data(1, moto_ctrl);
 
-        task_delay(50);
+        osDelay(50);
     }
 }
