@@ -1,5 +1,5 @@
-#ifndef OSTASK_CONTROLLER_MODULE_PORT_H_
-#define OSTASK_CONTROLLER_MODULE_PORT_H_
+#ifndef CENTER_MODULE_OSTASK_CONTROLLER_MODULE_PORT_H_
+#define CENTER_MODULE_OSTASK_CONTROLLER_MODULE_PORT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,7 +15,7 @@ const osThreadAttr_t controller_module_port_task_attributes = {
 };
 
 
-void controllerModulePortTask(void *argument);
+[[noreturn]] void controllerModulePortTask(void *argument);
 
 #ifdef __cplusplus
 }
