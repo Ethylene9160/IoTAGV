@@ -1,14 +1,9 @@
 #ifndef CENTER_MODULE_PORT_CAN_H_
 #define CENTER_MODULE_PORT_CAN_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <cstdint>
 
 #include "can.h"
-
 
 class PortCAN {
 public:
@@ -24,8 +19,4 @@ private:
     static CAN_HandleTypeDef hcan_;
 };
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif // CENTER_MODULE_PORT_CAN_H_

@@ -2,22 +2,79 @@
 
 #include "port_can.h"
 
+namespace ostask_controller_module_port {
 
-void controllerModulePortTask(void *argument) {
-    PortCAN::init(0x061A);
-
-    uint8_t expire_1_data[18] = {0x5A, 0xF0, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x01, 0x6E, 0xE8, 0x03, 0x00, 0x00, 0xB7, 0xB9};
-    uint8_t expire_2_data[18] = {0x5A, 0xF0, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01, 0x01, 0x6E, 0xD0, 0x07, 0x00, 0x00, 0xFC, 0x73};
-    uint8_t vx_p10_data[26] = {0x5A, 0xF0, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x01, 0x0B, 0x00, 0x00, 0x20, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0xBD};
-    uint8_t vx_n10_data[26] = {0x5A, 0xF0, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x01, 0x0B, 0x00, 0x00, 0x20, 0xC1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x77, 0x79};
-
-    PortCAN::sendBytes(expire_2_data, sizeof(expire_2_data));
-    osDelay(1000);
-
-    while (true) {
-        PortCAN::sendBytes(vx_p10_data, sizeof(vx_p10_data));
-        osDelay(1000);
-        PortCAN::sendBytes(vx_n10_data, sizeof(vx_n10_data));
-        osDelay(1000);
+    bool pushCommand(const msgs::Command &command) {
+        if (controller_command_queue_mutex != nullptr) {
+            osStatus_t status = osMutexAcquire(controller_command_queue_mutex, osWaitForever);
+            if (status == osOK) {
+                controller_command_queue.push(command);
+                osMutexRelease(controller_command_queue_mutex);
+                return true;
+            }
+        }
+        return false;
     }
-}
+
+    msgs::Command popCommand() {
+        if (controller_command_queue_mutex != nullptr) {
+            osStatus_t status = osMutexAcquire(controller_command_queue_mutex, osWaitForever);
+            if (status == osOK) {
+                if (!controller_command_queue.empty()) {
+                    msgs::Command command = controller_command_queue.front();
+                    controller_command_queue.pop();
+                    osMutexRelease(controller_command_queue_mutex);
+                    return command;
+                }
+            }
+        }
+        return msgs::Command(0, msgs::Twist2D());
+    }
+
+    bool isCommandQueueEmpty() {
+        if (controller_command_queue_mutex != nullptr) {
+            osStatus_t status = osMutexAcquire(controller_command_queue_mutex, osWaitForever);
+            if (status == osOK) {
+                bool empty = controller_command_queue.empty();
+                osMutexRelease(controller_command_queue_mutex);
+                return empty;
+            }
+        }
+        return true; // TODO
+    }
+
+    bool clearCommandQueue() {
+        if (controller_command_queue_mutex != nullptr) {
+            osStatus_t status = osMutexAcquire(controller_command_queue_mutex, osWaitForever);
+            if (status == osOK) {
+                while (!controller_command_queue.empty()) {
+                    controller_command_queue.pop();
+                }
+                osMutexRelease(controller_command_queue_mutex);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void taskProcedure(void *argument) {
+        controller_command_queue_mutex = osMutexNew(nullptr);
+
+        PortCAN::init(0x061A);
+
+        uint16_t seq_num = 0;
+
+        while (true) {
+            if (!isCommandQueueEmpty()) {
+                msgs::Command command = popCommand();
+                msgs::Packet packet = msgs::Packet(0xF0, 0x00, 0x00, 0x00, seq_num ++, command);
+                msgs::serials packet_serialized = packet.serialize();
+                PortCAN::sendBytes(packet_serialized.data_ptr.get(), packet_serialized.len);
+            }
+            osDelay(10);
+        }
+
+        osMutexDelete(controller_command_queue_mutex);
+    }
+
+} // namespace ostask_controller_module_port

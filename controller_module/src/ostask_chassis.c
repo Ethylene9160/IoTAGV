@@ -70,6 +70,7 @@ uint8_t is_expired(uint32_t stamp, uint32_t time_limit) {
  *    0x0101    expired_time (uint32_t:32)                      设置底盘速度控制超时时间, 单位为 ms.
  *                                                              e.g. 5A F0 00 00 00 04 00 00 00 01 01 6E E8 03 00 00 B7 B9 (set as 1000 ms)
  *                                                                   5A F0 00 00 00 04 00 00 00 01 01 6E D0 07 00 00 FC 73 (set as 2000 ms)
+ * P.S. 数据按照架构默认的大小端模式进行传输, 即此处 float 等数据的高字节在前.
  */
 
 void chassis_cartesian_velocity_control_reg_handler(uint8_t *p_buf, uint16_t len) {

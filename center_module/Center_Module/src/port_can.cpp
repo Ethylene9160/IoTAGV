@@ -4,10 +4,8 @@
 
 #include "cmsis_os.h"
 
-
 CAN_HandleTypeDef PortCAN::hcan_ = hcan1;
 uint16_t PortCAN::module_id_ = 0x0600;
-
 
 bool PortCAN::init(uint16_t module_id, CAN_HandleTypeDef &hcan) {
     PortCAN::module_id_ = module_id;
