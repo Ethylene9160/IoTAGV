@@ -15,6 +15,7 @@ extern "C" {
 #include "tutorial_lib.h"
 #include "bsp_usart.h"
 #include "protocol_parser.h"
+#include "bsp_can.h"
 
 #ifdef __cplusplus
 };
