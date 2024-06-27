@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "dev.h"
+#include "stdint.h"
 
 void send_pc_pack_cmd(uint8_t send_type, uint8_t send_id, uint16_t cmd_id, uint8_t *p_buf, uint16_t len);
 
