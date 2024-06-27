@@ -19,7 +19,7 @@ uint32_t expired_time = 1000;
   * @param vy 前后平移速度 (mm/s), 前为正方向
   * @param vw 底盘旋转速度 (degree/s), 逆时针为正方向
   * @param speed[] 四个电机转速 (rpm)
-  * @note 数组索引中左前轮电机为 0 (TODO: 是吗), 逆时针顺序编号 0 ~ 3; 对应实机电调 SET 时的序号则是逆时针 1 ~ 4, 右前为 1.
+  * @note 数组索引中右前轮电机为 0, 逆时针顺序编号 0 ~ 3; 对应实机电调 SET 时的序号则是逆时针 1 ~ 4, 同样右前为 1.
   */
 void calc_motor_velocities(float vx, float vy, float vw, int16_t *speed) {
     static float rotate_ratio_f = ((WHEELBASE + WHEELTRACK) / 2.0f - GIMBAL_OFFSET) * RADIAN_COEF;
@@ -33,25 +33,23 @@ void calc_motor_velocities(float vx, float vy, float vw, int16_t *speed) {
     VAL_LIMIT(vy, -MAX_CHASSIS_VY_SPEED, MAX_CHASSIS_VY_SPEED);
     VAL_LIMIT(vw, -MAX_CHASSIS_VR_SPEED, MAX_CHASSIS_VR_SPEED);
 
-    wheel_rpm[0] = (-vx - vy + vw * rotate_ratio_f) * wheel_rpm_ratio;
-    wheel_rpm[1] = (-vx + vy + vw * rotate_ratio_f) * wheel_rpm_ratio;
-    wheel_rpm[2] = (+vx + vy + vw * rotate_ratio_b) * wheel_rpm_ratio;
-    wheel_rpm[3] = (+vx - vy + vw * rotate_ratio_b) * wheel_rpm_ratio;
+    wheel_rpm[0] = (- vx - vy + vw * rotate_ratio_f) * wheel_rpm_ratio;
+    wheel_rpm[1] = (+ vx - vy + vw * rotate_ratio_f) * wheel_rpm_ratio;
+    wheel_rpm[2] = (+ vx + vy + vw * rotate_ratio_b) * wheel_rpm_ratio;
+    wheel_rpm[3] = (- vx + vy + vw * rotate_ratio_b) * wheel_rpm_ratio;
 
-    // find max item
     for (uint8_t i = 0; i < 4; i++) {
         if (abs(wheel_rpm[i]) > max) {
             max = abs(wheel_rpm[i]);
         }
     }
 
-    // equal proportion
     if (max > MAX_WHEEL_RPM) {
         float rate = MAX_WHEEL_RPM / max;
         for (uint8_t i = 0; i < 4; i++)
             wheel_rpm[i] *= rate;
     }
-    memcpy(speed, wheel_rpm, 4 * sizeof(int16_t));
+    memcpy(speed, wheel_rpm, sizeof(wheel_rpm));
 }
 
 uint32_t get_stamp(void) {
@@ -137,8 +135,8 @@ void ostask_chassis(void const *argu) {
         switch (mode) {
             case CHASSIS_REMOTE_CONTROL: {
                 // 控制信息转化为标准单位，平移为 (mm/s) 旋转为 (degree/s)
-                float vx = (float) -rc.ch1 / RC_MAX_VALUE * MAX_CHASSIS_VX_SPEED;
-                float vy = (float) rc.ch2 / RC_MAX_VALUE * MAX_CHASSIS_VY_SPEED;
+                float vx = (float) rc.ch2 / RC_MAX_VALUE * MAX_CHASSIS_VX_SPEED;
+                float vy = (float) -rc.ch1 / RC_MAX_VALUE * MAX_CHASSIS_VY_SPEED;
                 float w = (float) rc.ch3 / RC_MAX_VALUE * MAX_CHASSIS_VR_SPEED;
                 taskENTER_CRITICAL();
                 velocity.stamp = 0;
