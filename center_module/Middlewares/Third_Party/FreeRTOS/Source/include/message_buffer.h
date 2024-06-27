@@ -27,7 +27,7 @@
 
 
 /*
- * Message buffers build functionality on top of FreeRTOS stream buffers.
+ * Serializable buffers build functionality on top of FreeRTOS stream buffers.
  * Whereas stream buffers are used to send a continuous stream of data from one
  * task or interrupt to another, message buffers are used to send variable
  * length discrete messages from one task or interrupt to another.  Their
@@ -49,7 +49,7 @@
  * (such as xMessageBufferRead()) inside a critical section and set the receive
  * timeout to 0.
  *
- * Message buffers hold variable length messages.  To enable that, when a
+ * Serializable buffers hold variable length messages.  To enable that, when a
  * message is written to the message buffer an additional sizeof( size_t ) bytes
  * are also written to store the message's length (that happens internally, with
  * the API function).  sizeof( size_t ) is typically 4 bytes on a 32-bit
@@ -66,7 +66,7 @@
 	#error "include FreeRTOS.h must appear in source files before include message_buffer.h"
 #endif
 
-/* Message buffers are built onto of stream buffers. */
+/* Serializable buffers are built onto of stream buffers. */
 #include "stream_buffer.h"
 
 #if defined( __cplusplus )

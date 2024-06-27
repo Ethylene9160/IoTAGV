@@ -14,7 +14,7 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 # project settings
 project(center_module C CXX ASM)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
 #Uncomment for hardware floating point
@@ -64,6 +64,7 @@ include_directories(
     USB_DEVICE/App
     USB_DEVICE/Target
     Center_Module/inc
+    Third_Party/CRC
 )
 
 add_definitions(-DUSE_HAL_DRIVER -DSTM32F405xx)
@@ -74,7 +75,8 @@ file(GLOB_RECURSE SOURCES
     "Middlewares/*.*"
     "USB_DEVICE/*.*"
     "Center_Module/*.*"
-    )
+    "Third_Party/*.*"
+)
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F405RGTX_FLASH.ld)
 
@@ -83,6 +85,12 @@ add_link_options(-mcpu=cortex-m4 -mthumb -mthumb-interwork)
 add_link_options(-T ${LINKER_SCRIPT})
 
 add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
+
+add_library(THIRDPARTY_CRC_OBJECTS OBJECT
+    Third_Party/CRC/MF_CRC8.o
+    Third_Party/CRC/MF_CRC16.o
+)
+target_link_libraries(${PROJECT_NAME}.elf PRIVATE $<TARGET_OBJECTS:THIRDPARTY_CRC_OBJECTS>)
 
 # Arm-math - [USER]
 #add_library(arm_math STATIC IMPORTED)
@@ -96,4 +104,4 @@ add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -Oihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${HEX_FILE}
     COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
     COMMENT "Building ${HEX_FILE} Building ${BIN_FILE}"
-    )
+)
