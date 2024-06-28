@@ -1804,7 +1804,7 @@ typedef struct
 /*******************  Bit definition for CAN_RF0R register  *******************/
 #define CAN_RF0R_FMP0_Pos      (0U)                                            
 #define CAN_RF0R_FMP0_Msk      (0x3UL << CAN_RF0R_FMP0_Pos)                     /*!< 0x00000003 */
-#define CAN_RF0R_FMP0          CAN_RF0R_FMP0_Msk                               /*!<FIFO 0 Message Pending */
+#define CAN_RF0R_FMP0          CAN_RF0R_FMP0_Msk                               /*!<FIFO 0 Serializable Pending */
 #define CAN_RF0R_FULL0_Pos     (3U)                                            
 #define CAN_RF0R_FULL0_Msk     (0x1UL << CAN_RF0R_FULL0_Pos)                    /*!< 0x00000008 */
 #define CAN_RF0R_FULL0         CAN_RF0R_FULL0_Msk                              /*!<FIFO 0 Full */
@@ -1818,7 +1818,7 @@ typedef struct
 /*******************  Bit definition for CAN_RF1R register  *******************/
 #define CAN_RF1R_FMP1_Pos      (0U)                                            
 #define CAN_RF1R_FMP1_Msk      (0x3UL << CAN_RF1R_FMP1_Pos)                     /*!< 0x00000003 */
-#define CAN_RF1R_FMP1          CAN_RF1R_FMP1_Msk                               /*!<FIFO 1 Message Pending */
+#define CAN_RF1R_FMP1          CAN_RF1R_FMP1_Msk                               /*!<FIFO 1 Serializable Pending */
 #define CAN_RF1R_FULL1_Pos     (3U)                                            
 #define CAN_RF1R_FULL1_Msk     (0x1UL << CAN_RF1R_FULL1_Pos)                    /*!< 0x00000008 */
 #define CAN_RF1R_FULL1         CAN_RF1R_FULL1_Msk                              /*!<FIFO 1 Full */
@@ -1835,7 +1835,7 @@ typedef struct
 #define CAN_IER_TMEIE          CAN_IER_TMEIE_Msk                               /*!<Transmit Mailbox Empty Interrupt Enable */
 #define CAN_IER_FMPIE0_Pos     (1U)                                            
 #define CAN_IER_FMPIE0_Msk     (0x1UL << CAN_IER_FMPIE0_Pos)                    /*!< 0x00000002 */
-#define CAN_IER_FMPIE0         CAN_IER_FMPIE0_Msk                              /*!<FIFO Message Pending Interrupt Enable */
+#define CAN_IER_FMPIE0         CAN_IER_FMPIE0_Msk                              /*!<FIFO Serializable Pending Interrupt Enable */
 #define CAN_IER_FFIE0_Pos      (2U)                                            
 #define CAN_IER_FFIE0_Msk      (0x1UL << CAN_IER_FFIE0_Pos)                     /*!< 0x00000004 */
 #define CAN_IER_FFIE0          CAN_IER_FFIE0_Msk                               /*!<FIFO Full Interrupt Enable */
@@ -1844,7 +1844,7 @@ typedef struct
 #define CAN_IER_FOVIE0         CAN_IER_FOVIE0_Msk                              /*!<FIFO Overrun Interrupt Enable */
 #define CAN_IER_FMPIE1_Pos     (4U)                                            
 #define CAN_IER_FMPIE1_Msk     (0x1UL << CAN_IER_FMPIE1_Pos)                    /*!< 0x00000010 */
-#define CAN_IER_FMPIE1         CAN_IER_FMPIE1_Msk                              /*!<FIFO Message Pending Interrupt Enable */
+#define CAN_IER_FMPIE1         CAN_IER_FMPIE1_Msk                              /*!<FIFO Serializable Pending Interrupt Enable */
 #define CAN_IER_FFIE1_Pos      (5U)                                            
 #define CAN_IER_FFIE1_Msk      (0x1UL << CAN_IER_FFIE1_Pos)                     /*!< 0x00000020 */
 #define CAN_IER_FFIE1          CAN_IER_FFIE1_Msk                               /*!<FIFO Full Interrupt Enable */
@@ -1956,7 +1956,7 @@ typedef struct
 #define CAN_TDT0R_TGT          CAN_TDT0R_TGT_Msk                               /*!<Transmit Global Time */
 #define CAN_TDT0R_TIME_Pos     (16U)                                           
 #define CAN_TDT0R_TIME_Msk     (0xFFFFUL << CAN_TDT0R_TIME_Pos)                 /*!< 0xFFFF0000 */
-#define CAN_TDT0R_TIME         CAN_TDT0R_TIME_Msk                              /*!<Message Time Stamp */
+#define CAN_TDT0R_TIME         CAN_TDT0R_TIME_Msk                              /*!<Serializable Time Stamp */
 
 /******************  Bit definition for CAN_TDL0R register  *******************/
 #define CAN_TDL0R_DATA0_Pos    (0U)                                            
@@ -2012,7 +2012,7 @@ typedef struct
 #define CAN_TDT1R_TGT          CAN_TDT1R_TGT_Msk                               /*!<Transmit Global Time */
 #define CAN_TDT1R_TIME_Pos     (16U)                                           
 #define CAN_TDT1R_TIME_Msk     (0xFFFFUL << CAN_TDT1R_TIME_Pos)                 /*!< 0xFFFF0000 */
-#define CAN_TDT1R_TIME         CAN_TDT1R_TIME_Msk                              /*!<Message Time Stamp */
+#define CAN_TDT1R_TIME         CAN_TDT1R_TIME_Msk                              /*!<Serializable Time Stamp */
 
 /*******************  Bit definition for CAN_TDL1R register  ******************/
 #define CAN_TDL1R_DATA0_Pos    (0U)                                            
@@ -2068,7 +2068,7 @@ typedef struct
 #define CAN_TDT2R_TGT          CAN_TDT2R_TGT_Msk                               /*!<Transmit Global Time */
 #define CAN_TDT2R_TIME_Pos     (16U)                                           
 #define CAN_TDT2R_TIME_Msk     (0xFFFFUL << CAN_TDT2R_TIME_Pos)                 /*!< 0xFFFF0000 */
-#define CAN_TDT2R_TIME         CAN_TDT2R_TIME_Msk                              /*!<Message Time Stamp */
+#define CAN_TDT2R_TIME         CAN_TDT2R_TIME_Msk                              /*!<Serializable Time Stamp */
 
 /*******************  Bit definition for CAN_TDL2R register  ******************/
 #define CAN_TDL2R_DATA0_Pos    (0U)                                            
@@ -2121,7 +2121,7 @@ typedef struct
 #define CAN_RDT0R_FMI          CAN_RDT0R_FMI_Msk                               /*!<Filter Match Index */
 #define CAN_RDT0R_TIME_Pos     (16U)                                           
 #define CAN_RDT0R_TIME_Msk     (0xFFFFUL << CAN_RDT0R_TIME_Pos)                 /*!< 0xFFFF0000 */
-#define CAN_RDT0R_TIME         CAN_RDT0R_TIME_Msk                              /*!<Message Time Stamp */
+#define CAN_RDT0R_TIME         CAN_RDT0R_TIME_Msk                              /*!<Serializable Time Stamp */
 
 /*******************  Bit definition for CAN_RDL0R register  ******************/
 #define CAN_RDL0R_DATA0_Pos    (0U)                                            
@@ -2174,7 +2174,7 @@ typedef struct
 #define CAN_RDT1R_FMI          CAN_RDT1R_FMI_Msk                               /*!<Filter Match Index */
 #define CAN_RDT1R_TIME_Pos     (16U)                                           
 #define CAN_RDT1R_TIME_Msk     (0xFFFFUL << CAN_RDT1R_TIME_Pos)                 /*!< 0xFFFF0000 */
-#define CAN_RDT1R_TIME         CAN_RDT1R_TIME_Msk                              /*!<Message Time Stamp */
+#define CAN_RDT1R_TIME         CAN_RDT1R_TIME_Msk                              /*!<Serializable Time Stamp */
 
 /*******************  Bit definition for CAN_RDL1R register  ******************/
 #define CAN_RDL1R_DATA0_Pos    (0U)                                            

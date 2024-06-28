@@ -151,12 +151,12 @@
     (+) TxMailbox0AbortCallback      : Tx Mailbox 0 Abort Callback.
     (+) TxMailbox1AbortCallback      : Tx Mailbox 1 Abort Callback.
     (+) TxMailbox2AbortCallback      : Tx Mailbox 2 Abort Callback.
-    (+) RxFifo0MsgPendingCallback    : Rx Fifo 0 Message Pending Callback.
+    (+) RxFifo0MsgPendingCallback    : Rx Fifo 0 Serializable Pending Callback.
     (+) RxFifo0FullCallback          : Rx Fifo 0 Full Callback.
-    (+) RxFifo1MsgPendingCallback    : Rx Fifo 1 Message Pending Callback.
+    (+) RxFifo1MsgPendingCallback    : Rx Fifo 1 Serializable Pending Callback.
     (+) RxFifo1FullCallback          : Rx Fifo 1 Full Callback.
     (+) SleepCallback                : Sleep Callback.
-    (+) WakeUpFromRxMsgCallback      : Wake Up From Rx Message Callback.
+    (+) WakeUpFromRxMsgCallback      : Wake Up From Rx Serializable Callback.
     (+) ErrorCallback                : Error Callback.
     (+) MspInitCallback              : CAN MspInit.
     (+) MspDeInitCallback            : CAN MspDeInit.
@@ -174,12 +174,12 @@
     (+) TxMailbox0AbortCallback      : Tx Mailbox 0 Abort Callback.
     (+) TxMailbox1AbortCallback      : Tx Mailbox 1 Abort Callback.
     (+) TxMailbox2AbortCallback      : Tx Mailbox 2 Abort Callback.
-    (+) RxFifo0MsgPendingCallback    : Rx Fifo 0 Message Pending Callback.
+    (+) RxFifo0MsgPendingCallback    : Rx Fifo 0 Serializable Pending Callback.
     (+) RxFifo0FullCallback          : Rx Fifo 0 Full Callback.
-    (+) RxFifo1MsgPendingCallback    : Rx Fifo 1 Message Pending Callback.
+    (+) RxFifo1MsgPendingCallback    : Rx Fifo 1 Serializable Pending Callback.
     (+) RxFifo1FullCallback          : Rx Fifo 1 Full Callback.
     (+) SleepCallback                : Sleep Callback.
-    (+) WakeUpFromRxMsgCallback      : Wake Up From Rx Message Callback.
+    (+) WakeUpFromRxMsgCallback      : Wake Up From Rx Serializable Callback.
     (+) ErrorCallback                : Error Callback.
     (+) MspInitCallback              : CAN MspInit.
     (+) MspDeInitCallback            : CAN MspDeInit.

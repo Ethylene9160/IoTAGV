@@ -101,7 +101,7 @@
  *     - added: osMemoryPoolGetCount, osMemoryPoolGetSpace
  *     - added: osMemoryPoolDelete
  *     - deprecated: osPoolCAlloc
- *    Message Queue:
+ *    Serializable Queue:
  *     - extended: fixed size message instead of a single 32-bit value
  *     - using osMessageQueue prefix instead of osMessage
  *     - replaced osMessageCreate with osMessageQueueNew
@@ -111,7 +111,7 @@
  *     - added: osMessageQueueGetCount, osMessageQueueGetSpace
  *     - added: osMessageQueueReset, osMessageQueueDelete
  *    Mail Queue: 
- *     - deprecated (superseded by extended Message Queue functionality)
+ *     - deprecated (superseded by extended Serializable Queue functionality)
  * Version 2.1.0
  *    Support for critical and uncritical sections (nesting safe):
  *    - updated: osKernelLock, osKernelUnlock
@@ -141,7 +141,7 @@
 #define osFeature_Wait        0         ///< osWait function: 1=available, 0=not available
 #define osFeature_SysTick     1         ///< osKernelSysTick functions: 1=available, 0=not available
 #define osFeature_Pool        0         ///< Memory Pools:    1=available, 0=not available
-#define osFeature_MessageQ    1         ///< Message Queues:  1=available, 0=not available
+#define osFeature_MessageQ    1         ///< Serializable Queues:  1=available, 0=not available
 #define osFeature_MailQ       0         ///< Mail Queues:     1=available, 0=not available
  
 #if   defined(__CC_ARM)
@@ -264,7 +264,7 @@ typedef void *osSemaphoreId;
 /// Pool ID identifies the memory pool.
 typedef void *osPoolId;
  
-/// Message ID identifies the message queue.
+/// Serializable ID identifies the message queue.
 typedef void *osMessageQId;
  
 /// Mail ID identifies the mail queue.
@@ -527,7 +527,7 @@ osStatus osDelay (uint32_t millisec);
  
 #if (defined (osFeature_Wait) && (osFeature_Wait != 0))  // Generic Wait available
  
-/// Wait for Signal, Message, Mail, or Timeout.
+/// Wait for Signal, Serializable, Mail, or Timeout.
 /// \param[in] millisec          \ref CMSIS_RTOS_TimeOutValue or 0 in case of no time-out
 /// \return event that contains signal, message, or mail information or error code.
 os_InRegs osEvent osWait (uint32_t millisec);
@@ -730,11 +730,11 @@ osStatus osPoolFree (osPoolId pool_id, void *block);
 #endif  // Memory Pool available
  
  
-//  ==== Message Queue Management Functions ====
+//  ==== Serializable Queue Management Functions ====
  
-#if (defined(osFeature_MessageQ) && (osFeature_MessageQ != 0))  // Message Queue available
+#if (defined(osFeature_MessageQ) && (osFeature_MessageQ != 0))  // Serializable Queue available
   
-/// \brief Create a Message Queue Definition.
+/// \brief Create a Serializable Queue Definition.
 /// \param         name          name of the queue.
 /// \param         queue_sz      maximum number of messages in the queue.
 /// \param         type          data type of a single message element (for debugger).
@@ -751,31 +751,31 @@ const osMessageQDef_t os_messageQ_def_##name = \
               (&os_mq_data_##name), sizeof(os_mq_data_##name) } }
 #endif
  
-/// \brief Access a Message Queue Definition.
+/// \brief Access a Serializable Queue Definition.
 /// \param         name          name of the queue
 #define osMessageQ(name) \
 &os_messageQ_def_##name
  
-/// Create and Initialize a Message Queue object.
+/// Create and Initialize a Serializable Queue object.
 /// \param[in]     queue_def     message queue definition referenced with \ref osMessageQ.
 /// \param[in]     thread_id     thread ID (obtained by \ref osThreadCreate or \ref osThreadGetId) or NULL.
 /// \return message queue ID for reference by other functions or NULL in case of error.
 osMessageQId osMessageCreate (const osMessageQDef_t *queue_def, osThreadId thread_id);
  
-/// Put a Message to a Queue.
+/// Put a Serializable to a Queue.
 /// \param[in]     queue_id      message queue ID obtained with \ref osMessageCreate.
 /// \param[in]     info          message information.
 /// \param[in]     millisec      \ref CMSIS_RTOS_TimeOutValue or 0 in case of no time-out.
 /// \return status code that indicates the execution status of the function.
 osStatus osMessagePut (osMessageQId queue_id, uint32_t info, uint32_t millisec);
  
-/// Get a Message from a Queue or timeout if Queue is empty.
+/// Get a Serializable from a Queue or timeout if Queue is empty.
 /// \param[in]     queue_id      message queue ID obtained with \ref osMessageCreate.
 /// \param[in]     millisec      \ref CMSIS_RTOS_TimeOutValue or 0 in case of no time-out.
 /// \return event information that includes status code.
 os_InRegs osEvent osMessageGet (osMessageQId queue_id, uint32_t millisec);
  
-#endif  // Message Queue available
+#endif  // Serializable Queue available
  
  
 //  ==== Mail Queue Management Functions ====
