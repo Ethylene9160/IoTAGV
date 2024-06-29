@@ -14,9 +14,10 @@
 #include "deca_port.h"
 
 #include "deca_sleep.h"
+#include "spi.h"
 
 
-void ResetDW1000(void) {
+void reset_DW1000(void) {
     GPIO_InitTypeDef GPIO_InitStructure;
 
     // Enable GPIO used for DW1000 reset
@@ -35,4 +36,12 @@ void ResetDW1000(void) {
     GPIO_InitStructure.GPIO_Pin = DW1000_RSTn;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
     GPIO_Init(DW1000_RSTn_GPIO, &GPIO_InitStructure);
+}
+
+void spi_set_rate_low(void) {
+    ChangeSPIRate(SPI_BaudRatePrescaler_32);
+}
+
+void spi_set_rate_high(void) {
+    ChangeSPIRate(SPI_BaudRatePrescaler_4);
 }

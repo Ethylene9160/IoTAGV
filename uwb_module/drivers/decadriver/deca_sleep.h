@@ -11,26 +11,19 @@
  * @author DecaWave
  */
 
-#ifndef _DECA_SLEEP_H_
-#define _DECA_SLEEP_H_
+#ifndef DECA_SLEEP_H_
+#define DECA_SLEEP_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*! ------------------------------------------------------------------------------------------------------------------
- * Function: deca_sleep()
- *
- * Wait for a given amount of time.
- * /!\ This implementation is designed for a single threaded application and is blocking.
- *
- * param  time_ms  time to wait in milliseconds
- */
-#include "core/inc/stm32f10x.h"
 void deca_sleep(unsigned int time_ms);
+
+#define sleep_ms deca_sleep
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _DECA_SLEEP_H_ */
+#endif /* DECA_SLEEP_H_ */

@@ -7,16 +7,21 @@ extern "C" {
 
 #include "stm32f10x.h"
 
+#define LED_GPIO        GPIOA
+#define LED_1_PIN       GPIO_Pin_0
+#define LED_2_PIN       GPIO_Pin_2
+#define LED_3_PIN       GPIO_Pin_3
 
 typedef enum {
-    LED_PA0,
-    LED_PA2,
-    LED_PA3,
-    LED_ALL,
-    LEDn
+    LED_1,
+    LED_2,
+    LED_3,
+    LED_ALL
 } led_t;
 
 int ConfigureGPIO(void);
+void TurnOffLED(led_t led);
+void TurnOnLED(led_t led);
 void TestLED(void);
 
 #ifdef __cplusplus

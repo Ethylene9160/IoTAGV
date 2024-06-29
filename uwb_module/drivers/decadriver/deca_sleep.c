@@ -18,6 +18,5 @@
 
 void deca_sleep(unsigned int time_ms) {
     /* This assumes that the tick has a period of exactly one millisecond. See CLOCKS_PER_SEC define. */
-    unsigned long end = GetSystickMs() + time_ms;
-    while ((signed long)(GetSystickMs() - end) <= 0);
+    SleepMs(time_ms);
 }

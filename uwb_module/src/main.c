@@ -1,24 +1,18 @@
 #include "stm32f10x.h"
 
-//#include <stdio.h>
-//#include <string.h>
-//#include <stdint.h>
-//#include <math.h>
-
-#include "uwb_module_config.h"
-
-//#include "deca_device_api.h"
-//#include "deca_regs.h"
-//#include "deca_sleep.h"
-//#include "trilateration.h"
-
 #include "systick.h"
 #include "gpio.h"
 #include "spi.h"
 #include "usart.h"
 
+#include "tiny_io.h"
 
-void initPeripherals(void) {
+#include "dwt.h"
+
+#include "uwb_module_config.h"
+
+
+void InitPeripherals(void) {
     /* SysTick */
     ConfigureSysTick();
 
@@ -34,41 +28,43 @@ void initPeripherals(void) {
 
     /* USART */
     ConfigureUSART();
-//    Frame_Init((FrameContext*) &frame_ctx);
 
     /* Test LED */
     TestLED();
+    TurnOffLED(LED_ALL);
 }
 
+static uint8 is_initialized = 0;
+static uwb_mode_t mode = UNDEFINED;
 
 int main(void) {
     // Initialization
-    initPeripherals();
+    InitPeripherals();
 
     // Load the configurations
     // TODO
-
-    // Initialize DW1000
-    // TODO
+    mode = JudgeModeFromID(module_config.module_id);
 
     // Main loop
     while (1) {
         // Command handler
-        // TODO 修改 ID 等命令的接收
-        debug_printf("Module ID: %d\n", config.module_id); // TEST
+//        debug_printf("Module ID: %d.\n", module_config.module_id); // TODO 修改 ID 等命令的接收, 若跨类型还要重新 Initialize DW1000.
+//        SleepMs(1000);
+
+        if (!is_initialized) {
+            InitDW1000(mode);
+            TurnOnLED((led_t) mode); // TODO
+            is_initialized = 1;
+        }
 
         // Event handler
-        if (config.module_id >= 0x0000 && config.module_id <= 0x0FFF) {
-            // Anchor
-            // TODO
-        } else if (config.module_id >= 0x1000 && config.module_id <= 0x1FFF) {
-            // Tag
-            // TODO
+        if (mode == ANCHOR) {
+            AnchorEventHandler(module_config.module_id);
+        } else if (mode == TAG) {
+            TagEventHandler(module_config.module_id);
         } else {
             // Do nothing but wait for the module ID to be modified
         }
-
-        SleepMs(1000);
     }
 
     return 0;

@@ -405,7 +405,7 @@ int dwt_configure(dwt_config_t *config) ;
  * of type dwt_txconfig_t that holds all the configurable items.
  *
  * input parameters
- * @param config    -   pointer to the txrf configuration structure, which contains the tx rf config data
+ * @param config    -   pointer to the txrf configuration structure, which contains the tx rf module_config data
  *
  * output parameters
  *
@@ -470,8 +470,8 @@ void dwt_setsmarttxpower(int enable);
  *                         standard PHR mode allows up to 127 bytes
  *                         if > 127 is programmed, DWT_PHRMODE_EXT needs to be set in the phrMode configuration
  *                         see dwt_configure function
- * @param txFrameBytes   - Pointer to the user’s buffer containing the data to send.
- * @param txBufferOffset - This specifies an offset in the DW1000’s TX Buffer at which to start writing data.
+ * @param txFrameBytes   - Pointer to the userï¿½s buffer containing the data to send.
+ * @param txBufferOffset - This specifies an offset in the DW1000ï¿½s TX Buffer at which to start writing data.
  *
  * output parameters
  *
@@ -830,8 +830,8 @@ uint16 dwt_calibratesleepcnt(void);
   *      DWT_SLP_EN       0x1 - enable sleep/deep sleep functionality
   *
   * input parameters
-  * @param mode - config on-wake parameters
-  * @param wake - config wake up parameters
+  * @param mode - module_config on-wake parameters
+  * @param wake - module_config wake up parameters
   *
   * output parameters
   *

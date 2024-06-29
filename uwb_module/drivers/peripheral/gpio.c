@@ -4,8 +4,6 @@
 
 
 int ConfigureGPIO(void) {
-    GPIO_InitTypeDef GPIO_InitStructure;
-
     /* Configure all unused GPIO port pins in Analog Input mode (floating input
     * trigger OFF), this will reduce the power consumption and increase the device
     * immunity against EMI/EMC */
@@ -13,7 +11,8 @@ int ConfigureGPIO(void) {
     // Enable GPIOs clocks
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE | RCC_APB2Periph_AFIO, ENABLE);
 
-    // Set all GPIO pins as analog inputs
+    // Set all GPIO pins as analog inputs and configure the LEDs as outputs
+    GPIO_InitTypeDef GPIO_InitStructure;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_All;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -21,28 +20,27 @@ int ConfigureGPIO(void) {
     GPIO_Init(GPIOC, &GPIO_InitStructure);
     GPIO_Init(GPIOD, &GPIO_InitStructure);
     GPIO_Init(GPIOE, &GPIO_InitStructure);
-
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_2 | GPIO_Pin_3;
+    GPIO_InitStructure.GPIO_Pin = LED_1_PIN | LED_2_PIN | LED_3_PIN;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_Init(LED_GPIO, &GPIO_InitStructure);
 
     return 0;
 }
 
-void turnOffLED(led_t led) {
+void TurnOffLED(led_t led) {
     switch (led) {
-        case LED_PA0:
-            GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+        case LED_1:
+            GPIO_ResetBits(LED_GPIO, LED_1_PIN);
             break;
-        case LED_PA2:
-            GPIO_ResetBits(GPIOA, GPIO_Pin_2);
+        case LED_2:
+            GPIO_ResetBits(LED_GPIO, LED_2_PIN);
             break;
-        case LED_PA3:
-            GPIO_ResetBits(GPIOA, GPIO_Pin_3);
+        case LED_3:
+            GPIO_ResetBits(LED_GPIO, LED_3_PIN);
             break;
         case LED_ALL:
-            GPIO_ResetBits(GPIOA, GPIO_Pin_0 | GPIO_Pin_2 | GPIO_Pin_3);
+            GPIO_ResetBits(LED_GPIO, LED_1_PIN | LED_2_PIN | LED_3_PIN);
             break;
         default:
             // do nothing for undefined led number
@@ -52,17 +50,17 @@ void turnOffLED(led_t led) {
 
 void TurnOnLED(led_t led) {
     switch (led) {
-        case LED_PA0:
-            GPIO_SetBits(GPIOA, GPIO_Pin_0);
+        case LED_1:
+            GPIO_SetBits(LED_GPIO, LED_1_PIN);
             break;
-        case LED_PA2:
-            GPIO_SetBits(GPIOA, GPIO_Pin_2);
+        case LED_2:
+            GPIO_SetBits(LED_GPIO, LED_2_PIN);
             break;
-        case LED_PA3:
-            GPIO_SetBits(GPIOA, GPIO_Pin_3);
+        case LED_3:
+            GPIO_SetBits(LED_GPIO, LED_3_PIN);
             break;
         case LED_ALL:
-            GPIO_SetBits(GPIOA, GPIO_Pin_0 | GPIO_Pin_2 | GPIO_Pin_3);
+            GPIO_SetBits(LED_GPIO, LED_1_PIN | LED_2_PIN | LED_3_PIN);
             break;
         default:
             // do nothing for undefined led number
@@ -72,10 +70,10 @@ void TurnOnLED(led_t led) {
 
 void TestLED(void) {
     TurnOnLED(LED_ALL);
-    SleepMs(100);
-    turnOffLED(LED_ALL);
-    SleepMs(100);
+    SleepMs(500);
+    TurnOffLED(LED_ALL);
+    SleepMs(500);
     TurnOnLED(LED_ALL);
-    SleepMs(100);
-    turnOffLED(LED_ALL);
+    SleepMs(500);
+    TurnOffLED(LED_ALL);
 }

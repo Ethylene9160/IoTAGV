@@ -18,8 +18,6 @@ extern "C" {
 
 void ConfigureUSART(void);
 
-void debug_printf(const char *format, ...);
-
 #ifdef __cplusplus
 }
 #endif

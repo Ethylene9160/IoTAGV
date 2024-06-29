@@ -22,12 +22,10 @@ extern "C" {
 
 #include "deca_spi.h"
 
-#include "systick.h"
 #include "spi.h"
 
 extern int writetospi_serial(uint16_t headerLength, const uint8_t *headerBuffer, uint32_t bodylength, const uint8_t *bodyBuffer);
 extern int readfromspi_serial(uint16_t headerLength, const uint8_t *headerBuffer, uint32_t readlength, uint8_t *readBuffer);
-
 #define writetospi writetospi_serial
 #define readfromspi readfromspi_serial
 
@@ -74,7 +72,9 @@ ITStatus EXTI_GetITEnStatus(uint32_t x);
 #define port_CheckEXT_IRQ()                 GPIO_ReadInputDataBit(DECAIRQ_GPIO, DECAIRQ)
 int NVIC_DisableDECAIRQ(void);
 
-void ResetDW1000(void);
+void reset_DW1000(void);
+void spi_set_rate_low(void); // Set SPI rate to less than 3 MHz to properly perform DW1000 initialisation.
+void spi_set_rate_high(void); // Set SPI rate as close to 20 MHz as possible for optimum performances.
 void setupDW1000RSTnIRQ(int enable);
 
 #ifdef __cplusplus

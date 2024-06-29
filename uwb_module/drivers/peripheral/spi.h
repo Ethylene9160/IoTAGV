@@ -19,8 +19,6 @@ extern "C" {
 #define SPIx_MOSI					GPIO_Pin_7
 
 void ChangeSPIRate(uint16_t scaling_factor);
-void SetLowSPIRate(void); // Set SPI rate to less than 3 MHz to properly perform DW1000 initialisation.
-void SetHighSPIRate(void); // Set SPI rate as close to 20 MHz as possible for optimum performances.
 int ConfigureSPI(void);
 
 #ifdef __cplusplus

@@ -27,7 +27,7 @@
 #define FORCE_OTP_OFF  12
 #define FORCE_TX_PLL   13
 
-// #define DWT_API_ERROR_CHECK     // define so API checks config input parameters
+// #define DWT_API_ERROR_CHECK     // define so API checks module_config input parameters
 
 // -------------------------------------------------------------------------------------------------------------------
 //
@@ -63,10 +63,10 @@ typedef struct
     uint8       chan;               // Added channel here - used in the reading of accumulator
     uint8       longFrames ;        // Flag in non-standard long frame mode
     uint8       otprev ;            // OTP revision number (read during initialisation)
-    uint32      txFCTRL ;           // Keep TX_FCTRL register config
+    uint32      txFCTRL ;           // Keep TX_FCTRL register module_config
     uint8       xtrim;              // XTAL trim value read from OTP
     uint8       dblbuffon;          // Double RX buffer mode flag
-    uint32      sysCFGreg ;         // Local copy of system config register
+    uint32      sysCFGreg ;         // Local copy of system module_config register
     uint16      sleep_mode;         // Used for automatic reloading of LDO tune and microcode at wake-up
 
     dwt_callback_data_t cdata;      // Callback data structure
@@ -335,7 +335,7 @@ uint32 dwt_readdevid(void)
  * of type dwt_txconfig_t that holds all the configurable items.
  *
  * input parameters
- * @param config    -   pointer to the txrf configuration structure, which contains the tx rf config data
+ * @param config    -   pointer to the txrf configuration structure, which contains the tx rf module_config data
  *
  * output parameters
  *
@@ -380,15 +380,15 @@ int dwt_configure(dwt_config_t *config)
     dw1000local.chan = config->chan ;
 
 #ifdef DWT_API_ERROR_CHECK
-    if (config->dataRate > DWT_BR_6M8)
+    if (module_config->dataRate > DWT_BR_6M8)
     {
     	return DWT_ERROR ;
     }// validate datarate parameter
-    if ((config->prf > DWT_PRF_64M) || (config->prf < DWT_PRF_16M))
+    if ((module_config->prf > DWT_PRF_64M) || (module_config->prf < DWT_PRF_16M))
     {
     	return DWT_ERROR ;      // validate Pulse Repetition Frequency
     }
-    if (config->rxPAC > DWT_PAC64)
+    if (module_config->rxPAC > DWT_PAC64)
     {
     	return DWT_ERROR ;      // validate PAC size
     }
@@ -398,17 +398,17 @@ int dwt_configure(dwt_config_t *config)
     }
 
     // validate TX and TX pre-amble codes selections
-    if (config->prf == DWT_PRF_64M)
+    if (module_config->prf == DWT_PRF_64M)
     {
         // at 64M PRF, codes should be 9 to 27 only
-        // config->txCode
-        // config->rxCode
+        // module_config->txCode
+        // module_config->rxCode
     }
     else
     {
         // at 16M PRF, codes should be 0 to 8 only
     }
-    switch (config->txPreambLength)
+    switch (module_config->txPreambLength)
     {
     case DWT_PLEN_4096 :
     case DWT_PLEN_2048 :
@@ -421,7 +421,7 @@ int dwt_configure(dwt_config_t *config)
     default            : return DWT_ERROR ; // not a good preamble length parameter
     }
 
-    if(config->phrMode > DWT_PHRMODE_EXT)
+    if(module_config->phrMode > DWT_PHRMODE_EXT)
     {
         return DWT_ERROR ;
     }
@@ -1680,7 +1680,7 @@ void _dwt_aonarrayupload(void)
  */
 void dwt_entersleep(void)
 {
-    // Copy config to AON - upload the new configuration
+    // Copy module_config to AON - upload the new configuration
     _dwt_aonarrayupload();
 }
 
@@ -1832,8 +1832,8 @@ uint16 dwt_calibratesleepcnt(void)
  *      DWT_SLP_EN       0x1 - enable sleep/deep sleep functionality
  *
  * input parameters
- * @param mode - config on-wake parameters
- * @param wake - config wake up parameters
+ * @param mode - module_config on-wake parameters
+ * @param wake - module_config wake up parameters
  *
  * output parameters
  *

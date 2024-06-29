@@ -59,6 +59,7 @@ include_directories(
     drivers/at24c16/
     drivers/decadriver/
     drivers/peripheral/
+    drivers/utils/
     inc/
 )
 
@@ -68,6 +69,7 @@ file(GLOB_RECURSE SOURCES
     "core/*.*"
     "drivers/*.*"
     "src/*.*"
+    "inc/*.*"
 )
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F103C6TX_FLASH.ld)

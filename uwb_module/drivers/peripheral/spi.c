@@ -9,14 +9,6 @@ void ChangeSPIRate(uint16_t scaling_factor) {
     SPIx->CR1 = reg; // Write to SPIx CR1
 }
 
-void SetLowSPIRate(void) {
-    ChangeSPIRate(SPI_BaudRatePrescaler_32);
-}
-
-void SetHighSPIRate(void) {
-    ChangeSPIRate(SPI_BaudRatePrescaler_4);
-}
-
 int ConfigureSPI(void) {
     RCC_APB2PeriphClockCmd(SPIx_RCC, ENABLE);
 
