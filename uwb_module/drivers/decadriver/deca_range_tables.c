@@ -9,7 +9,7 @@
  * All rights reserved.
  *
  */
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
 
 #include "deca_device_api.h"

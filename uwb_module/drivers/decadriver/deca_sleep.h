@@ -26,7 +26,7 @@ extern "C" {
  *
  * param  time_ms  time to wait in milliseconds
  */
-#include <stm32f10x.h>
+#include "core/inc/stm32f10x.h"
 void deca_sleep(unsigned int time_ms);
 
 #ifdef __cplusplus

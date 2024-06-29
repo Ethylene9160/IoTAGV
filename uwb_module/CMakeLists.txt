@@ -55,9 +55,10 @@ include_directories(
     core/
     core/inc/
     core/std/inc/
+    drivers/
     drivers/at24c16/
     drivers/decadriver/
-    drivers/platform/
+    drivers/peripheral/
     inc/
 )
 

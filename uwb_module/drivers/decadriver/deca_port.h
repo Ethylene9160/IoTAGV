@@ -20,32 +20,16 @@ extern "C" {
 
 #include "stm32f10x.h"
 
+#include "deca_spi.h"
+
+#include "systick.h"
+#include "spi.h"
 
 extern int writetospi_serial(uint16_t headerLength, const uint8_t *headerBuffer, uint32_t bodylength, const uint8_t *bodyBuffer);
 extern int readfromspi_serial(uint16_t headerLength, const uint8_t *headerBuffer, uint32_t readlength, uint8_t *readBuffer);
 
 #define writetospi writetospi_serial
 #define readfromspi readfromspi_serial
-
-typedef enum {
-    LED_PA0,
-    LED_PA2,
-    LED_PA3,
-    LED_ALL,
-    LEDn
-} led_t;
-
-
-// SPIx - DW1000 SPI interface
-#define SPIx_PRESCALER				SPI_BaudRatePrescaler_8
-
-#define SPIx						SPI1
-#define SPIx_GPIO					GPIOA
-#define SPIx_CS						GPIO_Pin_4
-#define SPIx_CS_GPIO				GPIOA
-#define SPIx_SCK					GPIO_Pin_5
-#define SPIx_MISO					GPIO_Pin_6
-#define SPIx_MOSI					GPIO_Pin_7
 
 #define DW1000_RSTn					GPIO_Pin_4
 #define DW1000_RSTn_GPIO			GPIOB
@@ -90,29 +74,7 @@ ITStatus EXTI_GetITEnStatus(uint32_t x);
 #define port_CheckEXT_IRQ()                 GPIO_ReadInputDataBit(DECAIRQ_GPIO, DECAIRQ)
 int NVIC_DisableDECAIRQ(void);
 
-void turnOnLED(led_t led);
-void turnOffLED(led_t led);
-
-
-void initPeripherals(void);
-
-void changeSPIRate(uint16_t scalingfactor);
-
-/*! ------------------------------------------------------------------------------------------------------------------
- * @fn setLowSPIRate()
- * @brief Set SPI rate to less than 3 MHz to properly perform DW1000 initialisation.
- */
-void setLowSPIRate(void);
-
-/*! ------------------------------------------------------------------------------------------------------------------
- * @fn setHighSPIRate()
- * @brief Set SPI rate as close to 20 MHz as possible for optimum performances.
- */
-void setHighSPIRate(void);
-
-uint32_t getSystickMs(void);
-
-void resetDW1000(void);
+void ResetDW1000(void);
 void setupDW1000RSTnIRQ(int enable);
 
 #ifdef __cplusplus

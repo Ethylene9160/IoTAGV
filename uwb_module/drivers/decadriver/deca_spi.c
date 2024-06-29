@@ -15,7 +15,7 @@
 #include "deca_spi.h"
 #include "deca_sleep.h"
 #include "deca_device_api.h"
-#include "port.h"
+#include "deca_port.h"
 
 
 int writetospi_serial( uint16 headerLength,

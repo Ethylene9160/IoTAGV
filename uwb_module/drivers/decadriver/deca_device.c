@@ -15,7 +15,7 @@
 #include "deca_regs.h"
 #include "deca_device_api.h"
 #include "deca_sleep.h"
-#include "port.h"
+#include "deca_port.h"
 
 // Defines for enable_clocks function
 #define FORCE_SYS_XTI  0
