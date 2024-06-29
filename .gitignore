@@ -5,3 +5,6 @@ center_module/cmake-build-debug-mingw_stm32/
 center_module/cmake-build-release-mingw_stm32/
 center_module/.idea/
 center_module/**/Backup/
+uwb_module/cmake-build-debug-mingw_stm32/
+uwb_module/cmake-build-release-mingw_stm32/
+uwb_module/.idea/
