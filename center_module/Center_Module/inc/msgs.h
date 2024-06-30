@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <vector>
 
 #include "crc.h"
 
@@ -136,6 +137,22 @@ namespace msgs {
         uint8_t recv_type_, recv_id_, send_type_, send_id_;
         uint16_t seq_, cmd_id_;
         Serializable &data_ref_;
+    };
+
+    class uwb_data : public msgs::Serializable {
+    public:
+        uwb_data(uint16_t self_id, uint16_t target_id, uint8_t CRC8);
+        msgs::serials serialize() override;
+        void set_data(std::vector<uint8_t> data);
+        void set_data(const float x, const float y);
+
+    private:
+        uint8_t header;
+        uint16_t self_id;
+        uint16_t target_id;
+        uint8_t CRC8;
+        std::vector<uint8_t> data;
+        uint16_t CRC16;
     };
 
 }
