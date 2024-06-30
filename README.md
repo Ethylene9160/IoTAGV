@@ -45,5 +45,5 @@
 # Contributors
 
 <a href="https://github.com/Ethylene9160/IoTAGV/graphs/contributors">
-  <img src="https://github.com/Ethylene9160/IoTAGV" />
+  <img src="https://contrib.rocks/image?repo=Ethylene9160/IoTAGV" />
 </a>
