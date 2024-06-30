@@ -153,6 +153,7 @@ namespace msgs {
         uint8_t CRC8;
         std::vector<uint8_t> data;
         uint16_t CRC16;
+        uint8_t ender;
     };
 
 }

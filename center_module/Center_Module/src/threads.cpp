@@ -3,6 +3,10 @@
 #include "cmsis_os.h"
 
 #include "ostask_controller_module_port.h"
+#include "ostask_uwb_module_port.h"
+#include "port_uart.h"
+
+#include <memory>
 
 /* ** Example Begin ** */
 const osThreadAttr_t test_task_attributes = {
@@ -29,9 +33,13 @@ const osThreadAttr_t test_task_attributes = {
 /* ** Example End ** */
 
 void startThreads() {
+    std::unique_ptr<PortUART> port_usart_ptr = std::make_unique<PortUART>(0, huart2);
+
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 
     osThreadNew(testTaskProcedure, nullptr, &test_task_attributes); // ** Example: 超时时间设为 1s, 每隔 2s 动作一次 (2s 内前 1s 动作, 后 1s 输出 "Expired." 并停止), 绕逆时针方形轨迹. **
+
+    osThreadNew(ostask_uwb_module_port::taskProcedure, (void*)port_usart_ptr.get(), &ostask_uwb_module_port::task_attributes);
 }
 
 /*

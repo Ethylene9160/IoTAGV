@@ -1,7 +1,9 @@
 #include "msgs.h"
 
+#include <utility>
+
 msgs::uwb_data::uwb_data(uint16_t self_id, uint16_t target_id, uint8_t CRC8):
-                        header(0xff), self_id(self_id),target_id(target_id), CRC8(CRC8) {
+                        header(0x5A), self_id(self_id),target_id(target_id), CRC8(CRC8), ender(0x7F){
     this->data = std::vector<uint8_t>(8);
     this->CRC16 = 0x0F;
 }
@@ -27,16 +29,19 @@ msgs::serials msgs::uwb_data::serialize() {
     current_size = sizeof(uint16_t);
     memcpy(pos, &(this->CRC16), current_size);
     pos += current_size;
-    data_len += 10;
+
+    current_size = sizeof(uint8_t);
+    memcpy(pos, &(this->ender), current_size);
+    pos += current_size;
 
     return msgs::serials{
-        .len = data_len,
+        .len = static_cast<uint16_t>(data_len + 11),
         .data_ptr = data
     };
 }
 
 void msgs::uwb_data::set_data(std::vector<uint8_t> data) {
-    this->data = data;
+    this->data = std::move(data);
 }
 
 void msgs::uwb_data::set_data(const float x, const float y) {
