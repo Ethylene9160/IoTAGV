@@ -20,6 +20,7 @@ typedef enum {
 
 uwb_mode_t JudgeModeFromID(uint16_t module_id);
 
+
 static dwt_config_t dwt_config = {
     2,               /* Channel number. */
     DWT_PRF_64M,     /* Pulse repetition frequency. */
@@ -33,16 +34,31 @@ static dwt_config_t dwt_config = {
     (1025 + 64 - 32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
 };
 
+#define DWT_START_RX_IMMEDIATE 0
+
+#define UUS_TO_DWT_TIME 65536
+
 #define TX_ANT_DLY 0
 #define RX_ANT_DLY 32950
+//#define TX_ANT_DLY 16436
+//#define RX_ANT_DLY 16436
 
-#define POLL_TX_TO_RESP_RX_DLY_UUS 150
-#define RESP_RX_TIMEOUT_UUS 2700
+#define POLL_TX_TO_RESP_RX_DLY_UUS 150 // 150 // TODO 设定预期发完 poll 后多久开 rx 等 resp
+#define RESP_TX_TO_FINAL_RX_DLY_UUS 500 // 500 // TODO 设定预期发完 resp 后多久开 rx 等 final
+#define POLL_RX_TO_RESP_TX_DLY_UUS 10000 // 2800 // TODO 设定预期从接收到 poll 消息到发送 resp 消息的时间, 例程 2600
+#define RESP_RX_TO_FINAL_TX_DLY_UUS 10000 // 3100 // TODO 设定预期从接收到响应消息到发送最终消息的时间, 不能太小，可能要调整
+#define RESP_RX_TIMEOUT_UUS 10000 // 2700
 
 #define PRE_TIMEOUT 8
 
+#define SPEED_OF_LIGHT 299702547
 
-void InitDW1000(uwb_mode_t mode);
+
+uint64_t GetTXTimeStamp(void);
+uint64_t GetRXTimeStamp(void);
+
+
+uint8_t InitDW1000(uwb_mode_t mode);
 
 void AnchorEventHandler(uint16_t module_id);
 void TagEventHandler(uint16_t module_id);

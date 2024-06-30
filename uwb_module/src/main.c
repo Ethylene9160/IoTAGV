@@ -52,8 +52,11 @@ int main(void) {
 //        SleepMs(1000);
 
         if (!is_initialized) {
-            InitDW1000(mode);
-            TurnOnLED((led_t) mode); // TODO
+            if (InitDW1000(mode) != 0) {
+                SleepMs(1000);
+                continue;
+            }
+            TurnOnLED((led_t) mode);
             is_initialized = 1;
         }
 

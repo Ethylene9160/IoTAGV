@@ -1,24 +1,26 @@
 #include "tiny_io.h"
 
+#include <stdbool.h>
 #include "stdarg.h"
+
 #include "usart.h"
 
 
 int debug_putchar(int ch) {
-    USART_ClearFlag(USART1,USART_FLAG_TC);
-    USART_SendData(USART1, (uint8_t) ch);
+    USART_ClearFlag(USART1, USART_FLAG_TC);
+    USART_SendData(USART1, (uint8_t)ch);
     while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET); // Block until the transfer is complete
     return ch;
 }
 
-void int_to_str(int value, char *buffer) {
-    char temp[12];
+void int_to_str(int64_t value, char *buffer) {
+    char temp[21];  // Can hold up to 20 digits for a 64-bit integer
     int pos = 0;
     int len = 0;
-    int is_negative = 0;
+    bool is_negative = false;
 
     if (value < 0) {
-        is_negative = 1;
+        is_negative = true;
         value = -value;
     }
 
@@ -38,16 +40,33 @@ void int_to_str(int value, char *buffer) {
     buffer[len] = '\0';
 }
 
-void float_to_str(float value, char *buffer, int precision) {
+void uint_to_str(uint64_t value, char *buffer) {
+    char temp[21];  // Can hold up to 20 digits for a 64-bit integer
+    int pos = 0;
+    int len = 0;
+
+    do {
+        temp[pos++] = (value % 10) + '0';
+        value /= 10;
+    } while (value > 0);
+
+    while (pos > 0) {
+        buffer[len++] = temp[--pos];
+    }
+
+    buffer[len] = '\0';
+}
+
+void float_to_str(double value, char *buffer, int precision) {
     char temp[32];
     int pos = 0;
     int len = 0;
-    int is_negative = 0;
+    bool is_negative = false;
     int int_part;
-    float frac_part;
+    double frac_part;
 
     if (value < 0) {
-        is_negative = 1;
+        is_negative = true;
         value = -value;
     }
 
@@ -88,17 +107,42 @@ void debug_printf(const char *format, ...) {
                 for (char *buf_ptr = buffer; *buf_ptr != '\0'; buf_ptr++) {
                     debug_putchar(*buf_ptr);
                 }
-            } else if (*ptr == 's') {
-                char *str = va_arg(args, char *);
-                while (*str != '\0') {
-                    debug_putchar(*str++);
+            } else if (*ptr == 'l') {
+                ptr++;
+                if (*ptr == 'd') {
+                    long value = va_arg(args, long);
+                    int_to_str(value, buffer);
+                } else if (*ptr == 'u') {
+                    unsigned long value = va_arg(args, unsigned long);
+                    uint_to_str(value, buffer);
+                }
+                for (char *buf_ptr = buffer; *buf_ptr != '\0'; buf_ptr++) {
+                    debug_putchar(*buf_ptr);
+                }
+            } else if (*ptr == 'L') {
+                ptr++;
+                if (*ptr == 'd') {
+                    long long value = va_arg(args, long long);
+                    int_to_str(value, buffer);
+                } else if (*ptr == 'u') {
+                    unsigned long long value = va_arg(args, unsigned long long);
+                    uint_to_str(value, buffer);
+                }
+                for (char *buf_ptr = buffer; *buf_ptr != '\0'; buf_ptr++) {
+                    debug_putchar(*buf_ptr);
+                }
+            } else if (*ptr == 'u') {
+                unsigned int value = va_arg(args, unsigned int);
+                uint_to_str(value, buffer);
+                for (char *buf_ptr = buffer; *buf_ptr != '\0'; buf_ptr++) {
+                    debug_putchar(*buf_ptr);
                 }
             } else if (*ptr == '.') {
                 ptr++;
                 int precision = *ptr - '0';
                 ptr++;
-                if (*ptr == 'f') {
-                    float value = (float)va_arg(args, double);
+                if (*ptr == 'f' || *ptr == 'l') {
+                    double value = va_arg(args, double);
                     float_to_str(value, buffer, precision);
                     for (char *buf_ptr = buffer; *buf_ptr != '\0'; buf_ptr++) {
                         debug_putchar(*buf_ptr);

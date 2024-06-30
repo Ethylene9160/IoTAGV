@@ -6,11 +6,7 @@ extern "C" {
 #endif
 
 int debug_putchar(int ch);
-
-void int_to_str(int value, char *buffer);
-void float_to_str(float value, char *buffer, int precision);
-
-void debug_printf(const char *format, ...);
+void debug_printf(const char *format, ...); /* %d, %ld, %Ld, %u, %lu, %Lu, %.xf, %.xlf (%.xl ?) */
 
 #ifdef __cplusplus
 }
