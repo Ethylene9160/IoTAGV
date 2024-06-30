@@ -1,11 +1,11 @@
 #include "ostask_uwb_module_port.h"
 
-#include "port_usart.h"
+#include "port_uart.h"
 
 namespace ostask_uwb_module_port{
 void taskProcedure(void *argument) {
 
-    PortUSART port_usart = *((PortUSART*)argument);
+    PortUART port_usart = *((PortUART*)argument);
 
     while (true) {
         if (!port_usart.isDataQueueEmpty()) {

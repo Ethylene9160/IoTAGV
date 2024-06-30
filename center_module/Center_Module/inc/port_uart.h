@@ -15,10 +15,16 @@ public:
         uwb_data_queue_mutex = osMutexNew(nullptr);
     }
     bool init(uint16_t module_id, UART_HandleTypeDef &huart = huart1);
-    bool sendBytes(uint8_t data[], uint16_t len, uint16_t timeout = 10);
+
+    bool sendBytes(uint8_t data[], uint16_t len, uint16_t timeout = 10) {
+        HAL_UART_Transmit(&huart2, (uint8_t*)data, len, timeout);
+        return 1;
+    }
 
     UART_HandleTypeDef &getHuart() { return this->_huart; }
+
     uint16_t getModuleID() { return this->_module_id; }
+
     void setModuleID(uint16_t id) { this->_module_id = id; }
 
     bool pushUWBData(const msgs::uwb_data &data){
