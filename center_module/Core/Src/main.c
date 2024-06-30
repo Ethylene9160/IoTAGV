@@ -60,7 +60,6 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 
 /**
@@ -96,8 +95,10 @@ int main(void)
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+
   /* USER CODE BEGIN 2 */
-    startThreads();
+  char init_msg[] = "usart2 initialized\n";
+  HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
   /* USER CODE END 2 */
 
   /* Init scheduler */

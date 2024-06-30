@@ -21,6 +21,13 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
+#include <math.h>
+#include <stdio.h>
+
+#define BUFFER_SIZE 16
+
+uint8_t rx_buffer[BUFFER_SIZE];
+volatile uint8_t buffer_index = 0;
 
 /* USER CODE END 0 */
 
@@ -51,6 +58,9 @@ void MX_USART1_UART_Init(void)
   {
     Error_Handler();
   }
+
+  // Enable the UART Data Register not empty Interrupt
+  __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
@@ -68,6 +78,9 @@ void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 1 */
 
   /* USER CODE END USART2_Init 1 */
+
+  /* USER CODE BEGIN USART2_Init 2 */
+
   huart2.Instance = USART2;
   huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -80,8 +93,6 @@ void MX_USART2_UART_Init(void)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
-
   /* USER CODE END USART2_Init 2 */
 
 }
@@ -192,5 +203,39 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void USART1_IRQHandler(void) {
+  uint8_t received_byte;
+  HAL_UART_IRQHandler(&huart1);
 
+  if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
+    HAL_UART_Receive(&huart1, &received_byte, 1, 0);
+    rx_buffer[buffer_index++] = received_byte;
+
+    if (buffer_index >= BUFFER_SIZE) {
+      buffer_index = 0;
+
+      uint16_t Dis_0 = rx_buffer[6] | (rx_buffer[7] << 8);
+      uint16_t Dis_1 = rx_buffer[8] | (rx_buffer[9] << 8);
+
+      // Convert distances to meters
+      float dis1 = (float)Dis_0 / 100.0f;
+      float dis2 = (float)Dis_1 / 100.0f;
+      float dis3_constans = 0.1f;  // Example value, should be set accordingly
+
+      // Apply the cosine theorem
+      float cos_angle = (dis1 * dis1 + dis3_constans * dis3_constans - dis2 * dis2) / (2 * dis1 * dis3_constans);
+      float angle_rad = (float)acosf(cos_angle);
+
+      float dis_x = dis1 * cosf(angle_rad) - 0.5f * dis3_constans;
+      float dis_y = dis1 * sinf(angle_rad);
+
+      char usart2_buffer[64];
+      int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %.2f m, dis_y: %.2f m\n", dis_x, dis_y);
+      // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %d m, dis_y: %d m\n", Dis_0, Dis_1);
+      rx_buffer[15] = 0;
+      // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "%s\n", rx_buffer);
+      HAL_UART_Transmit(&huart2, (uint8_t*)usart2_buffer, len, HAL_MAX_DELAY);
+    }
+  }
+}
 /* USER CODE END 1 */
