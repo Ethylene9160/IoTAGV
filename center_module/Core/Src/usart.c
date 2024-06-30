@@ -24,11 +24,16 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "queue.h"
+#include "uwb_tool.h"
+// #include "pos_vel_transmit.h"
+
 #define BUFFER_SIZE 16
 
 uint8_t rx_buffer[BUFFER_SIZE];
 volatile uint8_t buffer_index = 0;
 
+QueueHandle_t   S_Queue;
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -222,15 +227,9 @@ void USART1_IRQHandler(void) {
       float dis2 = (float)Dis_1 / 100.0f;
       float dis3_constans = 0.1f;  // Example value, should be set accordingly
 
-      // Apply the cosine theorem
-      float cos_angle = (dis1 * dis1 + dis3_constans * dis3_constans - dis2 * dis2) / (2 * dis1 * dis3_constans);
-      float angle_rad = (float)acosf(cos_angle);
-
-      float dis_x = dis1 * cosf(angle_rad) - 0.5f * dis3_constans;
-      float dis_y = dis1 * sinf(angle_rad);
-
+      cart_point p = dis2cart(dis1, dis2, dis3_constans);
       char usart2_buffer[64];
-      int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %.2f m, dis_y: %.2f m\n", dis_x, dis_y);
+      int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %.2f m, dis_y: %.2f m\n", p.x, p.y);
       // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %d m, dis_y: %d m\n", Dis_0, Dis_1);
       rx_buffer[15] = 0;
       // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "%s\n", rx_buffer);

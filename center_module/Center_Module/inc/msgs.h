@@ -3,13 +3,12 @@
 
 #include <cstdint>
 #include <cstring>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "crc.h"
 
 namespace msgs {
-
     typedef struct _serials {
         uint16_t len;
         std::shared_ptr<uint8_t[]> data_ptr;
@@ -25,7 +24,8 @@ namespace msgs {
     template<typename T>
     class Value : public Serializable {
     public:
-        explicit Value(T value) : value(value) {}
+        explicit Value(T value) : value(value) {
+        }
 
         serials serialize() override {
             auto data = std::shared_ptr<uint8_t[]>(new uint8_t[sizeof(T)]);
@@ -42,10 +42,12 @@ namespace msgs {
 
     class Twist2D : public Serializable {
     public:
-        Twist2D() : linear_x(0.0f), linear_y(0.0f), angular_z(0.0f) {}
+        Twist2D() : linear_x(0.0f), linear_y(0.0f), angular_z(0.0f) {
+        }
 
         Twist2D(float linear_x, float linear_y, float angular_z) : linear_x(linear_x), linear_y(linear_y),
-                                                                   angular_z(angular_z) {}
+                                                                   angular_z(angular_z) {
+        }
 
         serials serialize() override {
             auto data = std::shared_ptr<uint8_t[]>(new uint8_t[12]);
@@ -65,7 +67,8 @@ namespace msgs {
     class Command : public Serializable {
     public:
         Command(uint16_t cmd_id, const Serializable &data) : cmd_id_(cmd_id),
-                                                             data_ref_(const_cast<Serializable &>(data)) {}
+                                                             data_ref_(const_cast<Serializable &>(data)) {
+        }
 
         serials serialize() override {
             serials data_serialized = data_ref_.serialize();
@@ -87,14 +90,15 @@ namespace msgs {
     class Packet : public Serializable {
     public:
         Packet(uint8_t recv_type, uint8_t recv_id, uint8_t send_type, uint8_t send_id, uint16_t seq, uint16_t cmd_id,
-               const Serializable &data) :
-            recv_type_(recv_type), recv_id_(recv_id), send_type_(send_type), send_id_(send_id), seq_(seq),
-            cmd_id_(cmd_id), data_ref_(const_cast<Serializable &>(data)) {}
+               const Serializable &data) : recv_type_(recv_type), recv_id_(recv_id), send_type_(send_type),
+                                           send_id_(send_id), seq_(seq),
+                                           cmd_id_(cmd_id), data_ref_(const_cast<Serializable &>(data)) {
+        }
 
         Packet(uint8_t recv_type, uint8_t recv_id, uint8_t send_type, uint8_t send_id, uint16_t seq, const Command &cmd)
-            :
-            recv_type_(recv_type), recv_id_(recv_id), send_type_(send_type), send_id_(send_id), seq_(seq),
-            cmd_id_(cmd.cmd_id_), data_ref_(cmd.data_ref_) {}
+            : recv_type_(recv_type), recv_id_(recv_id), send_type_(send_type), send_id_(send_id), seq_(seq),
+              cmd_id_(cmd.cmd_id_), data_ref_(cmd.data_ref_) {
+        }
 
         static serials
         makePacketBySerials(uint8_t recv_type, uint8_t recv_id, uint8_t send_type, uint8_t send_id, uint16_t seq,
@@ -139,6 +143,37 @@ namespace msgs {
         Serializable &data_ref_;
     };
 
+    class uwb_data : public msgs::Serializable {
+    public:
+        uwb_data(uint16_t self_id, uint16_t target_id, uint8_t CRC8);
+
+        uwb_data(uint8_t *data, uint16_t size = 19) {
+            memcpy(&header, data, 1);
+            memcpy(&self_id, data + 1, 2);
+            memcpy(&target_id, data + 3, 2);
+            memcpy(&CRC8, data + 5, 1);
+            auto len = (uint16_t) (*(uint16_t *) (data + 6));
+            this->data.resize(len);
+            memcpy(this->data.data(), data + 8, len);
+            memcpy(&CRC16, data + 8 + len, 2);
+            memcpy(&ender, data + len + 10, 1);
+        }
+
+        msgs::serials serialize() override;
+
+        void set_data(std::vector<uint8_t> data);
+
+        void set_data(const float x, const float y);
+
+    private:
+        uint8_t header;
+        uint16_t self_id;
+        uint16_t target_id;
+        uint8_t CRC8;
+        std::vector<uint8_t> data;
+        uint16_t CRC16;
+        uint8_t ender;
+    };
 }
 
 #endif // CENTER_MODULE_MSGS_H_
