@@ -18,6 +18,8 @@ namespace msgs {
     class Serializable {
     public:
         virtual serials serialize() = 0;
+
+        virtual ~Serializable() = default;
     };
 
     template<typename T>
