@@ -24,16 +24,18 @@
 #include <math.h>
 #include <stdio.h>
 
+#include "cmsis_os2.h"
 #include "queue.h"
-#include "uwb_tool.h"
+// #include "uwb_tool.h"
 // #include "pos_vel_transmit.h"
 
-#define BUFFER_SIZE 16
 
 uint8_t rx_buffer[BUFFER_SIZE];
 volatile uint8_t buffer_index = 0;
 
 QueueHandle_t   S_Queue;
+osMutexId_t USART_MutexHandle;
+
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -209,31 +211,52 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 
 /* USER CODE BEGIN 1 */
 void USART1_IRQHandler(void) {
+  static uint8_t isReceive = 0;
   uint8_t received_byte;
   HAL_UART_IRQHandler(&huart1);
 
   if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
     HAL_UART_Receive(&huart1, &received_byte, 1, 0);
+    // 数据帧帧头： 进入接收状态
+    // if (!isReceive && received_byte == 0x5A) {
+    //   isReceive = 1;
+    //   buffer_index = 0;
+    // }
+    // if (isReceive && received_byte == 0x7F) {
+    //   isReceive = 0;
+    // }
+
+    // 上锁。
+    osStatus_t statu = osMutexAcquire(USART_MutexHandle, osWaitForever);
+    if (statu == osOK) {
+      // 压入S_Queue。
+      xQueueSendFromISR(S_Queue, &received_byte, NULL);
+      // 解锁。
+      osMutexRelease(USART_MutexHandle);
+    }
+
+    return;
     rx_buffer[buffer_index++] = received_byte;
 
     if (buffer_index >= BUFFER_SIZE) {
       buffer_index = 0;
+      //todo: 应当判断数据帧。
 
-      uint16_t Dis_0 = rx_buffer[6] | (rx_buffer[7] << 8);
-      uint16_t Dis_1 = rx_buffer[8] | (rx_buffer[9] << 8);
+      // uint16_t Dis_0 = rx_buffer[6] | (rx_buffer[7] << 8);
+      // uint16_t Dis_1 = rx_buffer[8] | (rx_buffer[9] << 8);
 
       // Convert distances to meters
-      float dis1 = (float)Dis_0 / 100.0f;
-      float dis2 = (float)Dis_1 / 100.0f;
-      float dis3_constans = 0.1f;  // Example value, should be set accordingly
-
-      cart_point p = dis2cart(dis1, dis2, dis3_constans);
-      char usart2_buffer[64];
-      int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %.2f m, dis_y: %.2f m\n", p.x, p.y);
-      // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %d m, dis_y: %d m\n", Dis_0, Dis_1);
-      rx_buffer[15] = 0;
-      // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "%s\n", rx_buffer);
-      HAL_UART_Transmit(&huart2, (uint8_t*)usart2_buffer, len, HAL_MAX_DELAY);
+      // float dis1 = (float)Dis_0 / 100.0f;
+      // float dis2 = (float)Dis_1 / 100.0f;
+      // float dis3_constans = 0.1f;  // Example value, should be set accordingly
+      //
+      // cart_point p = dis2cart(dis1, dis2, dis3_constans);
+      // char usart2_buffer[64];
+      // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %.2f m, dis_y: %.2f m\n", p.x, p.y);
+      // // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %d m, dis_y: %d m\n", Dis_0, Dis_1);
+      // rx_buffer[15] = 0;
+      // // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "%s\n", rx_buffer);
+      // HAL_UART_Transmit(&huart2, (uint8_t*)usart2_buffer, len, HAL_MAX_DELAY);
     }
   }
 }

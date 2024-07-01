@@ -78,7 +78,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  S_Queue = xQueueCreate(100, BUFFER_SIZE * sizeof(uint8_t));
   /* USER CODE END Init */
 
   /* Configure the system clock */

@@ -165,6 +165,10 @@ namespace msgs {
 
         void set_data(const float x, const float y);
 
+        std::vector<uint8_t> get_data() {
+            return this->data;
+        }
+
     private:
         uint8_t header;
         uint16_t self_id;

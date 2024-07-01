@@ -30,6 +30,8 @@ extern "C" {
 
   /* USER CODE BEGIN Includes */
 #include <stdint.h>
+
+#include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "queue.h"
 /* USER CODE END Includes */
@@ -40,8 +42,10 @@ extern UART_HandleTypeDef huart2;
   /* USER CODE BEGIN Private defines */
 
 extern QueueHandle_t S_Queue;
+extern osMutexId_t USART_MutexHandle;
 
-#define BUFFER_SIZE 16
+#define BUFFER_SIZE 19
+// #define BUFFER_SIZE 16
   extern uint8_t rx_buffer[BUFFER_SIZE];
   extern volatile uint8_t buffer_index;
   /* USER CODE END Private defines */
