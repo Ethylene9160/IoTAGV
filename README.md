@@ -1,7 +1,5 @@
 # IoTAGV
 
-V2V.
-
 ### 文件结构
 
 
@@ -44,3 +42,8 @@ V2V.
 
 ## 使用手册
 
+# Contributors
+
+<a href="https://github.com/Ethylene9160/IoTAGV/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Ethylene9160/IoTAGV" />
+</a>
