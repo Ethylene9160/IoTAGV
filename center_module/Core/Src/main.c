@@ -70,6 +70,8 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
+  S_Queue = xQueueCreate(100, BUFFER_SIZE * sizeof(uint8_t));
+  USART_MutexHandle = osMutexNew(0);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -78,7 +80,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  S_Queue = xQueueCreate(100, BUFFER_SIZE * sizeof(uint8_t));
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -99,6 +100,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   char init_msg[] = "usart2 initialized\n";
   HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
+  startThreads();
   /* USER CODE END 2 */
 
   /* Init scheduler */

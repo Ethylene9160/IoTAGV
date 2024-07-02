@@ -2,6 +2,7 @@
 #define CENTER_MODULE_OSTASK_USART_TRANSFORMER_H_
 #include "usart.h"
 #include "queue.h"
+#include "cmsis_os.h"
 #include "port_uart.h"
 
 namespace ostask_usart_transformer {
@@ -12,10 +13,10 @@ namespace ostask_usart_transformer {
     const osThreadAttr_t task_attributes = {
         .name = "osTaskUSARTTransformer",
         .stack_size = 256,
-        .priority = (osPriority_t) osPriorityNormal,
+        .priority = (osPriority_t) osPriorityNormal2,
     };
 
-    [[nonreturn]] void taskProcedure(void *argument);
+    [[noreturn]] void taskProcedure(void *argument);
 }
 
 
