@@ -179,13 +179,21 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
         uint16_t poll_frame_len = gen_ranging_exchange_msg(poll_frame, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, poll_payload, sizeof(poll_payload));
 
         // Send the poll message
-        dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
         dwt_writetxdata(poll_frame_len, poll_frame, 0);
         dwt_writetxfctrl(poll_frame_len, 0, 0);
         int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
         if (res == DWT_SUCCESS) {
             // Wait for the poll message to be sent
             while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_TXFRS)));
+
+            sleep_ms(5); // 3
+            /*
+             * 见后 TODO [A]
+             * 这里 1 ms 还不太够.
+             */
+
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+
             if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Poll message sent for task %d.\n", new_task_id);
 
             // Add the task to the task list
@@ -195,7 +203,6 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
             if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Failed to send poll for task %d.\n", new_task_id);
             destroy_ranging_task(new_task_id);
         }
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
     }
 
     // Listening
@@ -249,18 +256,21 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
             uint16_t final_frame_len = gen_ranging_exchange_msg(final_frame, RANGING_EXCHANGE_MSG_PAN_ID, resp_src_id, module_id, resp_task_id, RANGING_EXCHANGE_STAGE_FINAL, final_payload, sizeof(final_payload));
 
             // Send the final message
-            dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
             dwt_writetxdata(final_frame_len, final_frame, 0);
             dwt_writetxfctrl(final_frame_len, 0, 0);
             int res = dwt_starttx(DWT_START_TX_DELAYED);
             if (res == DWT_SUCCESS) {
                 // Wait for the poll message to be sent
                 while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS));
+                /*
+                 * 见后 TODO [A]
+                 * 不知道为什么这里就不需要.
+                 */
+                dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
                 if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Final message sent for task %d.\n", resp_task_id);
             } else {
                 if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Failed to send final for task %d.\n", resp_task_id);
             }
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 
             // Destroy the task
             destroy_ranging_task(resp_task_id);
@@ -299,7 +309,7 @@ void TagEventHandler(uwb_module_config_t *conf) {
     while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)));
     if (status_reg & SYS_STATUS_RXFCG) {
         // Clear flags
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);
+        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS); // TODO: 这里不清 SYS_STATUS_TXFRS 的话所的距离都是几十万, 可能就是几次发送间影响了
 
         // Read response frame
         uint16_t frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK; // RX_FINFO_RXFL_MASK_1023;
@@ -327,14 +337,21 @@ void TagEventHandler(uwb_module_config_t *conf) {
                 uint16_t resp_frame_len = gen_ranging_exchange_msg(resp_frame, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_id, task_id, RANGING_EXCHANGE_STAGE_RESPONSE, resp_payload, sizeof(resp_payload));
 
                 // Send the response message
-                dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
                 dwt_writetxdata(resp_frame_len, resp_frame, 0);
                 dwt_writetxfctrl(resp_frame_len, 0, 0);
                 int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
                 if (res == DWT_SUCCESS) {
                     // Wait for the poll message to be sent
                     while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS));
-                    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+
+                    sleep_ms(2); // 1
+                    /*
+                     * TODO [A]
+                     * Tag 中在 while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_TXFRS))); 后不能直接跟 dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+                     * (包括回到前面的 dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);)
+                     * 会运行一小段时间后卡死, 实验发现必须在二者之间进行一些耗时操作, 例如 sleep_ms(1) 或者调试输出. 原因未知.
+                     */
+
                     if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Response message sent for task %d.\n", task_id);
 
                     // Record the poll reception and response transmission timestamps
@@ -347,7 +364,6 @@ void TagEventHandler(uwb_module_config_t *conf) {
                     ranging_task_list[task_id].after_stage = RANGING_EXCHANGE_STAGE_RESPONSE;
                 } else {
                     if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Failed to send response.\n");
-                    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
                     destroy_ranging_task(task_id);
                 }
             } else if (
