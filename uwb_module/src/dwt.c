@@ -59,13 +59,28 @@ uint8_t add_ranging_task() {
         }
     }
     ranging_task_list[ranging_task_list_head].after_stage = RANGING_EXCHANGE_STAGE_POLL;
-    return ranging_task_list_head ++;
+    return ranging_task_list_head;
 }
 
 void destroy_ranging_task(uint8_t task_id) {
     ranging_task_list[task_id].after_stage = RANGING_EXCHANGE_STAGE_IDLE;
 }
 
+
+static void tx_cb(const dwt_callback_data_t *tx_conf) {
+    debug_printf("TX cb.\n");
+}
+
+static void rx_cb(const dwt_callback_data_t *rx_ok) {
+    debug_printf("RX cb.\n");
+}
+
+void EXTI0_IRQHandler(void) {
+    if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
+        dwt_isr();
+        EXTI_ClearITPendingBit(EXTI_Line0);
+    }
+}
 
 uint8_t InitDW1000(uwb_mode_t mode) {
     if (mode == UNDEFINED) {
@@ -87,9 +102,15 @@ uint8_t InitDW1000(uwb_mode_t mode) {
     dwt_settxantennadelay(TX_ANT_DLY);
 
 //    if (mode == ANCHOR) {
-//        dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
+//        dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
 //        dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
 //    }
+    if (mode == TAG) {
+        dwt_setcallbacks(&tx_cb, &rx_cb);
+        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG, 1);
+//        dwt_setautorxreenable(1);
+    }
+
 //    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
 
     debug_printf("DW1000 initialized.\n");
@@ -142,27 +163,30 @@ void AnchorEventHandler(uint16_t module_id) {
         uint8_t poll_payload[] = {};
         uint16_t poll_frame_len = gen_ranging_exchange_msg(poll_frame, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, poll_payload, sizeof(poll_payload));
 
-        // TODO
-//        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-
         // Send the poll message
+        dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
         dwt_writetxdata(poll_frame_len, poll_frame, 0);
         dwt_writetxfctrl(poll_frame_len, 0);
         int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
-        // TODO: if (res == DWT_ERROR)
+        if (res == DWT_SUCCESS) {
+            // Wait for the poll message to be sent, TODO: if fail?
+            while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_TXFRS)));
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS); // TODO
+            debug_printf("Poll message sent for task %d.\n", new_task_id);
 
-        // Wait for the poll message to be sent, TODO: if fail?
-        while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_TXFRS)));
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS); // TODO
-        debug_printf("Poll message sent.\n");
-
-        // Add the task to the task list
-        uint64_t poll_tx_ts = get_tx_timestamp();
-        memcpy(&ranging_task_list[ranging_task_list_head].poll_tx_ts_32, &poll_tx_ts, 4);
+            // Add the task to the task list
+            uint64_t poll_tx_ts = get_tx_timestamp();
+            memcpy(&ranging_task_list[ranging_task_list_head].poll_tx_ts_32, &poll_tx_ts, 4);
+        } else {
+            debug_printf("Failed to send poll for task %d.\n", new_task_id);
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS); // TODO
+            destroy_ranging_task(new_task_id);
+        }
     }
 
     // Listening
     dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
+//    dwt_setrxtimeout(0);
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
     while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR)));
@@ -211,10 +235,8 @@ void AnchorEventHandler(uint16_t module_id) {
             memcpy(final_payload + 8, &ranging_task_list[resp_task_id].final_tx_ts_32, 4);
             uint16_t final_frame_len = gen_ranging_exchange_msg(final_frame, RANGING_EXCHANGE_MSG_PAN_ID, resp_src_id, module_id, resp_task_id, RANGING_EXCHANGE_STAGE_FINAL, final_payload, sizeof(final_payload));
 
-            // TODO
-//            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-
             // Send the final message
+            dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
             dwt_writetxdata(final_frame_len, final_frame, 0);
             dwt_writetxfctrl(final_frame_len, 0);
             int res = dwt_starttx(DWT_START_TX_DELAYED);
@@ -240,7 +262,7 @@ void AnchorEventHandler(uint16_t module_id) {
 void TagEventHandler(uint16_t module_id) {
     // Listening
 //    dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
-    dwt_setrxtimeout(0); // TODO
+    dwt_setrxtimeout(0);
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
     while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR)));
@@ -249,7 +271,7 @@ void TagEventHandler(uint16_t module_id) {
         dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);
 
         // Read response frame
-        uint16_t frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023; // RX_FINFO_RXFLEN_MASK;
+        uint16_t frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK; // RX_FINFO_RXFL_MASK_1023;
         if (frame_len <= RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH) {
             dwt_readrxdata(rx_buffer, frame_len, 0);
         }
@@ -273,10 +295,8 @@ void TagEventHandler(uint16_t module_id) {
                 uint8_t resp_payload[] = {};
                 uint16_t resp_frame_len = gen_ranging_exchange_msg(resp_frame, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_id, task_id, RANGING_EXCHANGE_STAGE_RESPONSE, resp_payload, sizeof(resp_payload));
 
-                // TODO
-//                dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-
                 // Send the response message
+                dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
                 dwt_writetxdata(resp_frame_len, resp_frame, 0);
                 dwt_writetxfctrl(resp_frame_len, 0);
                 int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
@@ -284,6 +304,7 @@ void TagEventHandler(uint16_t module_id) {
                     // Wait for the poll message to be sent, TODO: if fail?
                     while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS));
                     dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS); // TODO
+                    debug_printf("Response message sent for task %d.\n", task_id);
 
                     // Record the poll reception and response transmission timestamps
                     uint64_t poll_rx_ts = get_rx_timestamp();
