@@ -25,7 +25,7 @@ uwb_mode_t JudgeModeFromID(uint16_t module_id) {
 #define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFFFF
 #define RANGING_EXCHANGE_INTERVAL 1000
 
-#define RANGING_EXCHANGE_MAX_TASK_NUMBER 128 // < 256
+#define RANGING_EXCHANGE_MAX_TASK_NUMBER 64 // < 256
 
 #define RANGING_EXCHANGE_STAGE_IDLE 0x00
 #define RANGING_EXCHANGE_STAGE_POLL 0x01
@@ -51,8 +51,11 @@ uint8_t is_task_id_occupied(uint8_t task_id) {
     return ranging_task_list[task_id].after_stage != RANGING_EXCHANGE_STAGE_IDLE;
 }
 
-uint8_t add_ranging_task() {
-    while (is_task_id_occupied(ranging_task_list_head)) {
+uint8_t add_ranging_task(uint8_t overwriting) {
+    if (++ ranging_task_list_head >= RANGING_EXCHANGE_MAX_TASK_NUMBER) {
+        ranging_task_list_head = 0;
+    }
+    while (!overwriting && is_task_id_occupied(ranging_task_list_head)) { // TODO: dead loop
         ranging_task_list_head ++;
         if (ranging_task_list_head >= RANGING_EXCHANGE_MAX_TASK_NUMBER) {
             ranging_task_list_head = 0;
@@ -67,19 +70,23 @@ void destroy_ranging_task(uint8_t task_id) {
 }
 
 
-static void tx_cb(const dwt_callback_data_t *tx_conf) {
+static void tx_cb(const dwt_callback_data_t *txd) {
     debug_printf("TX cb.\n");
 }
 
-static void rx_cb(const dwt_callback_data_t *rx_ok) {
+static void rx_cb(const dwt_callback_data_t *rxd) {
     debug_printf("RX cb.\n");
 }
 
 void EXTI0_IRQHandler(void) {
-    if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
+//    if (EXTI_GetITStatus(EXTI_Line0) != RESET) {
+//        dwt_isr();
+//        EXTI_ClearITPendingBit(EXTI_Line0);
+//    }
+    do {
         dwt_isr();
-        EXTI_ClearITPendingBit(EXTI_Line0);
-    }
+    } while (port_CheckEXT_IRQ() == 1);
+    EXTI_ClearITPendingBit(DECAIRQ_EXTI);
 }
 
 uint8_t InitDW1000(uwb_mode_t mode) {
@@ -107,11 +114,13 @@ uint8_t InitDW1000(uwb_mode_t mode) {
 //    }
     if (mode == TAG) {
         dwt_setcallbacks(&tx_cb, &rx_cb);
-        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG, 1);
+//        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
+//        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG, 1);
+//        dwt_setinterrupt(DWT_INT_RFCG, 1);
 //        dwt_setautorxreenable(1);
     }
 
-//    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
+    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
 
     debug_printf("DW1000 initialized.\n");
 
@@ -158,7 +167,7 @@ void AnchorEventHandler(uint16_t module_id) {
         last_tick_ms = current_tick_ms;
 
         // Prepare a poll message
-        uint8_t new_task_id = add_ranging_task();
+        uint8_t new_task_id = add_ranging_task(1); // TODO: overwriting?
         uint8_t poll_frame[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH];
         uint8_t poll_payload[] = {};
         uint16_t poll_frame_len = gen_ranging_exchange_msg(poll_frame, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, poll_payload, sizeof(poll_payload));

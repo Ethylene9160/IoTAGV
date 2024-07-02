@@ -33,6 +33,7 @@ int ConfigureGPIO(void) {
     GPIO_InitStructure.GPIO_Pin = DECAIRQ;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
     GPIO_Init(DECAIRQ_GPIO, &GPIO_InitStructure);
+
     GPIO_EXTILineConfig(DECAIRQ_EXTI_PORT, DECAIRQ_EXTI_PIN);
 
     EXTI_InitTypeDef EXTI_InitStructure;
