@@ -180,7 +180,7 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
 
         // Send the poll message
         dwt_writetxdata(poll_frame_len, poll_frame, 0);
-        dwt_writetxfctrl(poll_frame_len, 0, 0);
+        dwt_writetxfctrl(poll_frame_len, 0, 1);
         int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
         if (res == DWT_SUCCESS) {
             // Wait for the poll message to be sent
@@ -257,7 +257,7 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
 
             // Send the final message
             dwt_writetxdata(final_frame_len, final_frame, 0);
-            dwt_writetxfctrl(final_frame_len, 0, 0);
+            dwt_writetxfctrl(final_frame_len, 0, 1);
             int res = dwt_starttx(DWT_START_TX_DELAYED);
             if (res == DWT_SUCCESS) {
                 // Wait for the poll message to be sent
@@ -338,7 +338,7 @@ void TagEventHandler(uwb_module_config_t *conf) {
 
                 // Send the response message
                 dwt_writetxdata(resp_frame_len, resp_frame, 0);
-                dwt_writetxfctrl(resp_frame_len, 0, 0);
+                dwt_writetxfctrl(resp_frame_len, 0, 1);
                 int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
                 if (res == DWT_SUCCESS) {
                     // Wait for the poll message to be sent
