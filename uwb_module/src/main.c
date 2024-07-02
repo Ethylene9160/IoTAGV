@@ -55,15 +55,14 @@ int main(void) {
                 SleepMs(1000);
                 continue;
             }
-            TurnOnLED((led_t) mode);
             is_initialized = 1;
         }
 
         // Event handler
         if (mode == ANCHOR) {
-            AnchorEventHandler(module_config.module_id);
+            AnchorEventHandler(&module_config);
         } else if (mode == TAG) {
-            TagEventHandler(module_config.module_id);
+            TagEventHandler(&module_config);
         } else {
             // Do nothing but wait for the module ID to be modified
         }
