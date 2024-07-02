@@ -62,8 +62,8 @@ uint8_t InitDW1000(uwb_mode_t mode) {
 
     if (mode == ANCHOR) {
         dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
-//        dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
-        dwt_setrxtimeout(0);
+        dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
+//        dwt_setrxtimeout(0);
     }
 //    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
 
@@ -92,7 +92,7 @@ void AnchorEventHandler(uint16_t module_id) {
     dwt_writetxfctrl(poll_frame_len, 0);
     dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
 
-//    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+    dwt_rxenable(DWT_START_RX_IMMEDIATE); // TODO: 理论应该自动开
     debug_printf("Sent poll.\n");
 
     // Wait for response
@@ -180,7 +180,7 @@ void TagEventHandler(uint16_t module_id) {
 
     if (status_reg & SYS_STATUS_RXFCG) {
         // Clear flags to prepare for next reception or transmission
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);
+        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS); // TODO, HERE! SYS_STATUS_TXFRS!
 
         // Read poll frame
         uint16_t poll_frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;
@@ -210,8 +210,8 @@ void TagEventHandler(uint16_t module_id) {
 //            debug_printf("Expected TX timestamp: %Lu.\n", poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME));
 
             // Set expected time of transmission
-            uint32_t expected_resp_tx_time = (poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
-            dwt_setdelayedtrxtime(expected_resp_tx_time);
+//            uint32_t expected_resp_tx_time = (poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
+//            dwt_setdelayedtrxtime(expected_resp_tx_time);
 
             // Set expected delay and timeout for final message reception
             dwt_setrxaftertxdelay(RESP_TX_TO_FINAL_RX_DLY_UUS);
@@ -224,7 +224,8 @@ void TagEventHandler(uint16_t module_id) {
 
             dwt_writetxdata(resp_frame_len, resp_frame, 0);
             dwt_writetxfctrl(resp_frame_len, 0);
-            int res = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+//            int res = dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED);
+            int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
 
             if (res == DWT_ERROR) {
                 // Failed to start transmission, TODO 有没有什么要做的

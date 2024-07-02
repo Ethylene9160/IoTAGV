@@ -29,43 +29,43 @@ int ConfigureGPIO(void) {
 }
 
 void TurnOffLED(led_t led) {
-    switch (led) {
-        case LED_1:
-            GPIO_ResetBits(LED_GPIO, LED_1_PIN);
-            break;
-        case LED_2:
-            GPIO_ResetBits(LED_GPIO, LED_2_PIN);
-            break;
-        case LED_3:
-            GPIO_ResetBits(LED_GPIO, LED_3_PIN);
-            break;
-        case LED_ALL:
-            GPIO_ResetBits(LED_GPIO, LED_1_PIN | LED_2_PIN | LED_3_PIN);
-            break;
-        default:
-            // do nothing for undefined led number
-            break;
-    }
+//    switch (led) {
+//        case LED_1:
+//            GPIO_ResetBits(LED_GPIO, LED_1_PIN);
+//            break;
+//        case LED_2:
+//            GPIO_ResetBits(LED_GPIO, LED_2_PIN);
+//            break;
+//        case LED_3:
+//            GPIO_ResetBits(LED_GPIO, LED_3_PIN);
+//            break;
+//        case LED_ALL:
+//            GPIO_ResetBits(LED_GPIO, LED_1_PIN | LED_2_PIN | LED_3_PIN);
+//            break;
+//        default:
+//            // do nothing for undefined led number
+//            break;
+//    }
 }
 
 void TurnOnLED(led_t led) {
-    switch (led) {
-        case LED_1:
-            GPIO_SetBits(LED_GPIO, LED_1_PIN);
-            break;
-        case LED_2:
-            GPIO_SetBits(LED_GPIO, LED_2_PIN);
-            break;
-        case LED_3:
-            GPIO_SetBits(LED_GPIO, LED_3_PIN);
-            break;
-        case LED_ALL:
-            GPIO_SetBits(LED_GPIO, LED_1_PIN | LED_2_PIN | LED_3_PIN);
-            break;
-        default:
-            // do nothing for undefined led number
-            break;
-    }
+//    switch (led) {
+//        case LED_1:
+//            GPIO_SetBits(LED_GPIO, LED_1_PIN);
+//            break;
+//        case LED_2:
+//            GPIO_SetBits(LED_GPIO, LED_2_PIN);
+//            break;
+//        case LED_3:
+//            GPIO_SetBits(LED_GPIO, LED_3_PIN);
+//            break;
+//        case LED_ALL:
+//            GPIO_SetBits(LED_GPIO, LED_1_PIN | LED_2_PIN | LED_3_PIN);
+//            break;
+//        default:
+//            // do nothing for undefined led number
+//            break;
+//    }
 }
 
 void TestLED(void) {
