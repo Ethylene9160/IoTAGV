@@ -13,21 +13,9 @@
 #include <string.h>
 
 #include "deca_spi.h"
-#include "deca_sleep.h"
 #include "deca_device_api.h"
 #include "deca_port.h"
 
-
-int writetospi_serial( uint16 headerLength,
-                       const uint8 *headerBuffer,
-                       uint32 bodylength,
-                       const uint8 *bodyBuffer
-                     );
-
-int readfromspi_serial( uint16	headerLength,
-                        const uint8 *headerBuffer,
-                        uint32 readlength,
-                        uint8 *readBuffer );
 /*! ------------------------------------------------------------------------------------------------------------------
  * Function: openspi()
  *
@@ -36,9 +24,9 @@ int readfromspi_serial( uint16	headerLength,
  */
 int openspi(/*SPI_TypeDef* SPIx*/)
 {
-    // done by port.c, default SPI used is SPI1
+	// done by port.c, default SPI used is SPI1
 
-    return 0;
+	return 0;
 
 } // end openspi()
 
@@ -50,11 +38,11 @@ int openspi(/*SPI_TypeDef* SPIx*/)
  */
 int closespi(void)
 {
-    while (port_SPIx_busy_sending()); //wait for tx buffer to empty
+	while (port_SPIx_busy_sending()); //wait for tx buffer to empty
 
-    port_SPIx_disable();
+	port_SPIx_disable();
 
-    return 0;
+	return 0;
 
 } // end closespi()
 
@@ -65,16 +53,11 @@ int closespi(void)
  * Takes two separate byte buffers for write header and write data
  * returns 0 for success, or -1 for error
  */
-int writetospi_serial
-(
-    uint16       headerLength,
-    const uint8 *headerBuffer,
-    uint32       bodylength,
-    const uint8 *bodyBuffer
-)
+#pragma GCC optimize ("O3")
+int writetospi(uint16 headerLength, const uint8 *headerBuffer, uint32 bodylength, const uint8 *bodyBuffer)
 {
 
-    int i=0;
+	int i=0;
 
     decaIrqStatus_t  stat ;
 
@@ -84,21 +67,21 @@ int writetospi_serial
 
     for(i=0; i<headerLength; i++)
     {
-        SPIx->DR = headerBuffer[i];
+    	SPIx->DR = headerBuffer[i];
 
-        while ((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
+    	while ((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
 
-        SPIx->DR ;
+    	SPIx->DR ;
     }
 
     for(i=0; i<bodylength; i++)
     {
-        SPIx->DR = bodyBuffer[i];
+     	SPIx->DR = bodyBuffer[i];
 
-        while((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
+    	while((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
 
-        SPIx->DR ;
-    }
+		SPIx->DR ;
+	}
 
     SPIx_CS_GPIO->BSRR = SPIx_CS;
 
@@ -116,17 +99,11 @@ int writetospi_serial
  * returns the offset into read buffer where first byte of read data may be found,
  * or returns -1 if there was an error
  */
-
-int readfromspi_serial
-(
-    uint16       headerLength,
-    const uint8 *headerBuffer,
-    uint32       readlength,
-    uint8       *readBuffer
-)
+#pragma GCC optimize ("O3")
+int readfromspi(uint16 headerLength, const uint8 *headerBuffer, uint32 readlength, uint8 *readBuffer)
 {
 
-    int i=0;
+	int i=0;
 
     decaIrqStatus_t  stat ;
 
@@ -139,21 +116,20 @@ int readfromspi_serial
 
     for(i=0; i<headerLength; i++)
     {
-        SPIx->DR = headerBuffer[i];
+    	SPIx->DR = headerBuffer[i];
 
-        //while((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
-        while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
+     	while((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
 
-        readBuffer[0] = SPIx->DR ; // Dummy read as we write the header
+     	readBuffer[0] = SPIx->DR ; // Dummy read as we write the header
     }
 
     for(i=0; i<readlength; i++)
     {
-        SPIx->DR = 0;  // Dummy write as we read the message body
+    	SPIx->DR = 0;  // Dummy write as we read the message body
 
-        while((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
-
-        readBuffer[i] = SPIx->DR ;//port_SPIx_receive_data(); //this clears RXNE bit
+    	while((SPIx->SR & SPI_I2S_FLAG_RXNE) == (uint16_t)RESET);
+ 
+	   	readBuffer[i] = SPIx->DR ;//port_SPIx_receive_data(); //this clears RXNE bit
     }
 
     SPIx_CS_GPIO->BSRR = SPIx_CS;

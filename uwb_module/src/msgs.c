@@ -11,7 +11,8 @@ uint16_t gen_ranging_exchange_msg(
     uint8_t task_id,
     uint8_t msg_type,
     uint8_t *payload,
-    uint16_t payload_len) {
+    uint16_t payload_len
+) {
     buf[0] = RANGING_EXCHANGE_MSG_SYNC_BYTE;
     buf[1] = pan_id & 0xFF;
     buf[2] = (pan_id >> 8) & 0xFF;

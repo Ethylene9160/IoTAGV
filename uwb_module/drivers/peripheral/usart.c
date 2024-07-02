@@ -136,10 +136,9 @@ void ConfigureUSART(void) {
 //
 //FrameContext frame_ctx;
 //
-//void USART1_IRQHandler(void) {
-//    if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
-//        uint8_t byte = USART_ReceiveData(USART1);
-//        Frame_ProcessByte(&frame_ctx, byte);
-//        USART_ClearITPendingBit(USART1, USART_IT_RXNE);
-//    }
-//}
+void USART1_IRQHandler(void) {
+    if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
+        uint8_t byte = USART_ReceiveData(USART1);
+        USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+    }
+}
