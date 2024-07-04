@@ -7,7 +7,7 @@
 #include "ostask_usart_transformer.h"
 
 #include "port_uart.h"
-#include "vehicle_manager.h"
+#include "vehicle_controller.h"
 
 #include <memory>
 
@@ -41,7 +41,10 @@ void startThreads() {
 
     auto port_usart_ptr = std::make_unique<PortUART>(0, huart2);
 
-    auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(cart_point{0.0f, 0.0f});
+    cart_point _start{0.0f,0.0f};
+    cart_point _terminal{5.0f,5.0f};
+
+    auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(1, _start, _terminal);
 
     // controller module port thread
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);

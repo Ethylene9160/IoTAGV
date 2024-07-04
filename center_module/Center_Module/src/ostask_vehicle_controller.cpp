@@ -1,7 +1,7 @@
 #include "ostask_vehicle_controller.h"
 
 #include "ostask_controller_module_port.h"
-#include "vehicle_manager.h"
+#include "vehicle_controller.h"
 #include "port_can.h"
 
 namespace ostask_vehicle_controller {
