@@ -3,6 +3,7 @@
 
 #include <map>
 #include <cstdint>
+#include "cmsis_os.h"
 
 typedef struct {
     float x;
@@ -16,13 +17,11 @@ typedef struct {
     float v_cons;
 } cart_velocity;
 
-inline std::map<uint16_t, cart_point> vehicle_position;
-
-void tag_receive_broad(uint8_t *buffer);
+void tag_receive_broad(uint8_t* buffer);
 
 class vehicle_controller {
 public:
-    explicit vehicle_controller(cart_point target_point);
+    vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point);
 
     void tick();
 
@@ -32,12 +31,22 @@ public:
     void set_self_velocity(const cart_velocity& velocity);
     cart_velocity get_self_velocity() const;
 
+    void add_obstacle(uint16_t id, const cart_point& point);
+
+    void push(uint16_t id, cart_point point);
+
 private:
+    uint16_t self_id;
     cart_point target_point;
     cart_point self_point;
     cart_velocity self_vel;
+    std::map<uint16_t, cart_point> vehicle_position;
+
+    osMutexId_t vehicle_controller_mutex;
 
     void _update_self_vel(const cart_point& obstacle, float& bias_x, float& bias_y, float& total_weight_x, float& total_weight_y);
+    bool _is_obstacle_near(const cart_point& obstacle, float vx, float vy);
+    void _add_noise_to_velocity(float& vx, float& vy);
 };
 
 #endif // VEHICLE_MANAGER_H
