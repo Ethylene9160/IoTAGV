@@ -42,7 +42,7 @@ extern UART_HandleTypeDef huart2;
   /* USER CODE BEGIN Private defines */
 
 extern QueueHandle_t S_Queue;
-extern osMutexId_t USART_MutexHandle;
+extern osMutexId_t USART1_MutexHandle;
 
 #define BUFFER_SIZE 19
 // #define BUFFER_SIZE 16

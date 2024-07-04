@@ -12,7 +12,7 @@ namespace ostask_usart_transformer {
 
     const osThreadAttr_t task_attributes = {
         .name = "osTaskUSARTTransformer",
-        .stack_size = 256<<2,
+        .stack_size = 256 << 2,
         .priority = (osPriority_t) osPriorityNormal2,
     };
 

@@ -70,15 +70,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-  S_Queue = xQueueCreate(25, BUFFER_SIZE * sizeof(uint8_t));
-
-
-  // S_Queue = xQueueCreate(25*BUFFER_SIZE, sizeof(uint8_t));
-  const osMutexAttr_t USART_MutexAttr = {
-    .name = "USART_Mutex"
-  };
-  USART_MutexHandle = osMutexNew(&USART_MutexAttr);
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/

@@ -1,10 +1,10 @@
 #include "ostask_usart_transformer.h"
 namespace ostask_usart_transformer{
 inline BaseType_t get_xQueueReceive(uint8_t*pdata, uint32_t timeout){
-    osStatus_t status = osMutexAcquire(USART_MutexHandle, timeout);
+    osStatus_t status = osMutexAcquire(USART1_MutexHandle, timeout);
     if (status == osOK) {
         BaseType_t flag = xQueueReceive(S_Queue, pdata, timeout);
-        osMutexRelease(USART_MutexHandle);
+        osMutexRelease(USART1_MutexHandle);
         return flag;
     }
     // else {
