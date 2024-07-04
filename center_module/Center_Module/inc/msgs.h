@@ -145,18 +145,20 @@ namespace msgs {
 
     class uwb_data : public msgs::Serializable {
     public:
-        uwb_data(uint16_t self_id, uint16_t target_id, uint8_t CRC8);
+        uwb_data(uint16_t self_id, uint16_t target_id, uint64_t timestamp, uint8_t CRC8);
 
-        uwb_data(uint8_t *data, uint16_t size = 19) {
+        uwb_data(uint8_t *data, uint16_t size = 27) {
             memcpy(&header, data, 1);
             memcpy(&self_id, data + 1, 2);
             memcpy(&target_id, data + 3, 2);
             memcpy(&CRC8, data + 5, 1);
-            auto len = (uint16_t) (*(uint16_t *) (data + 6));
-            this->data.resize(len);
+            // uint16_t len = (uint16_t) (*(uint16_t *) (data + 6));
+            uint16_t len = 8;
+            this->data = std::vector<uint8_t>(len);
             memcpy(this->data.data(), data + 8, len);
-            memcpy(&CRC16, data + 8 + len, 2);
-            memcpy(&ender, data + len + 10, 1);
+            memcpy(&this->timestamp, data + 8 + len, sizeof(uint64_t));
+            memcpy(&CRC16, data + 16 + len, 2);
+            memcpy(&ender, data + len + 18, 1);
         }
 
         msgs::serials serialize() override;
@@ -175,6 +177,7 @@ namespace msgs {
         uint16_t target_id;
         uint8_t CRC8;
         std::vector<uint8_t> data;
+        uint64_t timestamp;
         uint16_t CRC16;
         uint8_t ender;
     };
