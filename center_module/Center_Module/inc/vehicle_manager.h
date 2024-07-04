@@ -1,9 +1,10 @@
-#ifndef VEHICLE_MANAGER_H
-#define VEHICLE_MANAGER_H
+#ifndef CENTER_MODULE_VEHICLE_MANAGER_H_
+#define CENTER_MODULE_VEHICLE_MANAGER_H_
 
 #include <map>
 #include <cstdint>
 #include "cmsis_os.h"
+#include <memory.h>
 
 typedef struct {
     float x;
@@ -17,11 +18,10 @@ typedef struct {
     float v_cons;
 } cart_velocity;
 
-void tag_receive_broad(uint8_t* buffer);
-
 class vehicle_controller {
 public:
     vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point);
+
 
     void tick();
 
@@ -30,6 +30,7 @@ public:
 
     void set_self_velocity(const cart_velocity& velocity);
     cart_velocity get_self_velocity() const;
+
 
     void add_obstacle(uint16_t id, const cart_point& point);
 
@@ -49,4 +50,5 @@ private:
     void _add_noise_to_velocity(float& vx, float& vy);
 };
 
-#endif // VEHICLE_MANAGER_H
+#endif // CENTER_MODULE_VEHICLE_MANAGER_H_
+

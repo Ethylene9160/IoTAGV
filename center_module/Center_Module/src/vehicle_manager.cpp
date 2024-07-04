@@ -2,15 +2,18 @@
 #include <cmath>
 #include <random>
 
-vehicle_controller::vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point)
-    : target_point(target_point), self_id(self_id), self_point(current_point) {
-    self_vel.v_cons = 1.0f;
-    self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
-    //self_point = { 0.0f, 0.0f };
-    const osMutexAttr_t Controller_MutexAttr = {
-        .name = "Controller_Mutex"
-      };
-    this->vehicle_controller_mutex = osMutexNew(&Controller_MutexAttr);
+vehicle_controller::vehicle_controller(
+  uint16_t self_id, 
+  cart_point current_point, 
+  cart_point target_point)
+    : target_point(target_point), self_id(self_id), self_point(current_point) 
+{
+  self_vel.v_cons = 1.0f;
+  self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
+  const osMutexAttr_t Controller_MutexAttr = {
+    .name = "Controller_Mutex"
+  };
+  this->vehicle_controller_mutex = osMutexNew(&Controller_MutexAttr);
 }
 
 void vehicle_controller::tick() {
@@ -39,9 +42,6 @@ void vehicle_controller::tick() {
             break;
         }
     }
-
-    self_point.x += self_vel.vx;
-    self_point.y += self_vel.vy;
 }
 
 bool vehicle_controller::_is_obstacle_near(const cart_point& obstacle, float vx, float vy) {
@@ -126,8 +126,4 @@ void vehicle_controller::add_obstacle(uint16_t id, const cart_point& point) {
     else {
         vehicle_position[id] = point;
     }
-}
-
-void tag_receive_broad(uint8_t* buffer) {
-
 }
