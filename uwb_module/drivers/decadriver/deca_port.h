@@ -26,6 +26,7 @@ extern "C" {
 
 extern int writetospi_serial(uint16_t headerLength, const uint8_t *headerBuffer, uint32_t bodylength, const uint8_t *bodyBuffer);
 extern int readfromspi_serial(uint16_t headerLength, const uint8_t *headerBuffer, uint32_t readlength, uint8_t *readBuffer);
+
 #define writetospi writetospi_serial
 #define readfromspi readfromspi_serial
 

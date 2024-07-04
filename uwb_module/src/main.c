@@ -48,23 +48,21 @@ int main(void) {
     // Main loop
     while (1) {
         // Command handler
-//        debug_printf("Module ID: %d.\n", module_config.module_id); // TODO 修改 ID 等命令的接收, 若跨类型还要重新 Initialize DW1000.
-//        SleepMs(1000);
+        // TODO 修改 ID 等命令的接收, 若跨类型还要重新 Initialize DW1000.
 
         if (!is_initialized) {
             if (InitDW1000(mode) != 0) {
                 SleepMs(1000);
                 continue;
             }
-            TurnOnLED((led_t) mode);
             is_initialized = 1;
         }
 
         // Event handler
         if (mode == ANCHOR) {
-            AnchorEventHandler(module_config.module_id);
+            AnchorEventHandler(&module_config);
         } else if (mode == TAG) {
-            TagEventHandler(module_config.module_id);
+            TagEventHandler(&module_config);
         } else {
             // Do nothing but wait for the module ID to be modified
         }
