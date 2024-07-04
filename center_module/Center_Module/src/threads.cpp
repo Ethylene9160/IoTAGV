@@ -4,9 +4,14 @@
 
 #include "ostask_controller_module_port.h"
 #include "ostask_uwb_module_port.h"
+#include "ostask_usart_transformer.h"
+
 #include "port_uart.h"
+#include "vehicle_manager.h"
 
 #include <memory>
+
+#include "ostask_vehicle_controller.h"
 
 /* ** Example Begin ** */
 const osThreadAttr_t test_task_attributes = {
@@ -33,13 +38,24 @@ const osThreadAttr_t test_task_attributes = {
 /* ** Example End ** */
 
 void startThreads() {
-    std::unique_ptr<PortUART> port_usart_ptr = std::make_unique<PortUART>(0, huart2);
 
+    auto port_usart_ptr = std::make_unique<PortUART>(0, huart2);
+
+    auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(cart_point{0.0f, 0.0f});
+
+    // controller module port thread
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 
     osThreadNew(testTaskProcedure, nullptr, &test_task_attributes); // ** Example: 超时时间设为 1s, 每隔 2s 动作一次 (2s 内前 1s 动作, 后 1s 输出 "Expired." 并停止), 绕逆时针方形轨迹. **
 
+    // usart transformer thread
+    osThreadNew(ostask_usart_transformer::taskProcedure, (void*)port_usart_ptr.get(), &ostask_usart_transformer::task_attributes);
+
+    // uwb module port thread
     osThreadNew(ostask_uwb_module_port::taskProcedure, (void*)port_usart_ptr.get(), &ostask_uwb_module_port::task_attributes);
+
+    // vehicle controller thread
+    osThreadNew(ostask_vehicle_controller::taskProcedure, (void*)vehicle_controller_ptr.get(), &ostask_vehicle_controller::task_attributes);
 }
 
 /*

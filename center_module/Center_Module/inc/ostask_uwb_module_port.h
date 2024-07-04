@@ -5,11 +5,12 @@
 
 #include "msgs.h"
 
+// deprecated.
 namespace ostask_uwb_module_port {
 
     const osThreadAttr_t task_attributes = {
-        .name = "osTaskControllerModulePort",
-        .stack_size = 256 << 2,
+        .name = "osTaskUwbModulePort",
+        .stack_size = 256 << 1,
         .priority = (osPriority_t) osPriorityNormal1,
     };
 
