@@ -5,7 +5,7 @@
 
 #include "msgs.h"
 #include "usart.h"
-#include "vehicle_manager.h"
+#include "vehicle_controller.h"
 
 namespace ostask_vehicle_controller{
 

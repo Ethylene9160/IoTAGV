@@ -22,19 +22,17 @@ class vehicle_controller {
 public:
     vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point);
 
-
     void tick();
 
-    void set_self_point(const cart_point& point);
+    void set_self_point(const cart_point &point);
+
     cart_point get_self_point() const;
 
-    void set_self_velocity(const cart_velocity& velocity);
+    void set_self_velocity(const cart_velocity &velocity);
+
     cart_velocity get_self_velocity() const;
 
-
-    void add_obstacle(uint16_t id, const cart_point& point);
-
-    void push(uint16_t id, cart_point point);
+    void push_back(uint16_t id, cart_point point);
 
 private:
     uint16_t self_id;
@@ -45,10 +43,12 @@ private:
 
     osMutexId_t vehicle_controller_mutex;
 
-    void _update_self_vel(const cart_point& obstacle, float& bias_x, float& bias_y, float& total_weight_x, float& total_weight_y);
-    bool _is_obstacle_near(const cart_point& obstacle, float vx, float vy);
-    void _add_noise_to_velocity(float& vx, float& vy);
+    void _update_self_vel(const cart_point &obstacle, float &bias_x, float &bias_y, float &total_weight_x,
+                          float &total_weight_y);
+
+    bool _is_obstacle_near(const cart_point &obstacle, float vx, float vy);
+
+    void _add_noise_to_velocity(float &vx, float &vy);
 };
 
 #endif // CENTER_MODULE_VEHICLE_MANAGER_H_
-
