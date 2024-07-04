@@ -6,13 +6,13 @@
 #include "port_uart.h"
 
 namespace ostask_usart_transformer {
-    BaseType_t get_xQueueReceiveByte(uint8_t*data, uint32_t timeout);
+    BaseType_t get_xQueueReceive(uint8_t*data, uint32_t timeout);
 
     void read_from_usart_queue(uint8_t *buffer, uint8_t buffer_size, PortUART *port, uint32_t timeout);
 
     const osThreadAttr_t task_attributes = {
         .name = "osTaskUSARTTransformer",
-        .stack_size = 256,
+        .stack_size = 256<<2,
         .priority = (osPriority_t) osPriorityNormal2,
     };
 

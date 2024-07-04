@@ -207,27 +207,65 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
+// void USART1_IRQHandler(void) {
+//   uint8_t received_byte;
+//   HAL_UART_IRQHandler(&huart1);
+//
+//   if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
+//     HAL_UART_Receive(&huart1, &received_byte, 1, 0);
+//     rx_buffer[buffer_index++] = received_byte;
+//
+//     if (buffer_index >= BUFFER_SIZE) {
+//       buffer_index = 0;
+//
+//       char usart2_buffer[64];
+//       int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %.2f m, dis_y: %.2f m\n", 1.5f,1.5f);
+//       // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "dis_x: %d m, dis_y: %d m\n", Dis_0, Dis_1);
+//       rx_buffer[15] = 0;
+//       // int len = snprintf(usart2_buffer, sizeof(usart2_buffer), "%s\n", rx_buffer);
+//       HAL_UART_Transmit(&huart2, (uint8_t*)usart2_buffer, len, HAL_MAX_DELAY);
+//     }
+//   }
+// }
 void USART1_IRQHandler(void) {
   uint8_t received_byte;
+  static uint8_t error_bf[] = "error in usart1\n";
+  static uint8_t succeed_bf[] = "succeed in usart1\n";
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
   HAL_UART_IRQHandler(&huart1);
 
   if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
     HAL_UART_Receive(&huart1, &received_byte, 1, 0);
+
+
+    // if (xQueueSendFromISR(S_Queue, &received_byte, &xHigherPriorityTaskWoken) != pdTRUE) {
+    //   // Handle the error: queue full or other errors
+    //   HAL_UART_Transmit(&huart2, error_bf, sizeof(error_bf)-1, HAL_MAX_DELAY);
+    // }else {
+    //   // HAL_UART_Transmit(&huart2, succeed_bf, sizeof(succeed_bf)-1, HAL_MAX_DELAY);
+    // }
+    // return;
+
+
     rx_buffer[buffer_index++] = received_byte;
 
     if (buffer_index >= BUFFER_SIZE) {
       buffer_index = 0;
+      // HAL_UART_Transmit(&huart2, succeed_bf, sizeof(succeed_bf)-1, HAL_MAX_DELAY);
+      // HAL_UART_Transmit(&huart2, rx_buffer, 19, HAL_MAX_DELAY);
 
       // Push the buffer to the queue (non-blocking)
-      if (xQueueSendFromISR(S_Queue, rx_buffer, &xHigherPriorityTaskWoken) != pdPASS) {
+      // todo: timestamp
+      if (xQueueSendFromISR(S_Queue, rx_buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
         // Handle the error: queue full or other errors
-        Error_Handler();
+        HAL_UART_Transmit(&huart2, error_bf, sizeof(error_bf)-1, HAL_MAX_DELAY);
+      }else {
+        // HAL_UART_Transmit(&huart2, succeed_bf, sizeof(succeed_bf)-1, HAL_MAX_DELAY);
       }
-
-      // Request a context switch if needed
-      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+      //
+      // // Request a context switch if needed
+      // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
   }
 }

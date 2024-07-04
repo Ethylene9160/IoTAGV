@@ -70,8 +70,15 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-  S_Queue = xQueueCreate(100, BUFFER_SIZE * sizeof(uint8_t));
-  USART_MutexHandle = osMutexNew(0);
+  S_Queue = xQueueCreate(25, BUFFER_SIZE * sizeof(uint8_t));
+
+
+  // S_Queue = xQueueCreate(25*BUFFER_SIZE, sizeof(uint8_t));
+  const osMutexAttr_t USART_MutexAttr = {
+    .name = "USART_Mutex"
+  };
+  USART_MutexHandle = osMutexNew(&USART_MutexAttr);
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -100,7 +107,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   char init_msg[] = "usart2 initialized\n";
   HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
-  startThreads();
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -108,8 +115,8 @@ int main(void)
   MX_FREERTOS_Init();
 
   /* Start scheduler */
+  startThreads();
   osKernelStart();
-
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
