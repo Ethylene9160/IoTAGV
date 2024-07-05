@@ -6,6 +6,17 @@
 #include "cmsis_os.h"
 #include <memory.h>
 
+/**
+ * Polar position.
+ */
+typedef struct {
+    float r;
+    float t;
+} polar_point;
+
+/**
+ * Cartesian position.
+ */
 typedef struct {
     float x;
     float y;
@@ -32,6 +43,11 @@ public:
 
     cart_velocity get_self_velocity() const;
 
+    /**
+     * push the obstacle to the vehicle_position
+     * @param id id of the obstacle
+     * @param point position of the obstacle
+     */
     void push_back(uint16_t id, cart_point point);
 
 private:

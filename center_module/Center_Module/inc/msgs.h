@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "crc.h"
+#include "vehicle_controller.h"
 
 namespace msgs {
     typedef struct _serials {
@@ -167,11 +168,25 @@ namespace msgs {
 
         void set_data(const float x, const float y);
 
+        cart_point get_cart_point() {
+            float x = (float) (*(float *) (this->data.data()));
+            float y = (float) (*(float *) (this->data.data() + 4));
+            return cart_point{x, y};
+        }
+
+        uint16_t get_self_id() {
+            return this->self_id;
+        }
+
+        uint16_t get_target_id() {
+            return this->target_id;
+        }
+
         std::vector<uint8_t> get_data() {
             return this->data;
         }
 
-    private:
+    public:
         uint8_t header;
         uint16_t self_id;
         uint16_t target_id;
