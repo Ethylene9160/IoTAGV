@@ -23,7 +23,7 @@ uwb_mode_t JudgeModeFromID(uint16_t module_id) {
 #define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 128
 #define RANGING_EXCHANGE_MSG_PAN_ID 0x2333
 #define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFFFF
-#define RANGING_EXCHANGE_INTERVAL 100
+#define RANGING_EXCHANGE_INTERVAL 500
 
 #define RANGING_EXCHANGE_MAX_TASK_NUMBER 64 // < 256
 
@@ -84,13 +84,12 @@ static void TagRXTimeoutCallback(const dwt_cb_data_t *data);
 static void TagRXErrorCallback(const dwt_cb_data_t *data);
 
 void EXTI0_IRQHandler(void) {
+    EXTI_ClearITPendingBit(DECAIRQ_EXTI);
     dwt_isr();
 //    do {
 //        dwt_isr();
 //    } while (port_CheckEXT_IRQ() == 1);
-    EXTI_ClearITPendingBit(DECAIRQ_EXTI);
 }
-
 
 uint8_t InitDW1000() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
@@ -120,7 +119,7 @@ uint8_t InitDW1000() {
         dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
 
 //        dwt_setrxtimeout(RX_TIMEOUT_UUS); // TODO: 要开吗, 开了第一次 final 都发不出去
-//        dwt_rxenable(DWT_START_RX_IMMEDIATE); // TODO: 先发, 发送后重启
+//        dwt_rxenable(DWT_START_RX_IMMEDIATE); // TODO: 不开, 先发, 发送后重启
     } else if (mode == TAG) {
         dwt_setdblrxbuffmode(1); // TODO: 双缓冲, 开关似乎暂时不影响其他功能
 
@@ -209,13 +208,18 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         memcpy(payload + 8, &final_tx, 4);
         tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_config.module_id, task_id, RANGING_EXCHANGE_STAGE_FINAL, payload, sizeof(payload));
 
+        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+
         // Send the final message
         dwt_writetxdata(tx_len, tx_buffer, 0);
         dwt_writetxfctrl(tx_len, 0, 1);
-        dwt_starttx(DWT_START_TX_DELAYED);
+        dwt_starttx(DWT_START_TX_DELAYED); // | DWT_RESPONSE_EXPECTED);
+
+        // Destroy the task
+        destroy_ranging_task(task_id);
     }
 
-    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
+    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS); // TODO: 注释该句则可一直发送, 但只发送第一次的 final
 }
 
 static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
@@ -225,13 +229,13 @@ static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
 
 static void AnchorRXErrorCallback(const dwt_cb_data_t *data) {
     debug_printf("Rx Error.\n");
+//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
     dwt_rxreset();
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 }
 
 void AnchorEventHandler() {
     uint16_t module_id = module_config.module_id;
-    uint8_t ranging_exchange_debug_output = module_config.ranging_exchange_debug_output;
 
     // Regularly send poll messages
     uint32_t current_tick_ms = GetSystickMs();
@@ -253,13 +257,16 @@ void AnchorEventHandler() {
         uint8_t poll_payload[] = {};
         tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, poll_payload, sizeof(poll_payload));
 
+//        dwt_forcetrxoff();
+//        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+
         // Send the poll message
         dwt_writetxdata(tx_len, tx_buffer, 0);
         dwt_writetxfctrl(tx_len, 0, 1);
-        dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
+        dwt_starttx(DWT_START_TX_IMMEDIATE); // | DWT_RESPONSE_EXPECTED);
 
         // Restart listening
-        dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
+        dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS); // TODO: 放外面则发不出 final
     }
 }
 

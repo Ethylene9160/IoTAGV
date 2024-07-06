@@ -5,8 +5,6 @@
 #include "spi.h"
 #include "usart.h"
 
-#include "tiny_io.h"
-
 #include "dwt.h"
 
 #include "uwb_module_config.h"
