@@ -122,7 +122,7 @@ uint8_t InitDW1000() {
         dwt_setcallbacks(&TagTXConfirmationCallback, &TagRXOkCallback, &TagRXTimeoutCallback, &TagRXErrorCallback);
         dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
 
-        dwt_setrxtimeout(RX_TIMEOUT_UUS); // TODO: 开了则一堆 timeout 夹杂几个成功, 不开则默认等待时间较长, 暂时都能用
+//        dwt_setrxtimeout(RX_TIMEOUT_UUS); // TODO: 开了则一堆 timeout 夹杂几个成功, 不开则默认等待时间较长, 暂时都能用; Update: 开了似乎会把 TFRS 中断冲掉, 用中断了似乎也确实没必要开 timeout.
         dwt_rxenable(DWT_START_RX_IMMEDIATE); // TODO: 开始时启动一下, 后面全部由在中断处理结束后重启
     }
 
@@ -316,7 +316,7 @@ void AnchorEventHandler() {
 }
 
 /* Tag Related */
-static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
+static void TagTXConfirmationCallback(const dwt_cb_data_t *data) { // TODO: 暂时看不用
     debug_printf("Tx Confirmation. len = %d.\n", data->datalength);
 }
 
@@ -366,6 +366,13 @@ void TagEventHandler() {
     if (rx_flag) {
         debug_printf("Rx Flag: %d %d %d %d %d\n", rx_buffer[0], rx_buffer[1], rx_buffer[2], rx_buffer[3], rx_buffer[4], rx_buffer[5]);
         rx_flag = 0;
+
+        uint8_t frame[6] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB};
+
+        // Send the response message
+        dwt_writetxdata(6, frame, 0);
+        dwt_writetxfctrl(6, 0, 1);
+        dwt_starttx(DWT_START_TX_IMMEDIATE);
     }
 
 //    while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)));
