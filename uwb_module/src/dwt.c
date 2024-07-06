@@ -74,8 +74,10 @@ void destroy_ranging_task(uint8_t task_id) {
 }
 
 
-static void AnchorTXCallback(const dwt_cb_data_t *data);
-static void AnchorRXCallback(const dwt_cb_data_t *data);
+static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data);
+static void AnchorRXOkCallback(const dwt_cb_data_t *data);
+static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data);
+static void AnchorRXErrorCallback(const dwt_cb_data_t *data);
 static void TagTXConfirmationCallback(const dwt_cb_data_t *data);
 static void TagRXOkCallback(const dwt_cb_data_t *data);
 static void TagRXTimeoutCallback(const dwt_cb_data_t *data);
@@ -115,19 +117,13 @@ uint8_t InitDW1000() {
 //        dwt_setcallbacks(&AnchorTXCallback, &AnchorRXCallback, NULL, NULL);
         // TODO
     } else if (mode == TAG) {
-        dwt_setdblrxbuffmode(1);
+        dwt_setdblrxbuffmode(1); // TODO: 双缓冲, 开关似乎暂时不影响其他功能
 
-        dwt_setcallbacks(NULL, &TagRXOkCallback, NULL, &TagRXErrorCallback);
-//        dwt_setcallbacks(&TagTXConfirmationCallback, &TagRXOkCallback, &TagRXTimeoutCallback, &TagRXErrorCallback);
-//        dwt_setinterrupt(DWT_INT_RFCG, 1);
-//        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG, 1);
-        dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
-//        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
+        dwt_setcallbacks(&TagTXConfirmationCallback, &TagRXOkCallback, &TagRXTimeoutCallback, &TagRXErrorCallback);
+        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
 
-//        dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
-//        dwt_setrxtimeout(RX_TIMEOUT_UUS);
-
-        dwt_rxenable(DWT_START_RX_IMMEDIATE);
+        dwt_setrxtimeout(RX_TIMEOUT_UUS); // TODO: 开了则一堆 timeout 夹杂几个成功, 不开则默认等待时间较长, 暂时都能用
+        dwt_rxenable(DWT_START_RX_IMMEDIATE); // TODO: 开始时启动一下, 后面全部由在中断处理结束后重启
     }
 
 //    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
@@ -174,11 +170,19 @@ static uint32_t last_tick_ms = 0;
 static uint8_t toggle_flag = 0;
 
 /* Anchor Related */
-static void AnchorTXCallback(const dwt_cb_data_t *data) {
+static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data) {
 
 }
 
-static void AnchorRXCallback(const dwt_cb_data_t *data) {
+static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
+
+}
+
+static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
+
+}
+
+static void AnchorRXErrorCallback(const dwt_cb_data_t *data) {
 
 }
 
@@ -314,8 +318,6 @@ void AnchorEventHandler() {
 /* Tag Related */
 static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
     debug_printf("Tx Confirmation. len = %d.\n", data->datalength);
-
-//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
 }
 
 static void TagRXOkCallback(const dwt_cb_data_t *data) {
@@ -328,24 +330,18 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
     rx_flag = 1; // TODO: if already 1
 
     debug_printf("Rx Ok.\n");
-
-//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);
-
-//    dwt_setrxtimeout(0);
-//    dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
 static void TagRXTimeoutCallback(const dwt_cb_data_t *data) {
+    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
+
     debug_printf("Rx Timeout.\n");
 }
 
 static void TagRXErrorCallback(const dwt_cb_data_t *data) {
-    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 
     debug_printf("Rx Error.\n");
-
-//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
-//    dwt_rxreset();
 }
 
 void TagEventHandler() {
@@ -367,14 +363,10 @@ void TagEventHandler() {
     }
 
     // Listening
-//    dwt_setrxtimeout(0);
-
     if (rx_flag) {
         debug_printf("Rx Flag: %d %d %d %d %d\n", rx_buffer[0], rx_buffer[1], rx_buffer[2], rx_buffer[3], rx_buffer[4], rx_buffer[5]);
         rx_flag = 0;
     }
-
-//    dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
 //    while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)));
 //    if (status_reg & SYS_STATUS_RXFCG) {
