@@ -20,7 +20,7 @@ uwb_mode_t JudgeModeFromID(uint16_t module_id) {
 }
 
 
-#define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 64
+#define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 128
 #define RANGING_EXCHANGE_MSG_PAN_ID 0x2333
 #define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFFFF
 #define RANGING_EXCHANGE_INTERVAL 100
@@ -74,23 +74,25 @@ void destroy_ranging_task(uint8_t task_id) {
 }
 
 
-//static void tx_cb(const dwt_cb_data_t *txd) {
-//    debug_printf("TX cb.\n");
-//}
-//
-//static void rx_cb(const dwt_cb_data_t *rxd) {
-//    debug_printf("RX cb.\n");
-//}
+static void AnchorTXCallback(const dwt_cb_data_t *data);
+static void AnchorRXCallback(const dwt_cb_data_t *data);
+static void TagTXConfirmationCallback(const dwt_cb_data_t *data);
+static void TagRXOkCallback(const dwt_cb_data_t *data);
+static void TagRXTimeoutCallback(const dwt_cb_data_t *data);
+static void TagRXErrorCallback(const dwt_cb_data_t *data);
 
 void EXTI0_IRQHandler(void) {
-    // 暂时不使用中断, 不要删除, 如要删除须同时关闭 EXTI0 中断 (gpio.c)
+    dwt_isr();
 //    do {
 //        dwt_isr();
 //    } while (port_CheckEXT_IRQ() == 1);
     EXTI_ClearITPendingBit(DECAIRQ_EXTI);
 }
 
-uint8_t InitDW1000(uwb_mode_t mode) {
+
+uint8_t InitDW1000() {
+    uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
+
     if (mode == UNDEFINED) {
         debug_printf("[Error] Invalid module ID.\n");
         return 1;
@@ -109,12 +111,26 @@ uint8_t InitDW1000(uwb_mode_t mode) {
     dwt_setrxantennadelay(RX_ANT_DLY);
     dwt_settxantennadelay(TX_ANT_DLY);
 
-//    if (mode == TAG) {
-//        dwt_setcallbacks(&tx_cb, &rx_cb, NULL, NULL);
-//        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG, 1);
-//    }
+    if (mode == ANCHOR) {
+//        dwt_setcallbacks(&AnchorTXCallback, &AnchorRXCallback, NULL, NULL);
+        // TODO
+    } else if (mode == TAG) {
+        dwt_setdblrxbuffmode(1);
 
-    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
+        dwt_setcallbacks(NULL, &TagRXOkCallback, NULL, &TagRXErrorCallback);
+//        dwt_setcallbacks(&TagTXConfirmationCallback, &TagRXOkCallback, &TagRXTimeoutCallback, &TagRXErrorCallback);
+//        dwt_setinterrupt(DWT_INT_RFCG, 1);
+//        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG, 1);
+        dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
+//        dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
+
+//        dwt_setrxaftertxdelay(TX_TO_RX_DLY_UUS);
+//        dwt_setrxtimeout(RX_TIMEOUT_UUS);
+
+        dwt_rxenable(DWT_START_RX_IMMEDIATE);
+    }
+
+//    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
 
     debug_printf("[Info] DW1000 initialized.\n");
 
@@ -147,17 +163,28 @@ uint64_t get_rx_timestamp(void) {
     return timestamp;
 }
 
-/* Temporary variables */
+/* Temporary variables & Interruption */
 static uint32_t status_reg = 0;
-static uint8 rx_buffer[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH] = {0x00};
+volatile uint8_t rx_buffer[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH] = {0x00};
+volatile uint8_t rx_flag = 0;
+volatile uint8_t tx_flag = 0;
 
 /* State variables */
 static uint32_t last_tick_ms = 0;
 static uint8_t toggle_flag = 0;
 
-void AnchorEventHandler(uwb_module_config_t *conf) {
-    uint16_t module_id = conf->module_id;
-    uint8_t ranging_exchange_debug_output = conf->ranging_exchange_debug_output;
+/* Anchor Related */
+static void AnchorTXCallback(const dwt_cb_data_t *data) {
+
+}
+
+static void AnchorRXCallback(const dwt_cb_data_t *data) {
+
+}
+
+void AnchorEventHandler() {
+    uint16_t module_id = module_config.module_id;
+    uint8_t ranging_exchange_debug_output = module_config.ranging_exchange_debug_output;
 
     // Regularly send poll messages
     uint32_t current_tick_ms = GetSystickMs();
@@ -206,7 +233,7 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
     }
 
     // Listening
-    dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
+    dwt_setrxtimeout(RX_TIMEOUT_UUS);
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
     while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)));
@@ -217,7 +244,7 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
         // Read response frame
         uint16_t resp_frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;
         if (resp_frame_len <= RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH) {
-            dwt_readrxdata(rx_buffer, resp_frame_len, 0);
+            dwt_readrxdata((uint8_t *) rx_buffer, resp_frame_len, 0);
         }
 
         // Validate whether the response is an expected resp_frame
@@ -284,9 +311,46 @@ void AnchorEventHandler(uwb_module_config_t *conf) {
     }
 }
 
-void TagEventHandler(uwb_module_config_t *conf) {
-    uint16_t module_id = conf->module_id;
-    uint8_t ranging_exchange_debug_output = conf->ranging_exchange_debug_output;
+/* Tag Related */
+static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
+    debug_printf("Tx Confirmation. len = %d.\n", data->datalength);
+
+//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+}
+
+static void TagRXOkCallback(const dwt_cb_data_t *data) {
+    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
+
+    if (data->datalength <= RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH) {
+        dwt_readrxdata(rx_buffer, data->datalength, 0);
+    }
+
+    rx_flag = 1; // TODO: if already 1
+
+    debug_printf("Rx Ok.\n");
+
+//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG);
+
+//    dwt_setrxtimeout(0);
+//    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+}
+
+static void TagRXTimeoutCallback(const dwt_cb_data_t *data) {
+    debug_printf("Rx Timeout.\n");
+}
+
+static void TagRXErrorCallback(const dwt_cb_data_t *data) {
+    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+
+    debug_printf("Rx Error.\n");
+
+//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+//    dwt_rxreset();
+}
+
+void TagEventHandler() {
+    uint16_t module_id = module_config.module_id;
+    uint8_t ranging_exchange_debug_output = module_config.ranging_exchange_debug_output;
 
     // Regularly toggle the LED
     uint32_t current_tick_ms = GetSystickMs();
@@ -303,110 +367,129 @@ void TagEventHandler(uwb_module_config_t *conf) {
     }
 
     // Listening
-    dwt_setrxtimeout(0);
-    dwt_rxenable(DWT_START_RX_IMMEDIATE);
+//    dwt_setrxtimeout(0);
 
-    while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)));
-    if (status_reg & SYS_STATUS_RXFCG) {
-        // Clear flags
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS); // TODO: 这里不清 SYS_STATUS_TXFRS 的话所的距离都是几十万, 可能就是几次发送间影响了
+    if (rx_flag) {
+        debug_printf("Rx Flag: %d %d %d %d %d\n", rx_buffer[0], rx_buffer[1], rx_buffer[2], rx_buffer[3], rx_buffer[4], rx_buffer[5]);
+        rx_flag = 0;
+    }
 
-        // Read response frame
-        uint16_t frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK; // RX_FINFO_RXFL_MASK_1023;
-        if (frame_len <= RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH) {
-            dwt_readrxdata(rx_buffer, frame_len, 0);
-        }
+//    dwt_rxenable(DWT_START_RX_IMMEDIATE);
 
-        // Validate the message
-        uint16_t pan_id = rx_buffer[1] | (rx_buffer[2] << 8);
-        uint16_t dest_id = rx_buffer[3] | (rx_buffer[4] << 8);
-        uint16_t src_id = rx_buffer[5] | (rx_buffer[6] << 8);
-        uint8_t task_id = rx_buffer[7];
-        uint8_t msg_type = rx_buffer[8];
-        if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == RANGING_EXCHANGE_MSG_PAN_ID) {
-            if (
-                (dest_id == RANGING_EXCHANGE_MSG_BROADCAST_ID || dest_id == module_id) &&
-//                !is_task_id_occupied(task_id) && // 不判断, Anchor 重复发送该 poll 即代表已覆盖任务
-                msg_type == RANGING_EXCHANGE_STAGE_POLL
-            ) {
-                if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received poll from %d for task %d.\n", src_id, task_id);
+//    while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)));
+//    if (status_reg & SYS_STATUS_RXFCG) {
+//        // Clear flags
+//        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS); // TODO: 这里不清 SYS_STATUS_TXFRS 的话所的距离都是几十万, 可能就是几次发送间影响了
+//
+//        // Read response frame
+//        uint16_t frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK; // RX_FINFO_RXFL_MASK_1023;
+//        if (frame_len <= RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH) {
+//            dwt_readrxdata(rx_buffer, frame_len, 0);
+//        }
+//
+//        // Validate the message
+//        uint16_t pan_id = rx_buffer[1] | (rx_buffer[2] << 8);
+//        uint16_t dest_id = rx_buffer[3] | (rx_buffer[4] << 8);
+//        uint16_t src_id = rx_buffer[5] | (rx_buffer[6] << 8);
+//        uint8_t task_id = rx_buffer[7];
+//        uint8_t msg_type = rx_buffer[8];
+//        if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == RANGING_EXCHANGE_MSG_PAN_ID) {
+//            if (
+//                (dest_id == RANGING_EXCHANGE_MSG_BROADCAST_ID || dest_id == module_id) &&
+////                !is_task_id_occupied(task_id) && // 不判断, Anchor 重复发送该 poll 即代表已覆盖任务
+//                msg_type == RANGING_EXCHANGE_STAGE_POLL
+//            ) {
+//                if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received poll from %d for task %d.\n", src_id, task_id);
+//
+//                // Prepare the response message
+//                uint8_t resp_frame[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH];
+//                uint8_t resp_payload[] = {};
+//                uint16_t resp_frame_len = gen_ranging_exchange_msg(resp_frame, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_id, task_id, RANGING_EXCHANGE_STAGE_RESPONSE, resp_payload, sizeof(resp_payload));
+//
+//                // Send the response message
+//                dwt_writetxdata(resp_frame_len, resp_frame, 0);
+//                dwt_writetxfctrl(resp_frame_len, 0, 1);
+//                int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
+//                if (res == DWT_SUCCESS) {
+//                    // Wait for the poll message to be sent
+//                    while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS));
+//
+//                    sleep_ms(2); // 1
+//                    /*
+//                     * TODO [A]
+//                     * Tag 中在 while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_TXFRS))); 后不能直接跟 dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+//                     * (包括回到前面的 dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);)
+//                     * 会运行一小段时间后卡死, 实验发现必须在二者之间进行一些耗时操作, 例如 sleep_ms(1) 或者调试输出. 原因未知.
+//                     */
+//
+//                    if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Response message sent for task %d.\n", task_id);
+//
+//                    // Record the poll reception and response transmission timestamps
+//                    uint64_t poll_rx_ts = get_rx_timestamp();
+//                    ranging_task_list[task_id].poll_rx_ts = poll_rx_ts;
+//                    uint64_t resp_tx_ts = get_tx_timestamp();
+//                    ranging_task_list[task_id].resp_tx_ts = resp_tx_ts;
+//
+//                    // Update the task stage
+//                    ranging_task_list[task_id].after_stage = RANGING_EXCHANGE_STAGE_RESPONSE;
+//                } else {
+//                    if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Failed to send response.\n");
+//                    destroy_ranging_task(task_id);
+//                }
+//            } else if (
+//                dest_id == module_id &&
+//                ranging_task_list[task_id].after_stage == RANGING_EXCHANGE_STAGE_RESPONSE &&
+//                msg_type == RANGING_EXCHANGE_STAGE_FINAL
+//            ) {
+//                if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received final from %d for task %d.\n", src_id, task_id);
+//
+//                // Record the final reception timestamp and extract the recorded timestamps
+//                uint64_t final_rx_ts = get_rx_timestamp();
+//                ranging_task_list[task_id].final_rx_ts = final_rx_ts;
+//                uint64_t poll_rx_ts = ranging_task_list[task_id].poll_rx_ts;
+//                uint64_t resp_tx_ts = ranging_task_list[task_id].resp_tx_ts;
+//
+//                // Unpack the timestamps
+//                memcpy(&ranging_task_list[task_id].poll_tx_ts_32, rx_buffer + 9, 4);
+//                memcpy(&ranging_task_list[task_id].resp_rx_ts_32, rx_buffer + 13, 4);
+//                memcpy(&ranging_task_list[task_id].final_tx_ts_32, rx_buffer + 17, 4);
+//                uint32_t poll_tx_ts = ranging_task_list[task_id].poll_tx_ts_32;
+//                uint32_t resp_rx_ts = ranging_task_list[task_id].resp_rx_ts_32;
+//                uint32_t final_tx_ts = ranging_task_list[task_id].final_tx_ts_32;
+//
+//                // Calculate time of flight and distance
+//                double Ra = (double) (resp_rx_ts - poll_tx_ts);
+//                double Rb = (double) (final_rx_ts - resp_tx_ts);
+//                double Da = (double) (final_tx_ts - resp_rx_ts);
+//                double Db = (double) (resp_tx_ts - poll_rx_ts);
+//                double tof = ((int64_t) ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db))) * DWT_TIME_UNITS;
+//                double distance = tof * SPEED_OF_LIGHT;
+//
+//                // Print the result
+////                debug_printf("[Info] Ranging exchanging: Distance = %.4f m.\n", (float) distance);
+//                debug_printf("%.4f\n", (float) distance);
+//
+//                // Destroy the task
+//                destroy_ranging_task(task_id);
+//            }
+//        }
+//    } else {
+//        // Clear RX error/timeout flags
+//        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+//
+//        // Reset RX
+//        dwt_rxreset();
+//    }
+}
 
-                // Prepare the response message
-                uint8_t resp_frame[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH];
-                uint8_t resp_payload[] = {};
-                uint16_t resp_frame_len = gen_ranging_exchange_msg(resp_frame, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_id, task_id, RANGING_EXCHANGE_STAGE_RESPONSE, resp_payload, sizeof(resp_payload));
+void EventHandler() {
+    uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
 
-                // Send the response message
-                dwt_writetxdata(resp_frame_len, resp_frame, 0);
-                dwt_writetxfctrl(resp_frame_len, 0, 1);
-                int res = dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);
-                if (res == DWT_SUCCESS) {
-                    // Wait for the poll message to be sent
-                    while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS));
-
-                    sleep_ms(2); // 1
-                    /*
-                     * TODO [A]
-                     * Tag 中在 while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_TXFRS))); 后不能直接跟 dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-                     * (包括回到前面的 dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);)
-                     * 会运行一小段时间后卡死, 实验发现必须在二者之间进行一些耗时操作, 例如 sleep_ms(1) 或者调试输出. 原因未知.
-                     */
-
-                    if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Response message sent for task %d.\n", task_id);
-
-                    // Record the poll reception and response transmission timestamps
-                    uint64_t poll_rx_ts = get_rx_timestamp();
-                    ranging_task_list[task_id].poll_rx_ts = poll_rx_ts;
-                    uint64_t resp_tx_ts = get_tx_timestamp();
-                    ranging_task_list[task_id].resp_tx_ts = resp_tx_ts;
-
-                    // Update the task stage
-                    ranging_task_list[task_id].after_stage = RANGING_EXCHANGE_STAGE_RESPONSE;
-                } else {
-                    if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Failed to send response.\n");
-                    destroy_ranging_task(task_id);
-                }
-            } else if (
-                dest_id == module_id &&
-                ranging_task_list[task_id].after_stage == RANGING_EXCHANGE_STAGE_RESPONSE &&
-                msg_type == RANGING_EXCHANGE_STAGE_FINAL
-            ) {
-                if (ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received final from %d for task %d.\n", src_id, task_id);
-
-                // Record the final reception timestamp and extract the recorded timestamps
-                uint64_t final_rx_ts = get_rx_timestamp();
-                ranging_task_list[task_id].final_rx_ts = final_rx_ts;
-                uint64_t poll_rx_ts = ranging_task_list[task_id].poll_rx_ts;
-                uint64_t resp_tx_ts = ranging_task_list[task_id].resp_tx_ts;
-
-                // Unpack the timestamps
-                memcpy(&ranging_task_list[task_id].poll_tx_ts_32, rx_buffer + 9, 4);
-                memcpy(&ranging_task_list[task_id].resp_rx_ts_32, rx_buffer + 13, 4);
-                memcpy(&ranging_task_list[task_id].final_tx_ts_32, rx_buffer + 17, 4);
-                uint32_t poll_tx_ts = ranging_task_list[task_id].poll_tx_ts_32;
-                uint32_t resp_rx_ts = ranging_task_list[task_id].resp_rx_ts_32;
-                uint32_t final_tx_ts = ranging_task_list[task_id].final_tx_ts_32;
-
-                // Calculate time of flight and distance
-                double Ra = (double) (resp_rx_ts - poll_tx_ts);
-                double Rb = (double) (final_rx_ts - resp_tx_ts);
-                double Da = (double) (final_tx_ts - resp_rx_ts);
-                double Db = (double) (resp_tx_ts - poll_rx_ts);
-                double tof = ((int64_t) ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db))) * DWT_TIME_UNITS;
-                double distance = tof * SPEED_OF_LIGHT;
-
-                // Print the result
-                debug_printf("[Info] Ranging exchanging: Distance = %.4f m.\n", (float) distance);
-
-                // Destroy the task
-                destroy_ranging_task(task_id);
-            }
-        }
+    if (mode == ANCHOR) {
+        AnchorEventHandler();
+    } else if (mode == TAG) {
+        TagEventHandler();
     } else {
-        // Clear RX error/timeout flags
-        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
-
-        // Reset RX
-        dwt_rxreset();
+        // Do nothing but wait for the module ID to be modified
     }
 }
