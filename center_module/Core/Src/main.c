@@ -78,7 +78,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -99,6 +98,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   char init_msg[] = "usart2 initialized\n";
   HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -106,8 +106,8 @@ int main(void)
   MX_FREERTOS_Init();
 
   /* Start scheduler */
+  startThreads();
   osKernelStart();
-
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */

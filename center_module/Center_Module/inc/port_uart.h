@@ -17,7 +17,7 @@ public:
     bool init(uint16_t module_id, UART_HandleTypeDef &huart = huart1);
 
     bool sendBytes(uint8_t data[], uint16_t len, uint16_t timeout = 10) {
-        HAL_UART_Transmit(&huart2, (uint8_t*)data, len, timeout);
+        HAL_UART_Transmit(&_huart, (uint8_t*)data, len, timeout);
         return 1;
     }
 
@@ -50,7 +50,7 @@ public:
                 }
             }
         }
-        return {0, 0, 0};
+        return {0, 0, 0, 0};
     }
 
     bool isDataQueueEmpty() {
