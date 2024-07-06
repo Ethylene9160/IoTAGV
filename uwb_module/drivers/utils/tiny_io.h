@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 int debug_putchar(int ch);
-void debug_printf(const char *format, ...); /* %d, %ld, %Ld, %u, %lu, %Lu, %.xf, %.xlf (%.xl ?) */
+void debug_printf(const char *format, ...); /* %s, %d, %ld, %Ld, %u, %lu, %Lu, %.xf, %.xlf (%.xl ?) */
 
 #ifdef __cplusplus
 }

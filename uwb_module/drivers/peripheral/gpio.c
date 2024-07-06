@@ -46,7 +46,7 @@ int ConfigureGPIO(void) {
     NVIC_InitTypeDef NVIC_InitStructure;
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
     NVIC_InitStructure.NVIC_IRQChannel = DECAIRQ_EXTI_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 15;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 14; // TODO, raw = 15
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd = DECAIRQ_EXTI_USEIRQ;
     NVIC_Init(&NVIC_InitStructure);

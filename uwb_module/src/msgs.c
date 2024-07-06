@@ -26,3 +26,5 @@ uint16_t gen_ranging_exchange_msg(
     memset(buf + 9 + payload_len, 0, 2);
     return payload_len + 11;
 }
+
+
