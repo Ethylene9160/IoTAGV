@@ -13,7 +13,7 @@ namespace ostask_vehicle_controller{
 
     const osThreadAttr_t task_attributes = {
         .name = "osTaskVehicleController",
-        .stack_size = 256 << 2,
+        .stack_size = 256 << 4,
         .priority = (osPriority_t) osPriorityNormal,
     };
 

@@ -1,3 +1,5 @@
+#include <ios>
+
 #include "main.h"
 
 #include "cmsis_os.h"
@@ -5,6 +7,7 @@
 #include "ostask_controller_module_port.h"
 #include "ostask_uwb_module_port.h"
 #include "ostask_usart_transformer.h"
+#include "ostask_test_task.h"
 
 #include "port_uart.h"
 #include "vehicle_controller.h"
@@ -21,17 +24,21 @@ const osThreadAttr_t test_task_attributes = {
 };
 
 [[noreturn]] void testTaskProcedure(void *argument) {
-    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_EXPIRED_TIME, msgs::Value<uint32_t>(1000)));
+    auto *v = new msgs::Value<uint32_t>(1000);
+    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_EXPIRED_TIME, v));
     osDelay(1000);
-
     while (true) {
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, msgs::Twist2D(20.0f, 0.0f, 0.0f)));
+        msgs::Twist2D* t1 = new msgs::Twist2D(20.0f, 0.0f, 0.0f);
+        msgs::Twist2D* t2 = new msgs::Twist2D(0.0f, 20.0f, 0.0f);
+        msgs::Twist2D* t3 = new msgs::Twist2D(-20.0f, 0.0f, 0.0f);
+        msgs::Twist2D* t4 = new msgs::Twist2D(0.0f, -20.0f, 0.0f);
+        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t1));
         osDelay(2000);
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, msgs::Twist2D(0.0f, 20.0f, 0.0f)));
+        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t2));
         osDelay(2000);
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, msgs::Twist2D(-20.0f, 0.0f, 0.0f)));
+        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t3));
         osDelay(2000);
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, msgs::Twist2D(0.0f, -20.0f, 0.0f)));
+        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t4));
         osDelay(2000);
     }
 }
@@ -39,26 +46,30 @@ const osThreadAttr_t test_task_attributes = {
 
 void startThreads() {
 
-    auto port_usart_ptr = std::make_unique<PortUART>(0, huart2);
-
+    // 设置起点和终点坐标
     cart_point _start{0.0f,0.0f};
     cart_point _terminal{5.0f,5.0f};
 
-    auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(1, _start, _terminal);
+    // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
+    auto* vehicle_controller_ptr = new vehicle_controller(0, _start, _terminal);
+
+    // 随机放入一些障碍物
+    cart_point ob1{2.0f, 2.0f};
+    cart_point ob2{3.0f, 3.0f};
+    vehicle_controller_ptr->push_back(2, ob1);
+    vehicle_controller_ptr->push_back(3, ob2);
 
     // controller module port thread
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 
-    osThreadNew(testTaskProcedure, nullptr, &test_task_attributes); // ** Example: 超时时间设为 1s, 每隔 2s 动作一次 (2s 内前 1s 动作, 后 1s 输出 "Expired." 并停止), 绕逆时针方形轨迹. **
-
-    // usart transformer thread
-    osThreadNew(ostask_usart_transformer::taskProcedure, (void*)port_usart_ptr.get(), &ostask_usart_transformer::task_attributes);
-
-    // uwb module port thread
-    osThreadNew(ostask_uwb_module_port::taskProcedure, (void*)port_usart_ptr.get(), &ostask_uwb_module_port::task_attributes);
+    // test task: 走正方形。
+    // osThreadNew(testTaskProcedure, nullptr, &test_task_attributes); // ** Example: 超时时间设为 1s, 每隔 2s 动作一次 (2s 内前 1s 动作, 后 1s 输出 "Expired." 并停止), 绕逆时针方形轨迹. **
 
     // vehicle controller thread
-    osThreadNew(ostask_vehicle_controller::taskProcedure, (void*)vehicle_controller_ptr.get(), &ostask_vehicle_controller::task_attributes);
+    osThreadNew(ostask_vehicle_controller::taskProcedure, vehicle_controller_ptr, &ostask_vehicle_controller::task_attributes);
+
+    // test task: 随机发送障碍物位置，看速度是否正确。
+    // osThreadNew(ostask_test_task::taskProcedure, 0, &ostask_test_task::task_attributes);
 }
 
 /*

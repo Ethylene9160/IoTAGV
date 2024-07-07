@@ -13,6 +13,6 @@ typedef struct {
 * @param  d: distance between anchor 1 and anchor 2
 * @retval The cartesian coordinates of the point.
 */
-cart_point dis2cart(float d1, float, float d);
+cart_point dis2cart(float d1, float d2, float d);
 
 #endif //UWB_MODULE_VELOCITY_CONTROLLER_H

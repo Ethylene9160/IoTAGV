@@ -26,7 +26,6 @@ typedef struct {
     float vx;
     float vy;
     float w;
-    float v_cons;
 } cart_velocity;
 
 class vehicle_controller {
@@ -55,6 +54,7 @@ private:
     cart_point target_point;
     cart_point self_point;
     cart_velocity self_vel;
+    static float v_cons;
     std::map<uint16_t, cart_point> vehicle_position;
 
     osMutexId_t vehicle_controller_mutex;

@@ -5,6 +5,7 @@
 #include <cstring>
 #include <memory>
 #include <vector>
+#include "usart.h"
 
 #include "crc.h"
 #include "vehicle_controller.h"
@@ -65,14 +66,15 @@ namespace msgs {
         float linear_x, linear_y, angular_z;
     };
 
+    /**
+     * Command will not delete the inner pointer Serializable* data_ref_ !!!
+     */
     class Command : public Serializable {
     public:
-        Command(uint16_t cmd_id, const Serializable &data) : cmd_id_(cmd_id),
-                                                             data_ref_(const_cast<Serializable &>(data)) {
-        }
+        Command(uint16_t cmd_id, Serializable* data) : cmd_id_(cmd_id), data_ptr_(data) {}
 
         serials serialize() override {
-            serials data_serialized = data_ref_.serialize();
+            serials data_serialized = data_ptr_->serialize();
             auto data = std::shared_ptr<uint8_t[]>(new uint8_t[data_serialized.len + 2]);
             data[0] = cmd_id_ & 0xFF;
             data[1] = (cmd_id_ >> 8) & 0xFF;
@@ -85,23 +87,26 @@ namespace msgs {
 
     public:
         uint16_t cmd_id_;
-        Serializable &data_ref_;
+        Serializable* data_ptr_;
     };
 
+    /**
+     * Packet will not delete the inner pointer Serializable* data_ref_ !!!
+     */
     class Packet : public Serializable {
     public:
         Packet(uint8_t recv_type, uint8_t recv_id, uint8_t send_type, uint8_t send_id, uint16_t seq, uint16_t cmd_id,
-               const Serializable &data) : recv_type_(recv_type), recv_id_(recv_id), send_type_(send_type),
+               Serializable* data) : recv_type_(recv_type), recv_id_(recv_id), send_type_(send_type),
                                            send_id_(send_id), seq_(seq),
-                                           cmd_id_(cmd_id), data_ref_(const_cast<Serializable &>(data)) {
+                                           cmd_id_(cmd_id), data_ref_(data) {
         }
 
-        Packet(uint8_t recv_type, uint8_t recv_id, uint8_t send_type, uint8_t send_id, uint16_t seq, const Command &cmd)
+        Packet(uint8_t recv_type, uint8_t recv_id, uint8_t send_type, uint8_t send_id, uint16_t seq, Command cmd)
             : recv_type_(recv_type), recv_id_(recv_id), send_type_(send_type), send_id_(send_id), seq_(seq),
-              cmd_id_(cmd.cmd_id_), data_ref_(cmd.data_ref_) {
+              cmd_id_(cmd.cmd_id_), data_ref_(cmd.data_ptr_) {
         }
 
-        static serials
+        serials
         makePacketBySerials(uint8_t recv_type, uint8_t recv_id, uint8_t send_type, uint8_t send_id, uint16_t seq,
                             uint16_t cmd_id, const serials &data_serialized) {
             auto data = std::shared_ptr<uint8_t[]>(new uint8_t[data_serialized.len + 14]);
@@ -134,14 +139,15 @@ namespace msgs {
         }
 
         serials serialize() override {
+            auto ser = data_ref_->serialize();
             return makePacketBySerials(recv_type_, recv_id_, send_type_, send_id_, seq_, cmd_id_,
-                                       data_ref_.serialize());
+                                       ser);
         }
 
     public:
         uint8_t recv_type_, recv_id_, send_type_, send_id_;
         uint16_t seq_, cmd_id_;
-        Serializable &data_ref_;
+        Serializable* data_ref_;
     };
 
     class uwb_data : public msgs::Serializable {

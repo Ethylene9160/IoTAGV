@@ -2,12 +2,15 @@
 #include <cmath>
 #include <random>
 
+#include "usart.h"
+
+float vehicle_controller::v_cons = 3.0f;
+
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
     cart_point current_point,
     cart_point target_point)
     : target_point(target_point), self_id(self_id), self_point(current_point) {
-    self_vel.v_cons = 1.0f;
     self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
     const osMutexAttr_t Controller_MutexAttr = {
         .name = "Controller_Mutex"
@@ -32,8 +35,8 @@ void vehicle_controller::tick() {
         bias_y /= total_weight_y;
     }
 
-    self_vel.vx = self_vel.v_cons + bias_x;
-    self_vel.vy = self_vel.v_cons + bias_y;
+    self_vel.vx = vehicle_controller::v_cons + bias_x;
+    self_vel.vy = vehicle_controller::v_cons + bias_y;
 
     for (const auto &vehicle: vehicle_position) {
         if (_is_obstacle_near(vehicle.second, self_vel.vx, self_vel.vy)) {
@@ -69,7 +72,7 @@ inline void vehicle_controller::_update_self_vel(
     float dy = obstacle.y - self_point.y;
     float distance = std::sqrt(dx * dx + dy * dy);
 
-    if (distance < 0.1f) {
+    if (distance < 0.1f || distance > 5.0f) {
         return;
     }
 
