@@ -4,7 +4,7 @@
 
 #include "ostask_controller_module_port.h"
 #include "vehicle_controller.h"
-#include "port_can.h"
+
 #include "queue.h"
 #include <memory>
 namespace ostask_vehicle_controller {
@@ -25,7 +25,7 @@ namespace ostask_vehicle_controller {
         while (true) {
             read_queue(controller);
             set_control_msg(controller);
-            osDelay(100);
+            osDelay(20);
         }
     }
 
@@ -40,7 +40,6 @@ namespace ostask_vehicle_controller {
     }
 
     void read_queue(vehicle_controller* controller) {
-        // osStatus_t status = osMutexAcquire(USART1_MutexHandle, osWaitForever);
         uint8_t buffer[27];
         while(get_xQueueReceive(buffer, 20) == pdTRUE) {
             //tag_receive_broad(buffer);

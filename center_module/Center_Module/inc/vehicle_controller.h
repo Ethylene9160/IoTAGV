@@ -55,6 +55,7 @@ private:
     cart_point self_point;
     cart_velocity self_vel;
     static float v_cons;
+    static float v_k;
     std::map<uint16_t, cart_point> vehicle_position;
 
     osMutexId_t vehicle_controller_mutex;

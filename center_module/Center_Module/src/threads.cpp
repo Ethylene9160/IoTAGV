@@ -54,10 +54,10 @@ void startThreads() {
     auto* vehicle_controller_ptr = new vehicle_controller(0, _start, _terminal);
 
     // 随机放入一些障碍物
-    cart_point ob1{2.0f, 2.0f};
-    cart_point ob2{3.0f, 3.0f};
-    vehicle_controller_ptr->push_back(2, ob1);
-    vehicle_controller_ptr->push_back(3, ob2);
+    // cart_point ob1{1.0f, 0.0f};
+    // cart_point ob2{3.0f, 3.0f};
+    // vehicle_controller_ptr->push_back(2, ob1);
+    // vehicle_controller_ptr->push_back(3, ob2);
 
     // controller module port thread
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);

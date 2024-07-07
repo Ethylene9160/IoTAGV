@@ -4,7 +4,8 @@
 
 #include "usart.h"
 
-float vehicle_controller::v_cons = 3.0f;
+float vehicle_controller::v_cons = 25.0f;
+float vehicle_controller::v_k = 20.0f;
 
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
@@ -35,8 +36,8 @@ void vehicle_controller::tick() {
         bias_y /= total_weight_y;
     }
 
-    self_vel.vx = vehicle_controller::v_cons + bias_x;
-    self_vel.vy = vehicle_controller::v_cons + bias_y;
+    self_vel.vx = vehicle_controller::v_cons + bias_x * vehicle_controller::v_k;
+    self_vel.vy = vehicle_controller::v_cons + bias_y * vehicle_controller::v_k;
 
     for (const auto &vehicle: vehicle_position) {
         if (_is_obstacle_near(vehicle.second, self_vel.vx, self_vel.vy)) {
@@ -56,7 +57,7 @@ inline bool vehicle_controller::_is_obstacle_near(const cart_point &obstacle, fl
 
 void vehicle_controller::_add_noise_to_velocity(float &vx, float &vy) {
     static std::default_random_engine generator;
-    static std::normal_distribution<float> distribution(0.0f, 0.1f);
+    static std::normal_distribution<float> distribution(0.0f, 1.0f);
 
     vx += distribution(generator);
     vy += distribution(generator);
@@ -71,7 +72,9 @@ inline void vehicle_controller::_update_self_vel(
     float dx = obstacle.x - self_point.x;
     float dy = obstacle.y - self_point.y;
     float distance = std::sqrt(dx * dx + dy * dy);
-
+    char buffer[64];
+    int len = sprintf(buffer, "obstacle: %.2f, %.2f, self: %.2f, %.2f\n", obstacle.x, obstacle.y, self_point.x, self_point.y);
+    HAL_UART_Transmit(&huart2, (uint8_t *)buffer, len, 0xffff);
     if (distance < 0.1f || distance > 5.0f) {
         return;
     }
