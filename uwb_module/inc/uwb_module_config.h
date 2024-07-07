@@ -10,6 +10,7 @@ typedef struct _uwb_module_config_t {
     uint8_t ranging_exchange_debug_output;
     uint32_t ranging_exchange_poll_interval; /* In milliseconds, for Anchor. */
     float anchor_x, anchor_y; /* In meters, for Anchor. */
+    uint64_t distance_expired_time; /* In milliseconds, for Tag. */
 } uwb_module_config_t;
 
 
@@ -31,7 +32,8 @@ typedef struct _uwb_module_config_t {
 
 static uwb_module_config_t module_config = {
     .module_id = 0x80, /* 0x00 - 0x7F: Anchor; 0x80 - 0xFF: Tag. */
-    .ranging_exchange_debug_output = 0
+    .ranging_exchange_debug_output = 0,
+    .distance_expired_time = 1000
 };
 
 #endif

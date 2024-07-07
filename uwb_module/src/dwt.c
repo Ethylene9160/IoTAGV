@@ -7,6 +7,7 @@
 
 #include "tiny_io.h"
 #include "msgs.h"
+#include "tool.h"
 
 
 uwb_mode_t JudgeModeFromID(uint8_t module_id) {
@@ -390,14 +391,33 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 anchor_info_list[anchor_index].timestamp_ms = GetSystickMs();
 
                 // Print all the distances
-                uint8_t anchor0_index = get_anchor_index_by_id(0x00);
-                uint8_t anchor1_index = get_anchor_index_by_id(0x01);
-                if (anchor0_index != 0xFF && anchor1_index != 0xFF) {
-                    debug_printf("%d, %d\n", (int) (anchor_info_list[anchor0_index].dist * 10000), (int) (anchor_info_list[anchor1_index].dist * 10000));
-                }
+//                uint8_t anchor0_index = get_anchor_index_by_id(0x00);
+//                uint8_t anchor1_index = get_anchor_index_by_id(0x01);
+//                if (anchor0_index != 0xFF && anchor1_index != 0xFF) {
+//                    debug_printf("%d, %d\n", (int) (anchor_info_list[anchor0_index].dist * 10000), (int) (anchor_info_list[anchor1_index].dist * 10000));
+//                }
 
                 // Localization
-                // TODO
+                uint8_t valid_anchor_indices[RANGING_EXCHANGE_MAX_ANCHOR_NUMBER] = {0xFF};
+                uint8_t valid_anchor_number = 0;
+                for (uint8_t i = 0; i < RANGING_EXCHANGE_MAX_ANCHOR_NUMBER; i ++) {
+                    // TODO: timeout
+//                    if (anchor_info_list[i].timestamp_ms != 0 && GetSystickMs() - anchor_info_list[i].timestamp_ms < module_config.distance_expired_time) {
+                        valid_anchor_indices[valid_anchor_number ++] = i;
+//                    }
+                }
+                // TODO: 暂时两点定位, 后续补充多点定位
+                if (valid_anchor_number >= 2) {
+                    Point2d p1 = {anchor_info_list[valid_anchor_indices[0]].x, anchor_info_list[valid_anchor_indices[0]].y};
+                    Point2d p2 = {anchor_info_list[valid_anchor_indices[1]].x, anchor_info_list[valid_anchor_indices[1]].y};
+                    Point2d p;
+                    int result = two_point_localization(p1, anchor_info_list[valid_anchor_indices[0]].dist, p2, anchor_info_list[valid_anchor_indices[1]].dist, &p);
+                    if (result) {
+//                        debug_printf("%.4f, %.4f\n", p.x, p.y);
+                        debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
+//                        debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (anchor_info_list[valid_anchor_indices[0]].dist * 10000), (int) (anchor_info_list[valid_anchor_indices[1]].dist * 10000));
+                    }
+                }
 
                 // Remove the task
                 terminate_tag_task(anchor_index, task_id);
