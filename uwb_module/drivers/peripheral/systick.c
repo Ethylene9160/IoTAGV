@@ -17,6 +17,6 @@ int ConfigureSysTick(void) {
         /* Capture error */
         while (1);
     }
-    NVIC_SetPriority(SysTick_IRQn, 6);
+    NVIC_SetPriority(SysTick_IRQn, 15); // TODO, raw = 6
     return 0;
 }

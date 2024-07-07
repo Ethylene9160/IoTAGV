@@ -13,7 +13,13 @@ extern "C" {
 
 #define RANGING_EXCHANGE_MSG_SYNC_BYTE 0x5A
 
-uint16_t gen_ranging_exchange_msg(uint8_t *buf, uint16_t pan_id, uint16_t dest_id, uint16_t src_id, uint8_t task_id, uint8_t msg_type, uint8_t *payload, uint16_t payload_len);
+uint16_t gen_ranging_exchange_msg(uint8_t *buf, uint16_t pan_id, uint8_t dest_id, uint8_t src_id, uint8_t task_id, uint8_t msg_type, uint8_t *payload, uint16_t payload_len);
+uint16_t re_get_pan_id(const uint8_t *buf);
+uint8_t re_get_dest_id(const uint8_t *buf);
+uint8_t re_get_src_id(const uint8_t *buf);
+uint8_t re_get_task_id(const uint8_t *buf);
+uint8_t re_get_msg_type(const uint8_t *buf);
+uint16_t re_get_payload_head_index();
 
 void set_test_buffer(uint8_t *buffer, uint16_t self_id, float x, float y) {
     buffer[0] = 0x0A;
@@ -95,6 +101,7 @@ void tag_pos_receive(uint8_t* buffer) {
 
     //HAL_UART_Transmit(&huart1, (uint8_t*)usart2_buffer, len, HAL_MAX_DELAY);
 }
+
 
 #ifdef __cplusplus
 }

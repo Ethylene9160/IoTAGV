@@ -20,7 +20,7 @@ typedef enum {
     UNDEFINED
 } uwb_mode_t;
 
-uwb_mode_t JudgeModeFromID(uint16_t module_id);
+uwb_mode_t JudgeModeFromID(uint8_t module_id);
 
 
 static dwt_config_t dwt_config = {
@@ -45,24 +45,15 @@ static dwt_config_t dwt_config = {
 #define TX_ANT_DLY 16436
 #define RX_ANT_DLY 16436
 
-#define TX_TO_RX_DLY_UUS 30
-//#define POLL_TX_TO_RESP_RX_DLY_UUS 150 // 150 // TODO 设定预期发完 poll 后多久开 rx 等 resp
-//#define RESP_TX_TO_FINAL_RX_DLY_UUS 500 // 500 // TODO 设定预期发完 resp 后多久开 rx 等 final
-
-//#define POLL_RX_TO_RESP_TX_DLY_UUS 10000 // 2800 // TODO 设定预期从接收到 poll 消息到发送 resp 消息的时间, 例程 2600
-#define RESP_RX_TO_FINAL_TX_DLY_UUS 30000 // 3100 // TODO 设定预期从接收到响应消息到发送最终消息的时间, 不能太小，可能要调整
-#define RESP_RX_TIMEOUT_UUS 3000 // 2700
-
-#define PRE_TIMEOUT 8
+#define RESP_RX_TO_FINAL_TX_DLY_UUS 10000
+#define RX_TIMEOUT_UUS 5000
 
 #define SPEED_OF_LIGHT 299702547
 
 
-uint8_t InitDW1000(uwb_mode_t mode);
+uint8_t Initialize();
 
-
-void AnchorEventHandler(uwb_module_config_t *conf);
-void TagEventHandler(uwb_module_config_t *conf);
+void EventHandler();
 
 #ifdef __cplusplus
 }
