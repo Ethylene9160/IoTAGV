@@ -23,7 +23,6 @@ uwb_mode_t JudgeModeFromID(uint16_t module_id) {
 #define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 128
 #define RANGING_EXCHANGE_MSG_PAN_ID 0x2333
 #define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFFFF
-#define RANGING_EXCHANGE_INTERVAL 50
 
 #define RANGING_EXCHANGE_MAX_TASK_NUMBER 64 // < 256
 
@@ -86,9 +85,6 @@ static void TagRXErrorCallback(const dwt_cb_data_t *data);
 void EXTI0_IRQHandler(void) {
     EXTI_ClearITPendingBit(DECAIRQ_EXTI);
     dwt_isr();
-//    do {
-//        dwt_isr();
-//    } while (port_CheckEXT_IRQ() == 1);
 }
 
 uint8_t InitDW1000() {
@@ -126,11 +122,8 @@ uint8_t InitDW1000() {
         dwt_setcallbacks(&TagTXConfirmationCallback, &TagRXOkCallback, &TagRXTimeoutCallback, &TagRXErrorCallback);
         dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
 
-//        dwt_setrxtimeout(RX_TIMEOUT_UUS); // TODO: 开了则一堆 timeout 夹杂几个成功, 不开则默认等待时间较长, 暂时都能用; Update: 开了似乎会把 TFRS 中断冲掉, 用中断了似乎也确实没必要开 timeout.
-        dwt_rxenable(DWT_START_RX_IMMEDIATE); // TODO: 开始时启动一下, 后面全部由在中断处理结束后重启
+        dwt_rxenable(DWT_START_RX_IMMEDIATE);
     }
-
-//    dwt_setpreambledetecttimeout(PRE_TIMEOUT);
 
     debug_printf("[Info] DW1000 initialized.\n");
 
@@ -142,9 +135,6 @@ uint8_t InitDW1000() {
 
 
 /* Temporary variables & Interruption */
-static uint32_t status_reg = 0;
-
-volatile uint8_t rx_flag = 0;
 volatile uint8_t rx_buffer[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH] = {0x00};
 
 volatile uint8_t tx_flag = 0;
@@ -207,9 +197,6 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         memcpy(payload + 8, &final_tx, 4);
         tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_config.module_id, task_id, RANGING_EXCHANGE_STAGE_FINAL, payload, sizeof(payload));
 
-//        dwt_forcetrxoff();
-//        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-
         // Send the final message
         dwt_writetxdata(tx_len, tx_buffer, 0);
         dwt_writetxfctrl(tx_len, 0, 1);
@@ -223,7 +210,6 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
 }
 
 static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
-//    debug_printf("Rx Timeout.\n");
     if (tx_flag) {
         // Add a new ranging task
         uint8_t new_task_id = add_ranging_task(1); // 已设置 stage
@@ -232,16 +218,10 @@ static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
         uint8_t poll_payload[] = {};
         tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_config.module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, poll_payload, sizeof(poll_payload));
 
-//        dwt_forcetrxoff();
-//        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-
         // Send the poll message
         dwt_writetxdata(tx_len, tx_buffer, 0);
         dwt_writetxfctrl(tx_len, 0, 1);
-        dwt_starttx(DWT_START_TX_IMMEDIATE); // | DWT_RESPONSE_EXPECTED);
-
-//        // Restart listening
-//        dwt_rxenable(DWT_START_RX_IMMEDIATE); // TODO: 放外面则发不出 final
+        dwt_starttx(DWT_START_TX_IMMEDIATE);
 
         tx_flag = 0;
     }
@@ -250,8 +230,6 @@ static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
 }
 
 static void AnchorRXErrorCallback(const dwt_cb_data_t *data) {
-    debug_printf("Rx Error.\n");
-//    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);
     dwt_rxreset();
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 }
@@ -261,7 +239,7 @@ void AnchorEventHandler() {
 
     // Regularly toggle the LED
     uint32_t current_tick_ms = GetSystickMs();
-    if (current_tick_ms - last_tick_ms > RANGING_EXCHANGE_INTERVAL) {
+    if (current_tick_ms - last_tick_ms > module_config.ranging_exchange_poll_interval) {
         last_tick_ms = current_tick_ms;
         tx_flag = 1;
 
@@ -281,8 +259,6 @@ static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
 
     // Record the response transmission timestamp
     ranging_task_list[task_id].resp_tx = dwt_readtxtimestamplo32();
-
-//    debug_printf("%lu, %lu\n", ranging_task_list[task_id].poll_rx, ranging_task_list[task_id].resp_tx);
 }
 
 static void TagRXOkCallback(const dwt_cb_data_t *data) {
@@ -367,12 +343,10 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 }
 
 static void TagRXTimeoutCallback(const dwt_cb_data_t *data) {
-    debug_printf("Rx Timeout.\n");
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 }
 
 static void TagRXErrorCallback(const dwt_cb_data_t *data) {
-    debug_printf("Rx Error.\n");
     dwt_rxreset();
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 }
@@ -382,7 +356,7 @@ void TagEventHandler() {
 
     // Regularly toggle the LED
     uint32_t current_tick_ms = GetSystickMs();
-    if (current_tick_ms - last_tick_ms > RANGING_EXCHANGE_INTERVAL) {
+    if (current_tick_ms - last_tick_ms > module_config.ranging_exchange_poll_interval) {
         last_tick_ms = current_tick_ms;
 
         if (toggle_flag) {
