@@ -21,17 +21,19 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 }
 
 
-#define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 64
-#define RANGING_EXCHANGE_MSG_PAN_ID 0x2333
-#define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFF
+#define MSG_MAX_FRAME_LENGTH 64
+#define MSG_PAN_ID 0x2333
+#define MSG_BROADCAST_ID 0xFF
 
-#define RANGING_EXCHANGE_STAGE_IDLE 0x00
-#define RANGING_EXCHANGE_STAGE_POLL 0x01
-#define RANGING_EXCHANGE_STAGE_RESPONSE 0x02
-#define RANGING_EXCHANGE_STAGE_FINAL 0x03
+#define STAGE_IDLE 0x00
+#define STAGE_POLL 0x01
+#define STAGE_RESPONSE 0x02
+#define STAGE_FINAL 0x03
 
-#define RANGING_EXCHANGE_MAX_ANCHOR_NUMBER 4
-#define RANGING_EXCHANGE_MAX_TASK_NUMBER 128
+#define MAX_ANCHOR_NUMBER 4
+#define MAX_TASK_NUMBER 128
+
+#define DISTANCE_FILTER_LENGTH 8
 
 typedef union {
     struct { /* For Anchor */
@@ -51,21 +53,23 @@ typedef union {
 typedef struct _anchor_info_t {
     uint8_t id;
     float x, y;
+    float dists[DISTANCE_FILTER_LENGTH];
     float dist;
+    uint8_t dist_head;
     uint64_t timestamp_ms; /* Systick timestamp, not DWM. 0 means not received. */
 } anchor_info_t;
 
 /* For Anchors */
-static ranging_task_t anchor_task_list[RANGING_EXCHANGE_MAX_TASK_NUMBER] = {0};
-static uint8_t anchor_task_list_head = RANGING_EXCHANGE_MAX_TASK_NUMBER - 1;
+static ranging_task_t anchor_task_list[MAX_TASK_NUMBER] = {0};
+static uint8_t anchor_task_list_head = MAX_TASK_NUMBER - 1;
 
 void initialize_anchor_task_list() {
     memset(anchor_task_list, 0, sizeof(anchor_task_list));
-    anchor_task_list_head = RANGING_EXCHANGE_MAX_TASK_NUMBER - 1;
+    anchor_task_list_head = MAX_TASK_NUMBER - 1;
 }
 
 uint8_t add_anchor_task() {
-    if (++ anchor_task_list_head >= RANGING_EXCHANGE_MAX_TASK_NUMBER) {
+    if (++ anchor_task_list_head >= MAX_TASK_NUMBER) {
         anchor_task_list_head = 0;
     }
     return anchor_task_list_head;
@@ -82,15 +86,16 @@ void terminate_anchor_task(uint8_t task_id) {
 }
 
 /* For Tags */
-static ranging_task_t tag_task_list[RANGING_EXCHANGE_MAX_ANCHOR_NUMBER][RANGING_EXCHANGE_MAX_TASK_NUMBER] = {0};
-static anchor_info_t anchor_info_list[RANGING_EXCHANGE_MAX_ANCHOR_NUMBER] = {0};
-static uint8_t anchor_info_list_head = RANGING_EXCHANGE_MAX_ANCHOR_NUMBER - 1;
+static ranging_task_t tag_task_list[MAX_ANCHOR_NUMBER][MAX_TASK_NUMBER] = {0};
+static anchor_info_t anchor_info_list[MAX_ANCHOR_NUMBER] = {0};
+static uint8_t anchor_info_list_head = MAX_ANCHOR_NUMBER - 1;
 
 void initialize_tag_task_list_and_anchor_info() {
     memset(tag_task_list, 0, sizeof(tag_task_list));
-    anchor_info_list_head = RANGING_EXCHANGE_MAX_ANCHOR_NUMBER - 1;
-    for (uint8_t i = 0; i < RANGING_EXCHANGE_MAX_ANCHOR_NUMBER; i ++) {
+    anchor_info_list_head = MAX_ANCHOR_NUMBER - 1;
+    for (uint8_t i = 0; i < MAX_ANCHOR_NUMBER; i ++) {
         anchor_info_list[i].id = 0xFF;
+        anchor_info_list[i].dist_head = DISTANCE_FILTER_LENGTH - 1;
     }
 }
 
@@ -104,19 +109,36 @@ void terminate_tag_task(uint8_t anchor_idx, uint8_t task_id) {
 }
 
 uint8_t add_anchor_info(uint8_t anchor_id, float anchor_x, float anchor_y) {
-    if (++ anchor_info_list_head >= RANGING_EXCHANGE_MAX_ANCHOR_NUMBER) {
+    if (++ anchor_info_list_head >= MAX_ANCHOR_NUMBER) {
         anchor_info_list_head = 0;
     }
     anchor_info_list[anchor_info_list_head].id = anchor_id;
     anchor_info_list[anchor_info_list_head].x = anchor_x;
     anchor_info_list[anchor_info_list_head].y = anchor_y;
-    anchor_info_list[anchor_info_list_head].dist = 0.0f;
+    anchor_info_list[anchor_info_list_head].dist_head = DISTANCE_FILTER_LENGTH - 1;
     anchor_info_list[anchor_info_list_head].timestamp_ms = 0;
     return anchor_info_list_head;
 }
 
+float distance_filter(float *dists, uint8_t length) {
+    float sum = 0.0f;
+    for (uint8_t i = 0; i < length; i ++) {
+        sum += dists[i];
+    }
+    return sum / length;
+}
+
+uint8_t add_distance_to_anchor(uint8_t anchor_idx, float distance) {
+    if (++ anchor_info_list[anchor_idx].dist_head >= DISTANCE_FILTER_LENGTH) {
+        anchor_info_list[anchor_idx].dist_head = 0;
+    }
+    anchor_info_list[anchor_idx].dists[anchor_info_list[anchor_idx].dist_head] = distance;
+    anchor_info_list[anchor_idx].dist = distance_filter(anchor_info_list[anchor_idx].dists, DISTANCE_FILTER_LENGTH);
+    return anchor_info_list[anchor_idx].dist_head;
+}
+
 uint8_t get_anchor_index_by_id(uint8_t anchor_id) {
-    for (uint8_t i = 0; i < RANGING_EXCHANGE_MAX_ANCHOR_NUMBER; i ++) {
+    for (uint8_t i = 0; i < MAX_ANCHOR_NUMBER; i ++) {
         if (anchor_info_list[i].id == anchor_id) {
             return i;
         }
@@ -190,11 +212,11 @@ uint8_t Initialize() {
 
 
 /* Temporary variables & Interruption */
-volatile uint8_t rx_buffer[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH] = {0x00};
+volatile uint8_t rx_buffer[MSG_MAX_FRAME_LENGTH] = {0x00};
 
 volatile uint8_t tx_flag = 0;
 volatile uint16_t tx_len = 0;
-volatile uint8_t tx_buffer[RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH] = {0x00};
+volatile uint8_t tx_buffer[MSG_MAX_FRAME_LENGTH] = {0x00};
 
 /* State variables */
 static uint32_t last_tick_ms = 0;
@@ -206,18 +228,18 @@ static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data) {
     uint8_t task_id = re_get_task_id(tx_buffer);
     uint8_t msg_type = re_get_msg_type(tx_buffer);
 
-    if (msg_type == RANGING_EXCHANGE_STAGE_POLL) {
+    if (msg_type == STAGE_POLL) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send poll to %d for task %d.\n", src_id, task_id);
 
         // Record the poll transmission timestamp
         anchor_task_list[task_id].poll_tx = dwt_readtxtimestamplo32();
-    } else if (msg_type == RANGING_EXCHANGE_STAGE_FINAL) {
+    } else if (msg_type == STAGE_FINAL) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send final to %d for task %d.\n", src_id, task_id);
     }
 }
 
 static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
-    if (data->datalength <= RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH) {
+    if (data->datalength <= MSG_MAX_FRAME_LENGTH) {
         dwt_readrxdata(rx_buffer, data->datalength, 0);
     }
 
@@ -231,11 +253,11 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
     uint8_t msg_type = re_get_msg_type(rx_buffer);
     if (
         rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE &&
-        pan_id == RANGING_EXCHANGE_MSG_PAN_ID &&
+        pan_id == MSG_PAN_ID &&
         dest_id == module_config.module_id &&
         !is_anchor_task_idle(task_id) &&
-        msg_type == RANGING_EXCHANGE_STAGE_RESPONSE
-    ) {
+        msg_type == STAGE_RESPONSE
+        ) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received response from %d for task %d.\n", src_id, task_id);
 
         // Set expected time of transmission
@@ -250,7 +272,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         memcpy(payload, &anchor_task_list[task_id].poll_tx, 4);
         memcpy(payload + 4, &rx_ts_lo, 4);
         memcpy(payload + 8, &final_tx, 4);
-        tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_config.module_id, task_id, RANGING_EXCHANGE_STAGE_FINAL, payload, sizeof(payload));
+        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, src_id, module_config.module_id, task_id, STAGE_FINAL, payload, sizeof(payload));
 
         // Send the final message
         dwt_writetxdata(tx_len, tx_buffer, 0);
@@ -273,7 +295,7 @@ static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
         uint8_t payload[8] = {0x00};
         memcpy(payload, &module_config.anchor_x, 4);
         memcpy(payload + 4, &module_config.anchor_y, 4);
-        tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_config.module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, payload, sizeof(payload));
+        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, new_task_id, STAGE_POLL, payload, sizeof(payload));
 
         // Send the poll message
         dwt_writetxdata(tx_len, tx_buffer, 0);
@@ -306,7 +328,7 @@ static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
 }
 
 static void TagRXOkCallback(const dwt_cb_data_t *data) {
-    if (data->datalength <= RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH) {
+    if (data->datalength <= MSG_MAX_FRAME_LENGTH) {
         dwt_readrxdata(rx_buffer, data->datalength, 0);
     }
 
@@ -317,14 +339,14 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
     uint16_t src_id = re_get_src_id(rx_buffer);
     uint8_t task_id = re_get_task_id(rx_buffer);
     uint8_t msg_type = re_get_msg_type(rx_buffer);
-    if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == RANGING_EXCHANGE_MSG_PAN_ID) {
+    if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == MSG_PAN_ID) {
         uwb_mode_t src_mode = JudgeModeFromID(src_id);
         uint8_t anchor_index = get_anchor_index_by_id(src_id); // 0xFF means not found
         if (src_mode == ANCHOR) {
             if (
-                (dest_id == RANGING_EXCHANGE_MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
-                msg_type == RANGING_EXCHANGE_STAGE_POLL
-            ) { /* poll */
+                (dest_id == MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
+                msg_type == STAGE_POLL
+                ) { /* poll */
                 if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received poll from %d for task %d.\n", src_id, task_id);
 
                 // Save the anchor information
@@ -341,7 +363,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 
                 // Prepare the response message
                 uint8_t payload[] = {};
-                tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_config.module_id, task_id, RANGING_EXCHANGE_STAGE_RESPONSE, payload, sizeof(payload));
+                tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, src_id, module_config.module_id, task_id, STAGE_RESPONSE, payload, sizeof(payload));
 
                 // Send the response message
                 dwt_writetxdata(tx_len, tx_buffer, 0);
@@ -350,8 +372,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
             } else if (
                 dest_id == module_config.module_id &&
                 !is_tag_task_idle(anchor_index, task_id) &&
-                msg_type == RANGING_EXCHANGE_STAGE_FINAL
-            ) { /* final */
+                msg_type == STAGE_FINAL
+                ) { /* final */
                 if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received final from %d for task %d.\n", src_id, task_id);
 
                 // Record the final reception timestamp
@@ -387,7 +409,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //                debug_printf("%d\n", (int) (distance * 10000));
 
                 // Save the distance
-                anchor_info_list[anchor_index].dist = distance;
+                add_distance_to_anchor(anchor_index, distance);
                 anchor_info_list[anchor_index].timestamp_ms = GetSystickMs();
 
                 // Print all the distances
@@ -398,24 +420,26 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //                }
 
                 // Localization
-                uint8_t valid_anchor_indices[RANGING_EXCHANGE_MAX_ANCHOR_NUMBER] = {0xFF};
+                uint8_t valid_anchor_indices[MAX_ANCHOR_NUMBER] = {0xFF};
                 uint8_t valid_anchor_number = 0;
-                for (uint8_t i = 0; i < RANGING_EXCHANGE_MAX_ANCHOR_NUMBER; i ++) {
+                for (uint8_t i = 0; i < MAX_ANCHOR_NUMBER; i ++) {
                     // TODO: timeout
-//                    if (anchor_info_list[i].timestamp_ms != 0 && GetSystickMs() - anchor_info_list[i].timestamp_ms < module_config.distance_expired_time) {
-                        valid_anchor_indices[valid_anchor_number ++] = i;
+//                    if (GetSystickMs() - anchor_info_list[i].timestamp_ms < module_config.distance_expired_time) {
+                    valid_anchor_indices[valid_anchor_number ++] = i;
 //                    }
                 }
                 // TODO: 暂时两点定位, 后续补充多点定位
                 if (valid_anchor_number >= 2) {
                     Point2d p1 = {anchor_info_list[valid_anchor_indices[0]].x, anchor_info_list[valid_anchor_indices[0]].y};
                     Point2d p2 = {anchor_info_list[valid_anchor_indices[1]].x, anchor_info_list[valid_anchor_indices[1]].y};
+                    float d1 = anchor_info_list[valid_anchor_indices[0]].dist;
+                    float d2 = anchor_info_list[valid_anchor_indices[1]].dist;
                     Point2d p;
-                    int result = two_point_localization(p1, anchor_info_list[valid_anchor_indices[0]].dist, p2, anchor_info_list[valid_anchor_indices[1]].dist, &p);
+                    int result = two_point_localization(p1, d1, p2, d2, &p);
                     if (result) {
 //                        debug_printf("%.4f, %.4f\n", p.x, p.y);
-                        debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
-//                        debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (anchor_info_list[valid_anchor_indices[0]].dist * 10000), (int) (anchor_info_list[valid_anchor_indices[1]].dist * 10000));
+//                        debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
+                        debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
                     }
                 }
 
@@ -427,7 +451,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
         }
     }
 
-    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS); // TODO: 即使有 DWT_NO_SYNC_PTRS 也不能放前面, 放前面就卡死
+    dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 }
 
 static void TagRXTimeoutCallback(const dwt_cb_data_t *data) {
@@ -442,7 +466,7 @@ static void TagRXErrorCallback(const dwt_cb_data_t *data) {
 void EventHandler() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
 
-    if (mode == ANCHOR || mode == TAG) { /* TODO: Tag 中似乎来不及执行这里, 可能需要移到中断. */
+    if (mode == ANCHOR || mode == TAG) {
         // Regularly toggle the LED
         uint32_t current_tick_ms = GetSystickMs();
         if (current_tick_ms - last_tick_ms > module_config.ranging_exchange_poll_interval) {
