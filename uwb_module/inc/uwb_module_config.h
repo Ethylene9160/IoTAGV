@@ -26,13 +26,14 @@ typedef struct _uwb_module_config_t {
 //    .module_id = 0x01, /* 0x00 - 0x7F: Anchor; 0x80 - 0xFF: Tag. */
 //    .ranging_exchange_debug_output = 0,
 //    .ranging_exchange_poll_interval = 100,
-//    .anchor_x = 1.0f,
+//    .anchor_x = 1.5f,
 //    .anchor_y = 0.0f
 //};
 
 static uwb_module_config_t module_config = {
     .module_id = 0x80, /* 0x00 - 0x7F: Anchor; 0x80 - 0xFF: Tag. */
     .ranging_exchange_debug_output = 0,
+//    .ranging_exchange_poll_interval = 0, // TODO: Tag 这里一设置超过 4ms (也就是不让其高速闪灯) 就会算不出距离，不知道为什么
     .distance_expired_time = 1000
 };
 
