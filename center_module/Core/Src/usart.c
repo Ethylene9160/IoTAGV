@@ -201,9 +201,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle) {
 void USART1_IRQHandler(void) {
     uint8_t received_byte;
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
     HAL_UART_IRQHandler(&huart1);
-
     if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
         HAL_UART_Receive(&huart1, &received_byte, 1, 0);
 
@@ -211,21 +209,14 @@ void USART1_IRQHandler(void) {
 
         if (buffer_index >= BUFFER_SIZE) {
             buffer_index = 0;
-            uint8_t final_buffer[27];
-            memcpy(final_buffer, rx_buffer, 16 * sizeof(uint8_t));
-            // todo: timestamp
-
-            memcpy(final_buffer+24, rx_buffer+16, 3);
-            // 开锁
-            osStatus_t status = osMutexAcquire(USART1_MutexHandle, osWaitForever);
-            if (status != osOK) {
-                osMutexRelease(USART1_MutexHandle);
-                return;
-            }
-            if (xQueueSendFromISR(S_Queue, final_buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
+            uint16_t self_id = 2;
+            float x = 1.0f, y = 0.0f;
+            memcpy(rx_buffer+1, &self_id, 2);
+            memcpy(rx_buffer + 8, &x, 4);
+            memcpy(rx_buffer + 12, &y, 4);
+            if (xQueueSendFromISR(S_Queue, rx_buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
                 Error_Handler();
             }
-            osMutexRelease(USART1_MutexHandle);
         }
     }
 }

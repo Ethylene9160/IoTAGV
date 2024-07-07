@@ -5,6 +5,7 @@
 #include "cmsis_os.h"
 #include "port_uart.h"
 
+// deprecated.
 namespace ostask_usart_transformer {
     BaseType_t get_xQueueReceive(uint8_t*data, uint32_t timeout);
 

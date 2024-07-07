@@ -6,6 +6,17 @@
 #include "cmsis_os.h"
 #include <memory.h>
 
+/**
+ * Polar position.
+ */
+typedef struct {
+    float r;
+    float t;
+} polar_point;
+
+/**
+ * Cartesian position.
+ */
 typedef struct {
     float x;
     float y;
@@ -15,7 +26,6 @@ typedef struct {
     float vx;
     float vy;
     float w;
-    float v_cons;
 } cart_velocity;
 
 class vehicle_controller {
@@ -32,6 +42,11 @@ public:
 
     cart_velocity get_self_velocity() const;
 
+    /**
+     * push the obstacle to the vehicle_position
+     * @param id id of the obstacle
+     * @param point position of the obstacle
+     */
     void push_back(uint16_t id, cart_point point);
 
 private:
@@ -39,6 +54,8 @@ private:
     cart_point target_point;
     cart_point self_point;
     cart_velocity self_vel;
+    static float v_cons;
+    static float v_k;
     std::map<uint16_t, cart_point> vehicle_position;
 
     osMutexId_t vehicle_controller_mutex;
