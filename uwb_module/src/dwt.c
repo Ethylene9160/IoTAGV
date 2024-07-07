@@ -20,56 +20,107 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 }
 
 
-#define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 128
+#define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 64
 #define RANGING_EXCHANGE_MSG_PAN_ID 0x2333
 #define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFF
-
-#define RANGING_EXCHANGE_MAX_TASK_NUMBER 64 // < 256
 
 #define RANGING_EXCHANGE_STAGE_IDLE 0x00
 #define RANGING_EXCHANGE_STAGE_POLL 0x01
 #define RANGING_EXCHANGE_STAGE_RESPONSE 0x02
 #define RANGING_EXCHANGE_STAGE_FINAL 0x03
 
-typedef struct _ranging_task_t {
-    uint32_t poll_rx, resp_tx;
-    uint32_t poll_tx, resp_rx, final_tx;
-    uint8_t after_stage; // 0x00, i.e. After IDLE means the place is empty.
+#define RANGING_EXCHANGE_MAX_ANCHOR_NUMBER 4
+#define RANGING_EXCHANGE_MAX_TASK_NUMBER 128
+
+typedef union {
+    struct { /* For Anchor */
+        uint32_t poll_tx;
+        uint32_t no_use;
+    };
+    struct { /* For Tag */
+        uint32_t poll_rx;
+        uint32_t resp_tx;
+    };
+    struct {
+        uint32_t reg_1;
+        uint32_t reg_2;
+    };
 } ranging_task_t;
 
-static ranging_task_t ranging_task_list[RANGING_EXCHANGE_MAX_TASK_NUMBER] = {0};
-static uint8_t ranging_task_list_head = 0; // Only for the anchor
+typedef struct _anchor_info_t {
+    uint8_t id;
+    float x, y;
+    float dist;
+    uint64_t timestamp_ms; /* Systick timestamp, not DWM. 0 means not received. */
+} anchor_info_t;
 
-void init_ranging_task_list(void) {
-    memset(ranging_task_list, 0, sizeof(ranging_task_list));
-    ranging_task_list_head = 0;
+/* For Anchors */
+static ranging_task_t anchor_task_list[RANGING_EXCHANGE_MAX_TASK_NUMBER] = {0};
+static uint8_t anchor_task_list_head = RANGING_EXCHANGE_MAX_TASK_NUMBER - 1;
+
+void initialize_anchor_task_list() {
+    memset(anchor_task_list, 0, sizeof(anchor_task_list));
+    anchor_task_list_head = RANGING_EXCHANGE_MAX_TASK_NUMBER - 1;
 }
 
-uint8_t is_task_id_occupied(uint8_t task_id) {
-    return ranging_task_list[task_id].after_stage != RANGING_EXCHANGE_STAGE_IDLE;
-}
-
-uint8_t add_ranging_task(uint8_t overwriting) {
-    if (++ ranging_task_list_head >= RANGING_EXCHANGE_MAX_TASK_NUMBER) {
-        ranging_task_list_head = 0;
+uint8_t add_anchor_task() {
+    if (++ anchor_task_list_head >= RANGING_EXCHANGE_MAX_TASK_NUMBER) {
+        anchor_task_list_head = 0;
     }
-    uint8_t occupied_cnt = 0;
-    while (!overwriting && is_task_id_occupied(ranging_task_list_head)) {
-        ranging_task_list_head ++;
-        occupied_cnt ++;
-        if (occupied_cnt >= RANGING_EXCHANGE_MAX_TASK_NUMBER) {
-            return 0; // TODO: dead loop if overwriting not allowed, what to return
-        }
-        if (ranging_task_list_head >= RANGING_EXCHANGE_MAX_TASK_NUMBER) {
-            ranging_task_list_head = 0;
-        }
-    }
-    ranging_task_list[ranging_task_list_head].after_stage = RANGING_EXCHANGE_STAGE_POLL;
-    return ranging_task_list_head;
+    return anchor_task_list_head;
+    /* regs need to be filled outside this */
 }
 
-void destroy_ranging_task(uint8_t task_id) {
-    ranging_task_list[task_id].after_stage = RANGING_EXCHANGE_STAGE_IDLE;
+uint8_t is_anchor_task_idle(uint8_t task_id) {
+    return anchor_task_list[task_id].poll_tx == 0 && anchor_task_list[task_id].no_use == 0;
+}
+
+void terminate_anchor_task(uint8_t task_id) {
+    anchor_task_list[task_id].reg_1 = 0;
+    anchor_task_list[task_id].reg_2 = 0;
+}
+
+/* For Tags */
+static ranging_task_t tag_task_list[RANGING_EXCHANGE_MAX_ANCHOR_NUMBER][RANGING_EXCHANGE_MAX_TASK_NUMBER] = {0};
+static anchor_info_t anchor_info_list[RANGING_EXCHANGE_MAX_ANCHOR_NUMBER] = {0};
+static uint8_t anchor_info_list_head = RANGING_EXCHANGE_MAX_ANCHOR_NUMBER - 1;
+
+void initialize_tag_task_list_and_anchor_info() {
+    memset(tag_task_list, 0, sizeof(tag_task_list));
+    anchor_info_list_head = RANGING_EXCHANGE_MAX_ANCHOR_NUMBER - 1;
+    for (uint8_t i = 0; i < RANGING_EXCHANGE_MAX_ANCHOR_NUMBER; i ++) {
+        anchor_info_list[i].id = 0xFF;
+    }
+}
+
+uint8_t is_tag_task_idle(uint8_t anchor_idx, uint8_t task_id) {
+    return tag_task_list[anchor_idx][task_id].poll_rx == 0 && tag_task_list[anchor_idx][task_id].resp_tx == 0;
+}
+
+void terminate_tag_task(uint8_t anchor_idx, uint8_t task_id) {
+    tag_task_list[anchor_idx][task_id].reg_1 = 0;
+    tag_task_list[anchor_idx][task_id].reg_2 = 0;
+}
+
+uint8_t add_anchor_info(uint8_t anchor_id, float anchor_x, float anchor_y) {
+    if (++ anchor_info_list_head >= RANGING_EXCHANGE_MAX_ANCHOR_NUMBER) {
+        anchor_info_list_head = 0;
+    }
+    anchor_info_list[anchor_info_list_head].id = anchor_id;
+    anchor_info_list[anchor_info_list_head].x = anchor_x;
+    anchor_info_list[anchor_info_list_head].y = anchor_y;
+    anchor_info_list[anchor_info_list_head].dist = 0.0f;
+    anchor_info_list[anchor_info_list_head].timestamp_ms = 0;
+    return anchor_info_list_head;
+}
+
+uint8_t get_anchor_index_by_id(uint8_t anchor_id) {
+    for (uint8_t i = 0; i < RANGING_EXCHANGE_MAX_ANCHOR_NUMBER; i ++) {
+        if (anchor_info_list[i].id == anchor_id) {
+            return i;
+        }
+    }
+    return 0xFF;
 }
 
 
@@ -116,6 +167,9 @@ uint8_t Initialize() {
 
         dwt_setrxtimeout(RX_TIMEOUT_UUS);
         dwt_rxenable(DWT_START_RX_IMMEDIATE);
+
+        // Initialize the task list
+        initialize_anchor_task_list();
     } else if (mode == TAG) {
         dwt_setdblrxbuffmode(1);
 
@@ -123,12 +177,12 @@ uint8_t Initialize() {
         dwt_setinterrupt(DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_SFDT, 1);
 
         dwt_rxenable(DWT_START_RX_IMMEDIATE);
+
+        // Initialize the task list
+        initialize_tag_task_list_and_anchor_info();
     }
 
-    debug_printf("[Info] Module initialized.\n");
-
-    // Clear the ranging task list
-    init_ranging_task_list();
+    debug_printf("[Info] Module initialized. (ID: %d)\n", module_config.module_id);
 
     return 0;
 }
@@ -155,7 +209,7 @@ static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send poll to %d for task %d.\n", src_id, task_id);
 
         // Record the poll transmission timestamp
-        ranging_task_list[task_id].poll_tx = dwt_readtxtimestamplo32();
+        anchor_task_list[task_id].poll_tx = dwt_readtxtimestamplo32();
     } else if (msg_type == RANGING_EXCHANGE_STAGE_FINAL) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send final to %d for task %d.\n", src_id, task_id);
     }
@@ -178,7 +232,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE &&
         pan_id == RANGING_EXCHANGE_MSG_PAN_ID &&
         dest_id == module_config.module_id &&
-        ranging_task_list[task_id].after_stage == RANGING_EXCHANGE_STAGE_POLL &&
+        !is_anchor_task_idle(task_id) &&
         msg_type == RANGING_EXCHANGE_STAGE_RESPONSE
     ) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received response from %d for task %d.\n", src_id, task_id);
@@ -192,7 +246,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
 
         // Prepare the final message
         uint8_t payload[12] = {0x00};
-        memcpy(payload, &ranging_task_list[task_id].poll_tx, 4);
+        memcpy(payload, &anchor_task_list[task_id].poll_tx, 4);
         memcpy(payload + 4, &rx_ts_lo, 4);
         memcpy(payload + 8, &final_tx, 4);
         tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_config.module_id, task_id, RANGING_EXCHANGE_STAGE_FINAL, payload, sizeof(payload));
@@ -203,7 +257,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dwt_starttx(DWT_START_TX_DELAYED);
 
         // Destroy the task
-        destroy_ranging_task(task_id);
+        terminate_anchor_task(task_id);
     }
 
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
@@ -212,11 +266,13 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
 static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
     if (tx_flag) {
         // Add a new ranging task
-        uint8_t new_task_id = add_ranging_task(1); // 已设置 stage
+        uint8_t new_task_id = add_anchor_task();
 
         // Prepare a poll message
-        uint8_t poll_payload[] = {};
-        tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_config.module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, poll_payload, sizeof(poll_payload));
+        uint8_t payload[8] = {0x00};
+        memcpy(payload, &module_config.anchor_x, 4);
+        memcpy(payload + 4, &module_config.anchor_y, 4);
+        tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, RANGING_EXCHANGE_MSG_BROADCAST_ID, module_config.module_id, new_task_id, RANGING_EXCHANGE_STAGE_POLL, payload, sizeof(payload));
 
         // Send the poll message
         dwt_writetxdata(tx_len, tx_buffer, 0);
@@ -237,9 +293,15 @@ static void AnchorRXErrorCallback(const dwt_cb_data_t *data) {
 /* Tag Related */
 static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
     uint8_t task_id = re_get_task_id(tx_buffer);
+    uint8_t dest_id = re_get_dest_id(tx_buffer);
 
-    // Record the response transmission timestamp
-    ranging_task_list[task_id].resp_tx = dwt_readtxtimestamplo32();
+    uwb_mode_t dest_mode = JudgeModeFromID(dest_id);
+    if (dest_mode == ANCHOR) {
+        // Record the response transmission timestamp
+        tag_task_list[dest_id][task_id].resp_tx = dwt_readtxtimestamplo32();
+    } else if (dest_mode == TAG) {
+        // TODO: Tag 间.
+    }
 }
 
 static void TagRXOkCallback(const dwt_cb_data_t *data) {
@@ -255,69 +317,93 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
     uint8_t task_id = re_get_task_id(rx_buffer);
     uint8_t msg_type = re_get_msg_type(rx_buffer);
     if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == RANGING_EXCHANGE_MSG_PAN_ID) {
-        if (
-            (dest_id == RANGING_EXCHANGE_MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
-            msg_type == RANGING_EXCHANGE_STAGE_POLL
-        ) {
-            if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received poll from %d for task %d.\n", src_id, task_id);
+        uwb_mode_t src_mode = JudgeModeFromID(src_id);
+        uint8_t anchor_index = get_anchor_index_by_id(src_id); // 0xFF means not found
+        if (src_mode == ANCHOR) {
+            if (
+                (dest_id == RANGING_EXCHANGE_MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
+                msg_type == RANGING_EXCHANGE_STAGE_POLL
+            ) { /* poll */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received poll from %d for task %d.\n", src_id, task_id);
 
-            // Record the poll reception timestamp
-            ranging_task_list[task_id].poll_rx = rx_ts;
+                // Save the anchor information
+                float anchor_x, anchor_y;
+                uint16_t payload_head_index = re_get_payload_head_index();
+                memcpy(&anchor_x, rx_buffer + payload_head_index, 4);
+                memcpy(&anchor_y, rx_buffer + payload_head_index + 4, 4);
+                if (anchor_index == 0xFF) { /* Not found -> Create one */
+                    anchor_index = add_anchor_info(src_id, anchor_x, anchor_y);
+                }
 
-            // Prepare the response message
-            uint8_t payload[] = {};
-            tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_config.module_id, task_id, RANGING_EXCHANGE_STAGE_RESPONSE, payload, sizeof(payload));
+                // Record the poll reception timestamp
+                tag_task_list[anchor_index][task_id].poll_rx = rx_ts;
 
-            // Send the response message
-            dwt_writetxdata(tx_len, tx_buffer, 0);
-            dwt_writetxfctrl(tx_len, 0, 1);
-            dwt_starttx(DWT_START_TX_IMMEDIATE);
+                // Prepare the response message
+                uint8_t payload[] = {};
+                tx_len = gen_ranging_exchange_msg(tx_buffer, RANGING_EXCHANGE_MSG_PAN_ID, src_id, module_config.module_id, task_id, RANGING_EXCHANGE_STAGE_RESPONSE, payload, sizeof(payload));
 
-            // Update the task stage
-            ranging_task_list[task_id].after_stage = RANGING_EXCHANGE_STAGE_RESPONSE;
-        } else if (
-            dest_id == module_config.module_id &&
-            ranging_task_list[task_id].after_stage == RANGING_EXCHANGE_STAGE_RESPONSE &&
-            msg_type == RANGING_EXCHANGE_STAGE_FINAL
-        ) {
-            if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received final from %d for task %d.\n", src_id, task_id);
+                // Send the response message
+                dwt_writetxdata(tx_len, tx_buffer, 0);
+                dwt_writetxfctrl(tx_len, 0, 1);
+                dwt_starttx(DWT_START_TX_IMMEDIATE);
+            } else if (
+                dest_id == module_config.module_id &&
+                !is_tag_task_idle(anchor_index, task_id) &&
+                msg_type == RANGING_EXCHANGE_STAGE_FINAL
+            ) { /* final */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received final from %d for task %d.\n", src_id, task_id);
 
-            // Record the final reception timestamp
-            uint32_t final_rx = rx_ts;
+                // Record the final reception timestamp
+                uint32_t final_rx = rx_ts;
 
-            // Extract the recorded timestamps
-            uint32_t poll_rx = ranging_task_list[task_id].poll_rx;
-            uint32_t resp_tx = ranging_task_list[task_id].resp_tx;
+                // Extract the recorded timestamps
+                uint32_t poll_rx = tag_task_list[anchor_index][task_id].poll_rx;
+                uint32_t resp_tx = tag_task_list[anchor_index][task_id].resp_tx;
 
-            // Unpack the timestamps
-            uint16_t payload_head_index = re_get_payload_head_index();
-            memcpy(&ranging_task_list[task_id].poll_tx, rx_buffer + payload_head_index, 4);
-            memcpy(&ranging_task_list[task_id].resp_rx, rx_buffer + payload_head_index + 4, 4);
-            memcpy(&ranging_task_list[task_id].final_tx, rx_buffer + payload_head_index + 8, 4);
-            uint32_t poll_tx = ranging_task_list[task_id].poll_tx;
-            uint32_t resp_rx = ranging_task_list[task_id].resp_rx;
-            uint32_t final_tx = ranging_task_list[task_id].final_tx;
+                // Unpack the timestamps
+                uint32_t poll_tx, resp_rx, final_tx;
+                uint16_t payload_head_index = re_get_payload_head_index();
+                memcpy(&poll_tx, rx_buffer + payload_head_index, 4);
+                memcpy(&resp_rx, rx_buffer + payload_head_index + 4, 4);
+                memcpy(&final_tx, rx_buffer + payload_head_index + 8, 4);
 
-            // Calculate time of flight and distance
-            double Ra = (double) (resp_rx - poll_tx);
-            double Rb = (double) (final_rx - resp_tx);
-            double Da = (double) (final_tx - resp_rx);
-            double Db = (double) (resp_tx - poll_rx);
-            double tof = ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db)) * DWT_TIME_UNITS;
-            double distance = tof * SPEED_OF_LIGHT;
+                // Calculate time of flight and distance
+                double Ra = (double) (resp_rx - poll_tx);
+                double Rb = (double) (final_rx - resp_tx);
+                double Da = (double) (final_tx - resp_rx);
+                double Db = (double) (resp_tx - poll_rx);
+                double tof = ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db)) * DWT_TIME_UNITS;
+                float distance = (float) (tof * SPEED_OF_LIGHT);
 
-            // Print the result
-//            debug_printf("   Tag: %lu, \t%lu, \t%lu\n", poll_rx, resp_tx, final_rx);
-//            debug_printf("Anchor: %lu, \t%lu, \t%lu\n", poll_tx, resp_rx, final_tx);
-//            debug_printf("    Ra: %lu\n", resp_rx - poll_tx);
-//            debug_printf("    Rb: %lu\n", final_rx - resp_tx);
-//            debug_printf("    Da: %lu\n", final_tx - resp_rx);
-//            debug_printf("    Db: %lu\n", resp_tx - poll_rx);
-//            debug_printf("%.4f\n", (float) distance);
-            debug_printf("%d\n", (int) (distance * 10000));
+                // Print the result
+//                debug_printf("   Tag: %lu, \t%lu, \t%lu\n", poll_rx, resp_tx, final_rx);
+//                debug_printf("Anchor: %lu, \t%lu, \t%lu\n", poll_tx, resp_rx, final_tx);
+//                debug_printf("    Ra: %lu\n", resp_rx - poll_tx);
+//                debug_printf("    Rb: %lu\n", final_rx - resp_tx);
+//                debug_printf("    Da: %lu\n", final_tx - resp_rx);
+//                debug_printf("    Db: %lu\n", resp_tx - poll_rx);
+//                debug_printf("%.4f\n", (float) distance);
+//                debug_printf("%d\n", (int) (distance * 10000));
 
-            // Destroy the task
-            destroy_ranging_task(task_id);
+                // Save the distance
+                anchor_info_list[anchor_index].dist = distance;
+                anchor_info_list[anchor_index].timestamp_ms = GetSystickMs();
+
+                // Print all the distances
+                uint8_t anchor0_index = get_anchor_index_by_id(0x00);
+                uint8_t anchor1_index = get_anchor_index_by_id(0x01);
+                if (anchor0_index != 0xFF && anchor1_index != 0xFF) {
+                    debug_printf("%d, %d\n", (int) (anchor_info_list[anchor0_index].dist * 10000), (int) (anchor_info_list[anchor1_index].dist * 10000));
+                }
+
+                // Localization
+                // TODO
+
+                // Remove the task
+                terminate_tag_task(anchor_index, task_id);
+            }
+        } else {
+            // TODO: Tag 间.
         }
     }
 
@@ -336,7 +422,7 @@ static void TagRXErrorCallback(const dwt_cb_data_t *data) {
 void EventHandler() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
 
-    if (mode == ANCHOR || mode == TAG) {
+    if (mode == ANCHOR || mode == TAG) { /* TODO: Tag 中似乎来不及执行这里, 可能需要移到中断. */
         // Regularly toggle the LED
         uint32_t current_tick_ms = GetSystickMs();
         if (current_tick_ms - last_tick_ms > module_config.ranging_exchange_poll_interval) {
