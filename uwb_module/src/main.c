@@ -48,7 +48,7 @@ int main(void) {
         // TODO 修改 ID 等命令的接收, 若跨类型还要重新 Initialize DW1000.
 
         if (!is_initialized) {
-            if (InitDW1000() != 0) {
+            if (Initialize() != 0) {
                 SleepMs(1000); // TODO: 若编写了 Command Handler 则须换非阻塞
                 continue;
             }

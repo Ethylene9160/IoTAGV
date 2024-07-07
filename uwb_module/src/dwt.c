@@ -9,10 +9,10 @@
 #include "msgs.h"
 
 
-uwb_mode_t JudgeModeFromID(uint16_t module_id) {
-    if (module_id >= 0x0000 && module_id <= 0x0FFF) {
+uwb_mode_t JudgeModeFromID(uint8_t module_id) {
+    if (module_id >= 0x00 && module_id <= 0x7F) {
         return ANCHOR;
-    } else if (module_id >= 0x1000 && module_id <= 0x1FFF) {
+    } else if (module_id >= 0x80 && module_id <= 0xFF) {
         return TAG;
     } else {
         return UNDEFINED;
@@ -22,7 +22,7 @@ uwb_mode_t JudgeModeFromID(uint16_t module_id) {
 
 #define RANGING_EXCHANGE_MSG_MAX_FRAME_LENGTH 128
 #define RANGING_EXCHANGE_MSG_PAN_ID 0x2333
-#define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFFFF
+#define RANGING_EXCHANGE_MSG_BROADCAST_ID 0xFF
 
 #define RANGING_EXCHANGE_MAX_TASK_NUMBER 64 // < 256
 
@@ -87,7 +87,7 @@ void EXTI0_IRQHandler(void) {
     dwt_isr();
 }
 
-uint8_t InitDW1000() {
+uint8_t Initialize() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
 
     if (mode == UNDEFINED) {
@@ -125,7 +125,7 @@ uint8_t InitDW1000() {
         dwt_rxenable(DWT_START_RX_IMMEDIATE);
     }
 
-    debug_printf("[Info] DW1000 initialized.\n");
+    debug_printf("[Info] Module initialized.\n");
 
     // Clear the ranging task list
     init_ranging_task_list();
@@ -147,9 +147,9 @@ static uint8_t toggle_flag = 0;
 
 /* Anchor Related */
 static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data) {
-    uint8_t src_id = tx_buffer[5] | (tx_buffer[6] << 8);
-    uint8_t task_id = tx_buffer[7];
-    uint8_t msg_type = tx_buffer[8];
+    uint8_t src_id = re_get_src_id(tx_buffer);
+    uint8_t task_id = re_get_task_id(tx_buffer);
+    uint8_t msg_type = re_get_msg_type(tx_buffer);
 
     if (msg_type == RANGING_EXCHANGE_STAGE_POLL) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send poll to %d for task %d.\n", src_id, task_id);
@@ -169,11 +169,11 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
     uint32_t rx_ts_hi = dwt_readrxtimestamphi32();
     uint32_t rx_ts_lo = dwt_readrxtimestamplo32();
 
-    uint16_t pan_id = rx_buffer[1] | (rx_buffer[2] << 8);
-    uint16_t dest_id = rx_buffer[3] | (rx_buffer[4] << 8);
-    uint16_t src_id = rx_buffer[5] | (rx_buffer[6] << 8);
-    uint8_t task_id = rx_buffer[7];
-    uint8_t msg_type = rx_buffer[8];
+    uint16_t pan_id = re_get_pan_id(rx_buffer);
+    uint16_t dest_id = re_get_dest_id(rx_buffer);
+    uint16_t src_id = re_get_src_id(rx_buffer);
+    uint8_t task_id = re_get_task_id(rx_buffer);
+    uint8_t msg_type = re_get_msg_type(rx_buffer);
     if (
         rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE &&
         pan_id == RANGING_EXCHANGE_MSG_PAN_ID &&
@@ -234,28 +234,9 @@ static void AnchorRXErrorCallback(const dwt_cb_data_t *data) {
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 }
 
-void AnchorEventHandler() {
-    uint16_t module_id = module_config.module_id;
-
-    // Regularly toggle the LED
-    uint32_t current_tick_ms = GetSystickMs();
-    if (current_tick_ms - last_tick_ms > module_config.ranging_exchange_poll_interval) {
-        last_tick_ms = current_tick_ms;
-        tx_flag = 1;
-
-        if (toggle_flag) {
-            TurnOffLED((led_t) JudgeModeFromID(module_id));
-            toggle_flag = 0;
-        } else {
-            TurnOnLED((led_t) JudgeModeFromID(module_id));
-            toggle_flag = 1;
-        }
-    }
-}
-
 /* Tag Related */
 static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
-    uint8_t task_id = tx_buffer[7];
+    uint8_t task_id = re_get_task_id(tx_buffer);
 
     // Record the response transmission timestamp
     ranging_task_list[task_id].resp_tx = dwt_readtxtimestamplo32();
@@ -268,11 +249,11 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 
     uint32_t rx_ts = dwt_readrxtimestamplo32();
 
-    uint16_t pan_id = rx_buffer[1] | (rx_buffer[2] << 8);
-    uint16_t dest_id = rx_buffer[3] | (rx_buffer[4] << 8);
-    uint16_t src_id = rx_buffer[5] | (rx_buffer[6] << 8);
-    uint8_t task_id = rx_buffer[7];
-    uint8_t msg_type = rx_buffer[8];
+    uint16_t pan_id = re_get_pan_id(rx_buffer);
+    uint16_t dest_id = re_get_dest_id(rx_buffer);
+    uint16_t src_id = re_get_src_id(rx_buffer);
+    uint8_t task_id = re_get_task_id(rx_buffer);
+    uint8_t msg_type = re_get_msg_type(rx_buffer);
     if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == RANGING_EXCHANGE_MSG_PAN_ID) {
         if (
             (dest_id == RANGING_EXCHANGE_MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
@@ -309,9 +290,10 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
             uint32_t resp_tx = ranging_task_list[task_id].resp_tx;
 
             // Unpack the timestamps
-            memcpy(&ranging_task_list[task_id].poll_tx, rx_buffer + 9, 4);
-            memcpy(&ranging_task_list[task_id].resp_rx, rx_buffer + 13, 4);
-            memcpy(&ranging_task_list[task_id].final_tx, rx_buffer + 17, 4);
+            uint16_t payload_head_index = re_get_payload_head_index();
+            memcpy(&ranging_task_list[task_id].poll_tx, rx_buffer + payload_head_index, 4);
+            memcpy(&ranging_task_list[task_id].resp_rx, rx_buffer + payload_head_index + 4, 4);
+            memcpy(&ranging_task_list[task_id].final_tx, rx_buffer + payload_head_index + 8, 4);
             uint32_t poll_tx = ranging_task_list[task_id].poll_tx;
             uint32_t resp_rx = ranging_task_list[task_id].resp_rx;
             uint32_t final_tx = ranging_task_list[task_id].final_tx;
@@ -351,31 +333,24 @@ static void TagRXErrorCallback(const dwt_cb_data_t *data) {
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
 }
 
-void TagEventHandler() {
-    uint16_t module_id = module_config.module_id;
-
-    // Regularly toggle the LED
-    uint32_t current_tick_ms = GetSystickMs();
-    if (current_tick_ms - last_tick_ms > module_config.ranging_exchange_poll_interval) {
-        last_tick_ms = current_tick_ms;
-
-        if (toggle_flag) {
-            TurnOffLED((led_t) JudgeModeFromID(module_id));
-            toggle_flag = 0;
-        } else {
-            TurnOnLED((led_t) JudgeModeFromID(module_id));
-            toggle_flag = 1;
-        }
-    }
-}
-
 void EventHandler() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
 
-    if (mode == ANCHOR) {
-        AnchorEventHandler();
-    } else if (mode == TAG) {
-        TagEventHandler();
+    if (mode == ANCHOR || mode == TAG) {
+        // Regularly toggle the LED
+        uint32_t current_tick_ms = GetSystickMs();
+        if (current_tick_ms - last_tick_ms > module_config.ranging_exchange_poll_interval) {
+            last_tick_ms = current_tick_ms;
+            tx_flag = 1;
+
+            if (toggle_flag) {
+                TurnOffLED((led_t) JudgeModeFromID(module_config.module_id));
+                toggle_flag = 0;
+            } else {
+                TurnOnLED((led_t) JudgeModeFromID(module_config.module_id));
+                toggle_flag = 1;
+            }
+        }
     } else {
         // Do nothing but wait for the module ID to be modified
     }
