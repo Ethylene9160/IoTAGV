@@ -5,8 +5,6 @@
 #include "spi.h"
 #include "usart.h"
 
-#include "tiny_io.h"
-
 #include "dwt.h"
 
 #include "uwb_module_config.h"
@@ -34,16 +32,15 @@ void InitPeripherals(void) {
     TurnOffLED(LED_ALL);
 }
 
-static uint8 is_initialized = 0;
-static uwb_mode_t mode = UNDEFINED;
+
+static uint8_t is_initialized = 0;
 
 int main(void) {
     // Initialization
     InitPeripherals();
 
     // Load the configurations
-    // TODO
-    mode = JudgeModeFromID(module_config.module_id);
+    // TODO, 读配置, 修改全局 module_config
 
     // Main loop
     while (1) {
@@ -51,21 +48,15 @@ int main(void) {
         // TODO 修改 ID 等命令的接收, 若跨类型还要重新 Initialize DW1000.
 
         if (!is_initialized) {
-            if (InitDW1000(mode) != 0) {
-                SleepMs(1000);
+            if (Initialize() != 0) {
+                SleepMs(1000); // TODO: 若编写了 Command Handler 则须换非阻塞
                 continue;
             }
             is_initialized = 1;
         }
 
         // Event handler
-        if (mode == ANCHOR) {
-            AnchorEventHandler(&module_config);
-        } else if (mode == TAG) {
-            TagEventHandler(&module_config);
-        } else {
-            // Do nothing but wait for the module ID to be modified
-        }
+        EventHandler();
     }
 
     return 0;
