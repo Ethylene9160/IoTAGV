@@ -8,6 +8,8 @@ extern "C" {
 int debug_putchar(int ch);
 void debug_printf(const char *format, ...); /* %s, %d, %ld, %Ld, %u, %lu, %Lu, %.xf, %.xlf (%.xl ?) */
 
+#define uart_send_byte debug_putchar
+
 #ifdef __cplusplus
 }
 #endif

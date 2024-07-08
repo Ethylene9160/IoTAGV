@@ -45,7 +45,8 @@ static dwt_config_t dwt_config = {
 #define TX_ANT_DLY 16436
 #define RX_ANT_DLY 16436
 
-#define RESP_RX_TO_FINAL_TX_DLY_UUS 10000
+//#define POLL_RX_TO_RESP_TX_DLY_UUS 8000
+#define RESP_RX_TO_FINAL_TX_DLY_UUS 8000
 #define RX_TIMEOUT_UUS 5000
 
 #define SPEED_OF_LIGHT 299702547

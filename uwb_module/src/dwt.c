@@ -29,11 +29,12 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 #define STAGE_POLL 0x01
 #define STAGE_RESPONSE 0x02
 #define STAGE_FINAL 0x03
+#define STAGE_SHARE_POSITION 0x04
 
 #define MAX_ANCHOR_NUMBER 4
 #define MAX_TASK_NUMBER 128
 
-#define DISTANCE_FILTER_LENGTH 8
+#define DISTANCE_FILTER_LENGTH 4
 
 typedef union {
     struct { /* For Anchor */
@@ -165,14 +166,14 @@ uint8_t Initialize() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
 
     if (mode == UNDEFINED) {
-        debug_printf("[Error] Invalid module ID.\n");
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Error] Invalid module ID.\n");
         return 1;
     }
 
     reset_DW1000();
     spi_set_rate_low();
     if (dwt_initialise(DWT_LOADUCODE) == DWT_ERROR) {
-        debug_printf("[Error] DW1000 initialization failed.\n");
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Error] DW1000 initialization failed.\n");
         return 1;
     }
     spi_set_rate_high();
@@ -205,7 +206,7 @@ uint8_t Initialize() {
         initialize_tag_task_list_and_anchor_info();
     }
 
-    debug_printf("[Info] Module initialized. (ID: %d)\n", module_config.module_id);
+    if (module_config.ranging_exchange_debug_output) debug_printf("[Info] Module initialized. (ID: %d)\n", module_config.module_id);
 
     return 0;
 }
@@ -224,17 +225,19 @@ static uint8_t toggle_flag = 0;
 
 /* Anchor Related */
 static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data) {
-    uint8_t src_id = re_get_src_id(tx_buffer);
+    uint8_t dest_id = re_get_dest_id(tx_buffer);
     uint8_t task_id = re_get_task_id(tx_buffer);
     uint8_t msg_type = re_get_msg_type(tx_buffer);
 
     if (msg_type == STAGE_POLL) {
-        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send poll to %d for task %d.\n", src_id, task_id);
+//        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Broadcast poll for task %d.\n", task_id);
+        // TODO: 见后 RXOK 中断, 暂时写死，轮流发给两个 tag.
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent poll to %d for task %d.\n", dest_id, task_id);
 
         // Record the poll transmission timestamp
         anchor_task_list[task_id].poll_tx = dwt_readtxtimestamplo32();
     } else if (msg_type == STAGE_FINAL) {
-        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send final to %d for task %d.\n", src_id, task_id);
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent final to %d for task %d.\n", dest_id, task_id);
     }
 }
 
@@ -257,15 +260,15 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dest_id == module_config.module_id &&
         !is_anchor_task_idle(task_id) &&
         msg_type == STAGE_RESPONSE
-        ) {
-        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received response from %d for task %d.\n", src_id, task_id);
+    ) {
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received response from %d for task %d.\n", src_id, task_id);
 
         // Set expected time of transmission
-        uint32_t expected_final_tx_time = rx_ts_hi + ((RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8); // (rx_ts + RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8;
+        uint32_t expected_final_tx_time = rx_ts_hi + ((RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8);
         dwt_setdelayedtrxtime(expected_final_tx_time); // 接收的是 dwt time 高 32 位
 
         // Calculate and record final_tx (add antenna delay)
-        uint32_t final_tx = (uint32_t) (((((uint64_t) (expected_final_tx_time & 0xFFFFFFFE)) << 8) + TX_ANT_DLY) & 0xFFFFFFFF);
+        uint32_t final_tx = (uint32_t) ((((uint64_t) (expected_final_tx_time & 0xFFFFFFFE)) << 8) + TX_ANT_DLY);
 
         // Prepare the final message
         uint8_t payload[12] = {0x00};
@@ -279,8 +282,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dwt_writetxfctrl(tx_len, 0, 1);
         dwt_starttx(DWT_START_TX_DELAYED);
 
-        // Destroy the task
-        terminate_anchor_task(task_id);
+        /* Should not destroy the task, there can be multiple tags waiting for the same poll_tx */
     }
 
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
@@ -295,7 +297,10 @@ static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
         uint8_t payload[8] = {0x00};
         memcpy(payload, &module_config.anchor_x, 4);
         memcpy(payload + 4, &module_config.anchor_y, 4);
-        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, new_task_id, STAGE_POLL, payload, sizeof(payload));
+//        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, new_task_id, STAGE_POLL, payload, sizeof(payload));
+        // TODO: 暂时写死，轮流发给两个 tag.
+        uint8_t dest_id = toggle_flag ? 0x80 : 0x81;
+        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, dest_id, module_config.module_id, new_task_id, STAGE_POLL, payload, sizeof(payload));
 
         // Send the poll message
         dwt_writetxdata(tx_len, tx_buffer, 0);
@@ -318,12 +323,16 @@ static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
     uint8_t task_id = re_get_task_id(tx_buffer);
     uint8_t dest_id = re_get_dest_id(tx_buffer);
 
+    uint32_t tx_ts = dwt_readtxtimestamplo32();
+
     uwb_mode_t dest_mode = JudgeModeFromID(dest_id);
     if (dest_mode == ANCHOR) {
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent resp to %d for task %d.\n", dest_id, task_id);
+
         // Record the response transmission timestamp
-        tag_task_list[dest_id][task_id].resp_tx = dwt_readtxtimestamplo32();
+        tag_task_list[dest_id][task_id].resp_tx = tx_ts;
     } else if (dest_mode == TAG) {
-        // TODO: Tag 间.
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Shared position with other tags.\n");
     }
 }
 
@@ -340,14 +349,15 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
     uint8_t task_id = re_get_task_id(rx_buffer);
     uint8_t msg_type = re_get_msg_type(rx_buffer);
     if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == MSG_PAN_ID) {
+        for (int i = 0; i <= 10000; i ++); // TODO: 不加有时候收不到 final.
         uwb_mode_t src_mode = JudgeModeFromID(src_id);
         uint8_t anchor_index = get_anchor_index_by_id(src_id); // 0xFF means not found
         if (src_mode == ANCHOR) {
             if (
                 (dest_id == MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
                 msg_type == STAGE_POLL
-                ) { /* poll */
-                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received poll from %d for task %d.\n", src_id, task_id);
+            ) { /* poll */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received poll from %d for task %d.\n", src_id, task_id);
 
                 // Save the anchor information
                 float anchor_x, anchor_y;
@@ -373,8 +383,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 dest_id == module_config.module_id &&
                 !is_tag_task_idle(anchor_index, task_id) &&
                 msg_type == STAGE_FINAL
-                ) { /* final */
-                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received final from %d for task %d.\n", src_id, task_id);
+            ) { /* final */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received final from %d for task %d.\n", src_id, task_id);
 
                 // Record the final reception timestamp
                 uint32_t final_rx = rx_ts;
@@ -424,30 +434,69 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 uint8_t valid_anchor_number = 0;
                 for (uint8_t i = 0; i < MAX_ANCHOR_NUMBER; i ++) {
                     // TODO: timeout
-//                    if (GetSystickMs() - anchor_info_list[i].timestamp_ms < module_config.distance_expired_time) {
-                    valid_anchor_indices[valid_anchor_number ++] = i;
-//                    }
-                }
-                // TODO: 暂时两点定位, 后续补充多点定位
-                if (valid_anchor_number >= 2) {
-                    Point2d p1 = {anchor_info_list[valid_anchor_indices[0]].x, anchor_info_list[valid_anchor_indices[0]].y};
-                    Point2d p2 = {anchor_info_list[valid_anchor_indices[1]].x, anchor_info_list[valid_anchor_indices[1]].y};
-                    float d1 = anchor_info_list[valid_anchor_indices[0]].dist;
-                    float d2 = anchor_info_list[valid_anchor_indices[1]].dist;
-                    Point2d p;
-                    int result = two_point_localization(p1, d1, p2, d2, &p);
-                    if (result) {
-//                        debug_printf("%.4f, %.4f\n", p.x, p.y);
-//                        debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
-                        debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+                    if (anchor_info_list[i].id != 0xFF) { // && (GetSystickMs() - anchor_info_list[i].timestamp_ms < module_config.distance_expired_time)) {
+                        valid_anchor_indices[valid_anchor_number ++] = i;
                     }
                 }
 
+                // Able to calculate the position TODO: 暂时两点定位, 后续补充多点定位
+                if (valid_anchor_number >= 2) {
+//                    Point2d p1 = {anchor_info_list[valid_anchor_indices[0]].x, anchor_info_list[valid_anchor_indices[0]].y};
+//                    Point2d p2 = {anchor_info_list[valid_anchor_indices[1]].x, anchor_info_list[valid_anchor_indices[1]].y};
+                    float d1 = anchor_info_list[valid_anchor_indices[0]].dist;
+                    float d2 = anchor_info_list[valid_anchor_indices[1]].dist;
+//                    Point2d p;
+//                    int result = two_point_localization(p1, d1, p2, d2, &p);
+//                    if (result) {
+////                        debug_printf("%.4f, %.4f\n", p.x, p.y);
+////                        debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
+//                        debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+//                    }
+                    // TODO: 暂时写死 0x00 是 (0, 0), 0x01 是 (d, 0)
+                    float d = anchor_info_list[valid_anchor_indices[0]].id == 0x00 ? anchor_info_list[valid_anchor_indices[1]].x : anchor_info_list[valid_anchor_indices[0]].x;
+                    Point2d p = dis2cart(d1, d2, d);
+//                    debug_printf("%.4f, %.4f\n", p.x, p.y);
+//                    debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
+//                    debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+
+                    // Upload the position
+//                    debug_printf("Position of %d: (%d, %d). %d, %d.\n", module_config.module_id, (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+                    send_upload_position_msg(module_config.module_id, p.x, p.y, d1, d2);
+
+                    // Broadcast the position
+                    uint8_t payload[16] = {0x00};
+                    memcpy(payload, &p.x, 4);
+                    memcpy(payload + 4, &p.y, 4);
+                    memcpy(payload + 8, &d1, 4);
+                    memcpy(payload + 12, &d2, 4);
+                    tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, 0xFF, STAGE_SHARE_POSITION, payload, sizeof(payload));
+                    dwt_writetxdata(tx_len, tx_buffer, 0);
+                    dwt_writetxfctrl(tx_len, 0, 1);
+                    dwt_starttx(DWT_START_TX_IMMEDIATE);
+                }
+
                 // Remove the task
-                terminate_tag_task(anchor_index, task_id);
+//                terminate_tag_task(anchor_index, task_id);
             }
         } else {
-            // TODO: Tag 间.
+            if (
+                (dest_id == MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
+                msg_type == STAGE_SHARE_POSITION
+            ) { /* shared_position */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received position from %d.\n", src_id);
+
+                // Unpack the position
+                float x, y, d1, d2;
+                uint16_t payload_head_index = re_get_payload_head_index();
+                memcpy(&x, rx_buffer + payload_head_index, 4);
+                memcpy(&y, rx_buffer + payload_head_index + 4, 4);
+                memcpy(&d1, rx_buffer + payload_head_index + 8, 4);
+                memcpy(&d2, rx_buffer + payload_head_index + 12, 4);
+
+                // Upload the position
+//                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (x * 10000), (int) (y * 10000));
+                send_upload_position_msg(src_id, x, y, d1, d2);
+            }
         }
     }
 

@@ -8,7 +8,7 @@
 
 int debug_putchar(int ch) {
     USART_ClearFlag(USART1, USART_FLAG_TC);
-    USART_SendData(USART1, (uint8_t)ch);
+    USART_SendData(USART1, (uint8_t) ch);
     while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET); // Block until the transfer is complete
     return ch;
 }
