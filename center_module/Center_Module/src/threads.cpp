@@ -47,11 +47,11 @@ const osThreadAttr_t test_task_attributes = {
 void startThreads() {
 
     // 设置起点和终点坐标
-    cart_point _start{0.0f,0.0f};
-    cart_point _terminal{5.0f,5.0f};
+    cart_point _start{1.6f,2.0f};
+    cart_point _terminal{1.2f,4.0f};
 
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
-    auto* vehicle_controller_ptr = new vehicle_controller(0, _start, _terminal);
+    auto* vehicle_controller_ptr = new vehicle_controller(0x80, _start, _terminal);
 
     // 随机放入一些障碍物
     // cart_point ob1{1.0f, 0.0f};

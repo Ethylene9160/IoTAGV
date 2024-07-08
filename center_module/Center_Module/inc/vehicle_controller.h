@@ -49,11 +49,14 @@ public:
      */
     void push_back(uint16_t id, cart_point point);
 
+    bool is_near_terminal();
+
 private:
     uint16_t self_id;
     cart_point target_point;
     cart_point self_point;
     cart_velocity self_vel;
+    bool isTerminal;
     static float v_cons;
     static float v_k;
     std::map<uint16_t, cart_point> vehicle_position;

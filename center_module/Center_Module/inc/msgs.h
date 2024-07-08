@@ -49,6 +49,25 @@ namespace msgs {
 
         Twist2D(float linear_x, float linear_y, float angular_z) : linear_x(linear_x), linear_y(linear_y),
                                                                    angular_z(angular_z) {
+            if (linear_x > 75.0f) {
+                this->linear_x = 75.0f;
+            }
+            if (linear_y > 75.0f) {
+                this->linear_y = 75.0f;
+            }
+            if (angular_z > 75.0f) {
+                this->angular_z = 75.0f;
+            }
+
+            if (linear_x < -75.0f) {
+                this->linear_x = -75.0f;
+            }
+            if (linear_y < -75.0f) {
+                this->linear_y = -75.0f;
+            }
+            if (angular_z < -75.0f) {
+                this->angular_z = -75.0f;
+            }
         }
 
         serials serialize() override {

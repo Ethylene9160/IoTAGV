@@ -1,5 +1,6 @@
 #include "ostask_vehicle_controller.h"
 
+#include <cmath>
 #include <cstdio>
 
 #include "ostask_controller_module_port.h"
@@ -25,7 +26,7 @@ namespace ostask_vehicle_controller {
         while (true) {
             read_queue(controller);
             set_control_msg(controller);
-            osDelay(20);
+            osDelay(50);
         }
     }
 
@@ -33,7 +34,14 @@ namespace ostask_vehicle_controller {
         controller -> tick();
         cart_velocity v = controller -> get_self_velocity();
 
-        msgs::Twist2D* t = new msgs::Twist2D(v.vx, v.vy, v.w);
+
+        char str[32];
+        int len = sprintf(str, "1vx: %d, vy: %d\n", (int)(v.vx * 2000/3+50001), (int)(v.vy * 2000/3+50001));
+        HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
+
+        // msgs::Twist2D* t = new msgs::Twist2D(v.vx, v.vy, v.w);
+
+        msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
         auto command = msgs::Command(CTRL_CMD_SET_TWIST, t);
 
         ostask_controller_module_port::pushCommand(command);
@@ -50,9 +58,25 @@ namespace ostask_vehicle_controller {
 
             // if (source_id > 0x0FFF && target_id == 0xFFFF) {
             if (1){
-                float x = 0.0f, y = 0.0f;
+                float x = 0.0f, y = 0.0f, d1 = 0.0f, d2 = 0.0f;
                 memcpy(&x, buffer + 8, 4);
                 memcpy(&y, buffer + 12, 4);
+                memcpy(&d1, buffer + 16, 4);
+                memcpy(&d2, buffer + 20, 4);
+                char str[64];
+                // // int len = sprintf(str, "source_id: %d, x: %f, y: %f\n", source_id, x, y);
+                int len = sprintf(str, "0id: %d, x: %d, y: %d, d1: %d, d2: %d\n",
+                    source_id,
+                    (int) (x * 10000),
+                    (int) (y * 10000),
+                    (int) (d1 * 10000),
+                    (int) (d2 * 10000));
+                HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
+
+                // nan，那么返回。
+                if (std::isnan(x) || std::isnan(y)) {
+                    return;
+                }
                 cart_point point = {x, y};
                 controller->push_back(source_id, point);
             }
