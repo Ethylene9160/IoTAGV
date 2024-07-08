@@ -17,6 +17,7 @@ typedef struct {
 * @param  d: distance between anchor 1 and anchor 2
 * @retval The cartesian coordinates of the point.
 */
+
 Point2d dis2cart(float d1, float d2, float d);
 
 /* 保留 x, y 为正的解 */

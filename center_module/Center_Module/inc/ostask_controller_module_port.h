@@ -14,7 +14,7 @@ namespace ostask_controller_module_port {
 
     const osThreadAttr_t task_attributes = {
         .name = "osTaskControllerModulePort",
-        .stack_size = 256 * 4,
+        .stack_size = 256 << 2,
         .priority = (osPriority_t) osPriorityNormal,
     };
 
@@ -23,7 +23,7 @@ namespace ostask_controller_module_port {
     static osMutexId_t controller_command_queue_mutex = nullptr;
     static std::queue<msgs::Command> controller_command_queue;
 
-    bool pushCommand(const msgs::Command &command);
+    bool pushCommand(msgs::Command);
     msgs::Command popCommand();
     bool isCommandQueueEmpty();
     bool clearCommandQueue();

@@ -2,12 +2,16 @@
 #include <cmath>
 #include <random>
 
+#include "usart.h"
+
+float vehicle_controller::v_cons = 25.0f;
+float vehicle_controller::v_k = 13.0f;
+
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
     cart_point current_point,
     cart_point target_point)
-    : target_point(target_point), self_id(self_id), self_point(current_point) {
-    self_vel.v_cons = 1.0f;
+    : target_point(target_point), self_id(self_id), self_point(current_point), isTerminal(0) {
     self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
     const osMutexAttr_t Controller_MutexAttr = {
         .name = "Controller_Mutex"
@@ -21,26 +25,33 @@ void vehicle_controller::tick() {
     float bias_x = 0.0f;
     float bias_y = 0.0f;
 
+    float _dx = target_point.x - self_point.x;
+    float _dy = target_point.y - self_point.y;
+    float _d = std::sqrt(_dx * _dx + _dy * _dy);
+
     for (const auto &vehicle: vehicle_position) {
+        // char buffer[64];
+        // int len = sprintf(buffer, "obstacle:%d,  %.2f, %.2f, self: %.2f, %.2f\n", vehicle.first, vehicle.second.x, vehicle.second.y, self_point.x, self_point.y);
+        // HAL_UART_Transmit(&huart2, (uint8_t *)buffer, len, 0xffff);
         _update_self_vel(vehicle.second, bias_x, bias_y, total_weight_x, total_weight_y);
     }
 
-    if (total_weight_x > 0) {
-        bias_x /= total_weight_x;
-    }
-    if (total_weight_y > 0) {
-        bias_y /= total_weight_y;
-    }
+    // if (total_weight_x > 0) {
+    //     bias_x /= total_weight_x;
+    // }
+    // if (total_weight_y > 0) {
+    //     bias_y /= total_weight_y;
+    // }
 
-    self_vel.vx = self_vel.v_cons + bias_x;
-    self_vel.vy = self_vel.v_cons + bias_y;
+    self_vel.vx = vehicle_controller::v_cons * _dx/_d + bias_x * vehicle_controller::v_k;
+    self_vel.vy = vehicle_controller::v_cons * _dy/_d + bias_y * vehicle_controller::v_k;
 
-    for (const auto &vehicle: vehicle_position) {
-        if (_is_obstacle_near(vehicle.second, self_vel.vx, self_vel.vy)) {
-            _add_noise_to_velocity(self_vel.vx, self_vel.vy);
-            break;
-        }
-    }
+    // for (const auto &vehicle: vehicle_position) {
+    //     if (_is_obstacle_near(vehicle.second, self_vel.vx, self_vel.vy)) {
+    //         _add_noise_to_velocity(self_vel.vx, self_vel.vy);
+    //         break;
+    //     }
+    // }
 }
 
 inline bool vehicle_controller::_is_obstacle_near(const cart_point &obstacle, float vx, float vy) {
@@ -48,12 +59,12 @@ inline bool vehicle_controller::_is_obstacle_near(const cart_point &obstacle, fl
     float dy = obstacle.y - self_point.y;
     float distance = std::sqrt(dx * dx + dy * dy);
 
-    return distance < 1.0f && (dx * vx + dy * vy) > 0;
+    return distance < 0.2f && (dx * vx + dy * vy) > 0;
 }
 
 void vehicle_controller::_add_noise_to_velocity(float &vx, float &vy) {
     static std::default_random_engine generator;
-    static std::normal_distribution<float> distribution(0.0f, 0.1f);
+    static std::normal_distribution<float> distribution(0.0f, 1.0f);
 
     vx += distribution(generator);
     vy += distribution(generator);
@@ -65,15 +76,21 @@ inline void vehicle_controller::_update_self_vel(
     float &bias_y,
     float &total_weight_x,
     float &total_weight_y) {
+    // judge nan
+    if (std::isnan(obstacle.x) || std::isnan(obstacle.y)) {
+        return;
+    }
     float dx = obstacle.x - self_point.x;
     float dy = obstacle.y - self_point.y;
-    float distance = std::sqrt(dx * dx + dy * dy);
 
-    if (distance < 0.1f) {
+    float d2 = dx * dx + dy * dy;
+    float distance = std::sqrt(d2);
+
+    if (distance < 0.1f || distance > 2.0f) {
         return;
     }
 
-    float weight = 1.0f / distance;
+    float weight = 1.0f / d2;
 
     bias_x -= weight * dx;
     bias_y -= weight * dy;
@@ -86,19 +103,28 @@ void vehicle_controller::push_back(uint16_t id, cart_point point) {
     auto status = osMutexAcquire(this->vehicle_controller_mutex, osWaitForever);
     if (status == osOK) {
         if (id == self_id) {
+            point.x = (self_point.x+point.x)/2.0f;
+            point.y = (self_point.y+point.y)/2.0f;
             set_self_point(point); // 更新自己的cart_point
+            if(std::abs(self_point.x - target_point.x) < 0.08f &&
+               std::abs(self_point.y - target_point.y) < 0.08f) {
+                isTerminal = true;
+            }
         } else {
             auto it = this->vehicle_position.find(id);
             if (it == this->vehicle_position.end()) {
                 // 新来的，添加到哈希表
                 this->vehicle_position[id] = point;
             } else {
-                // 更新它的point
-                it->second = point;
+                // first order filter.
+                float _x = (point.x+it->second.x)/2.0f;
+                float _y = (point.y+it->second.y)/2.0f;
+                it->second.x = _x;
+                it->second.y = _y;
             }
         }
-        osMutexRelease(this->vehicle_controller_mutex);
     }
+    osMutexRelease(this->vehicle_controller_mutex);
 }
 
 void vehicle_controller::set_self_point(const cart_point &point) {
@@ -113,6 +139,13 @@ void vehicle_controller::set_self_velocity(const cart_velocity &velocity) {
     self_vel = velocity;
 }
 
+bool vehicle_controller::is_near_terminal() {
+    return isTerminal;
+}
+
 cart_velocity vehicle_controller::get_self_velocity() const {
+    if (isTerminal) {
+        return {0.0f, 0.0f, 0.0f};
+    }
     return self_vel;
 }
