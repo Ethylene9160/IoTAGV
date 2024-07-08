@@ -224,17 +224,25 @@ static uint8_t toggle_flag = 0;
 
 /* Anchor Related */
 static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data) {
-    uint8_t src_id = re_get_src_id(tx_buffer);
+    uint8_t dest_id = re_get_dest_id(tx_buffer);
     uint8_t task_id = re_get_task_id(tx_buffer);
     uint8_t msg_type = re_get_msg_type(tx_buffer);
 
     if (msg_type == STAGE_POLL) {
-        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send poll to %d for task %d.\n", src_id, task_id);
+//        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Broadcast poll for task %d.\n", task_id);
+        // TODO: 见后 RXOK 中断, 暂时写死，轮流发给两个 tag.
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent poll to %d for task %d.\n", dest_id, task_id);
 
         // Record the poll transmission timestamp
         anchor_task_list[task_id].poll_tx = dwt_readtxtimestamplo32();
     } else if (msg_type == STAGE_FINAL) {
-        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Send final to %d for task %d.\n", src_id, task_id);
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent final to %d for task %d.\n", dest_id, task_id);
+
+        // TODO: Debug, 结论: 算出的 final_tx 和发出去的实际时间确实一样. final_tx 是需要手动加上 TX_ANT_DLY 的, 因为 delayed TX 的时间会自动考虑 TX_ANT_DLY.
+//        uint32_t final_tx;
+//        uint16_t payload_head_index = re_get_payload_head_index();
+//        memcpy(&final_tx, tx_buffer + payload_head_index + 8, 4);
+//        debug_printf("%lu, %lu.\n", final_tx, dwt_readtxtimestamplo32());
     }
 }
 
@@ -258,14 +266,14 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         !is_anchor_task_idle(task_id) &&
         msg_type == STAGE_RESPONSE
         ) {
-        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received response from %d for task %d.\n", src_id, task_id);
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received response from %d for task %d.\n", src_id, task_id);
 
         // Set expected time of transmission
-        uint32_t expected_final_tx_time = rx_ts_hi + ((RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8); // (rx_ts + RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8;
+        uint32_t expected_final_tx_time = rx_ts_hi + ((RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME) >> 8);
         dwt_setdelayedtrxtime(expected_final_tx_time); // 接收的是 dwt time 高 32 位
 
         // Calculate and record final_tx (add antenna delay)
-        uint32_t final_tx = (uint32_t) (((((uint64_t) (expected_final_tx_time & 0xFFFFFFFE)) << 8) + TX_ANT_DLY) & 0xFFFFFFFF);
+        uint32_t final_tx = (uint32_t) ((((uint64_t) (expected_final_tx_time & 0xFFFFFFFE)) << 8) + TX_ANT_DLY);
 
         // Prepare the final message
         uint8_t payload[12] = {0x00};
@@ -279,8 +287,8 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dwt_writetxfctrl(tx_len, 0, 1);
         dwt_starttx(DWT_START_TX_DELAYED);
 
-        // Destroy the task
-        terminate_anchor_task(task_id);
+        // Destroy the task, TODO: 不应该销毁! 可能会有多个 Tag 都在等待这个 task_id 的回复.
+//        terminate_anchor_task(task_id);
     }
 
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
@@ -295,7 +303,10 @@ static void AnchorRXTimeoutCallback(const dwt_cb_data_t *data) {
         uint8_t payload[8] = {0x00};
         memcpy(payload, &module_config.anchor_x, 4);
         memcpy(payload + 4, &module_config.anchor_y, 4);
-        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, new_task_id, STAGE_POLL, payload, sizeof(payload));
+//        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, new_task_id, STAGE_POLL, payload, sizeof(payload));
+        // TODO: 暂时写死，轮流发给两个 tag.
+        uint8_t dest_id = toggle_flag ? 0x80 : 0x81;
+        tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, dest_id, module_config.module_id, new_task_id, STAGE_POLL, payload, sizeof(payload));
 
         // Send the poll message
         dwt_writetxdata(tx_len, tx_buffer, 0);
@@ -320,6 +331,8 @@ static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
 
     uwb_mode_t dest_mode = JudgeModeFromID(dest_id);
     if (dest_mode == ANCHOR) {
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent resp to %d for task %d.\n", dest_id, task_id);
+
         // Record the response transmission timestamp
         tag_task_list[dest_id][task_id].resp_tx = dwt_readtxtimestamplo32();
     } else if (dest_mode == TAG) {
@@ -340,14 +353,15 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
     uint8_t task_id = re_get_task_id(rx_buffer);
     uint8_t msg_type = re_get_msg_type(rx_buffer);
     if (rx_buffer[0] == RANGING_EXCHANGE_MSG_SYNC_BYTE && pan_id == MSG_PAN_ID) {
+        for (int i = 0; i <= 10000; i ++); // TODO: 不加有时候收不到 final.
         uwb_mode_t src_mode = JudgeModeFromID(src_id);
         uint8_t anchor_index = get_anchor_index_by_id(src_id); // 0xFF means not found
         if (src_mode == ANCHOR) {
             if (
                 (dest_id == MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
                 msg_type == STAGE_POLL
-                ) { /* poll */
-                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received poll from %d for task %d.\n", src_id, task_id);
+            ) { /* poll */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received poll from %d for task %d.\n", src_id, task_id);
 
                 // Save the anchor information
                 float anchor_x, anchor_y;
@@ -373,8 +387,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 dest_id == module_config.module_id &&
                 !is_tag_task_idle(anchor_index, task_id) &&
                 msg_type == STAGE_FINAL
-                ) { /* final */
-                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Ranging exchanging: Received final from %d for task %d.\n", src_id, task_id);
+            ) { /* final */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received final from %d for task %d.\n", src_id, task_id);
 
                 // Record the final reception timestamp
                 uint32_t final_rx = rx_ts;
@@ -424,23 +438,29 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 uint8_t valid_anchor_number = 0;
                 for (uint8_t i = 0; i < MAX_ANCHOR_NUMBER; i ++) {
                     // TODO: timeout
-//                    if (GetSystickMs() - anchor_info_list[i].timestamp_ms < module_config.distance_expired_time) {
-                    valid_anchor_indices[valid_anchor_number ++] = i;
-//                    }
+                    if (anchor_info_list[i].id != 0xFF) { // && (GetSystickMs() - anchor_info_list[i].timestamp_ms < module_config.distance_expired_time)) {
+                        valid_anchor_indices[valid_anchor_number ++] = i;
+                    }
                 }
                 // TODO: 暂时两点定位, 后续补充多点定位
                 if (valid_anchor_number >= 2) {
-                    Point2d p1 = {anchor_info_list[valid_anchor_indices[0]].x, anchor_info_list[valid_anchor_indices[0]].y};
-                    Point2d p2 = {anchor_info_list[valid_anchor_indices[1]].x, anchor_info_list[valid_anchor_indices[1]].y};
+//                    Point2d p1 = {anchor_info_list[valid_anchor_indices[0]].x, anchor_info_list[valid_anchor_indices[0]].y};
+//                    Point2d p2 = {anchor_info_list[valid_anchor_indices[1]].x, anchor_info_list[valid_anchor_indices[1]].y};
                     float d1 = anchor_info_list[valid_anchor_indices[0]].dist;
                     float d2 = anchor_info_list[valid_anchor_indices[1]].dist;
-                    Point2d p;
-                    int result = two_point_localization(p1, d1, p2, d2, &p);
-                    if (result) {
-//                        debug_printf("%.4f, %.4f\n", p.x, p.y);
-//                        debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
-                        debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
-                    }
+//                    Point2d p;
+//                    int result = two_point_localization(p1, d1, p2, d2, &p);
+//                    if (result) {
+////                        debug_printf("%.4f, %.4f\n", p.x, p.y);
+////                        debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
+//                        debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+//                    }
+                    // TODO: 暂时写死 0x00 是 (0, 0), 0x01 是 (d, 0)
+                    float d = anchor_info_list[valid_anchor_indices[0]].id == 0x00 ? anchor_info_list[valid_anchor_indices[1]].x : anchor_info_list[valid_anchor_indices[0]].x;
+                    Point2d p = dis2cart(d1, d2, d);
+//                    debug_printf("%.4f, %.4f\n", p.x, p.y);
+//                    debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
+                    debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
                 }
 
                 // Remove the task

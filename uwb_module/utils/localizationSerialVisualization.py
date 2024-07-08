@@ -17,8 +17,8 @@ class SerialPlotter:
         self.ani = animation.FuncAnimation(self.fig, self.update_plot, interval=1, init_func=self.init_plot, blit=True)
 
     def init_plot(self):
-        self.ax.set_xlim(0, 10000)
-        self.ax.set_ylim(0, 10000)
+        self.ax.set_xlim(0, 20000)
+        self.ax.set_ylim(0, 20000)
         self.red_dot.set_data([], [])
         self.blue_dot.set_data([], [])
         return self.red_dot, self.blue_dot
@@ -50,7 +50,7 @@ class SerialPlotter:
         plt.show()
 
 if __name__ == '__main__':
-    port = 'COM13'
+    port = 'COM4'
     baudrate = 115200
     plotter = SerialPlotter(port, baudrate)
     plotter.start()
