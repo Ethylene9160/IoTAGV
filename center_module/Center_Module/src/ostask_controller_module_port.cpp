@@ -68,10 +68,10 @@ namespace ostask_controller_module_port {
         PortCAN::init(0x061A);
 
         uint16_t seq_num = 0;
-        char bft[32];
-        char bfe[32];
-        int len = sprintf(bft, "Controller Module Port Task\n");
-        int len_e = sprintf(bfe, "Controller Module Port Task Error\n");
+        // char bft[32];
+        // char bfe[32];
+        // int len = sprintf(bft, "Controller Module Port Task\n");
+        // int len_e = sprintf(bfe, "Controller Module Port Task Error\n");
         while (true) {
             if (!isCommandQueueEmpty()) {
                 auto command = popCommand();
@@ -80,10 +80,10 @@ namespace ostask_controller_module_port {
                 msgs::serials packet_serialized = packet.serialize();
                 PortCAN::sendBytes(packet_serialized.data_ptr.get(), packet_serialized.len);
 
-                char bft233[32];
-                int len = sprintf(bft233, "vx: %.2f, vy: %.2f, w: %.2f\n", v.linear_x, v.linear_y, v.angular_z);
+                // char bft233[32];
+                // int len = sprintf(bft233, "vx: %.2f, vy: %.2f, w: %.2f\n", v.linear_x, v.linear_y, v.angular_z);
                 // HAL_UART_Transmit(&huart2, (uint8_t *)packet_serialized.data_ptr.get(), packet_serialized.len, 0xffff);
-                HAL_UART_Transmit(&huart2, (uint8_t *)bft233, len, 0xffff);
+                // HAL_UART_Transmit(&huart2, (uint8_t *)bft233, len, 0xffff);
                 delete command.data_ptr_;
             }
             osDelay(20);

@@ -2,6 +2,8 @@
 
 #include "string.h"
 
+#include "tiny_io.h"
+
 
 uint16_t gen_ranging_exchange_msg(
     uint8_t *buf,
@@ -47,4 +49,24 @@ uint8_t re_get_msg_type(const uint8_t *buf) {
 
 uint16_t re_get_payload_head_index() {
     return 7;
+}
+
+void send_upload_position_msg(uint8_t src_id, float x, float y, float d0, float d1) {
+    uart_send_byte(0x5A); // Head
+    uart_send_byte(src_id); // src_id (L)
+    uart_send_byte(0x00); // src_id (H)
+    uart_send_byte(0x00); // dest_id (L)
+    uart_send_byte(0x00); // dest_id (H)
+    uart_send_byte(0x00); // CRC8 (not used)
+    uart_send_byte(0x10); // data_len (L)
+    uart_send_byte(0x00); // data_len (H)
+    uint8_t payload[16] = {0};
+    memcpy(payload, &x, 4);
+    memcpy(payload + 4, &y, 4);
+    memcpy(payload + 8, &d0, 4);
+    memcpy(payload + 12, &d1, 4);
+    for (int i = 0; i < 16; i ++) {
+        uart_send_byte(payload[i]);
+    }
+    uart_send_byte(0x7F); // Tail
 }

@@ -30,7 +30,8 @@
 
 #define BUFFER_SIZE_WITH_TIMESTAMP 27
 
-uint8_t rx_buffer[BUFFER_SIZE];
+// DEFINE A LARGE BUFFER.
+uint8_t rx_buffer[BUFFER_SIZE<<3];
 volatile uint8_t buffer_index = 0;
 
 QueueHandle_t S_Queue;
@@ -199,23 +200,36 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle) {
 
 /* USER CODE BEGIN 1 */
 void USART1_IRQHandler(void) {
+    static uint8_t flag = 1;
     uint8_t received_byte;
+    uint8_t buffer[27];
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     HAL_UART_IRQHandler(&huart1);
+
     if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
         HAL_UART_Receive(&huart1, &received_byte, 1, 0);
-
+        if (flag == 0) {
+            // HAL_UART_Transmit(&huart2, (uint8_t*)"error!\n", 7, HAL_MAX_DELAY);
+            if (received_byte == 0x5A) {
+                flag = 1;
+                buffer_index = 0;
+                // rx_buffer[buffer_index++] = received_byte;
+            } else {
+                return;
+            }
+        }
         rx_buffer[buffer_index++] = received_byte;
 
         if (buffer_index >= BUFFER_SIZE) {
             buffer_index = 0;
-            uint16_t self_id = 2;
-            float x = 1.0f, y = 0.0f;
-            memcpy(rx_buffer+1, &self_id, 2);
-            memcpy(rx_buffer + 8, &x, 4);
-            memcpy(rx_buffer + 12, &y, 4);
-            if (xQueueSendFromISR(S_Queue, rx_buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
-                Error_Handler();
+            if (rx_buffer[0] == 0x5A && rx_buffer[24] == 0x7F) {
+                memcpy(buffer, rx_buffer, 24);
+                buffer[26] = 0x7F;
+                if (xQueueSendFromISR(S_Queue, buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
+                    Error_Handler();
+                }
+            }else {
+                flag = 0;
             }
         }
     }
