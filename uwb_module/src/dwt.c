@@ -34,7 +34,7 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 #define MAX_ANCHOR_NUMBER 4
 #define MAX_TASK_NUMBER 128
 
-#define DISTANCE_FILTER_LENGTH 8
+#define DISTANCE_FILTER_LENGTH 4
 
 typedef union {
     struct { /* For Anchor */
@@ -166,14 +166,14 @@ uint8_t Initialize() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
 
     if (mode == UNDEFINED) {
-        debug_printf("[Error] Invalid module ID.\n");
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Error] Invalid module ID.\n");
         return 1;
     }
 
     reset_DW1000();
     spi_set_rate_low();
     if (dwt_initialise(DWT_LOADUCODE) == DWT_ERROR) {
-        debug_printf("[Error] DW1000 initialization failed.\n");
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Error] DW1000 initialization failed.\n");
         return 1;
     }
     spi_set_rate_high();
@@ -206,7 +206,7 @@ uint8_t Initialize() {
         initialize_tag_task_list_and_anchor_info();
     }
 
-    debug_printf("[Info] Module initialized. (ID: %d)\n", module_config.module_id);
+    if (module_config.ranging_exchange_debug_output) debug_printf("[Info] Module initialized. (ID: %d)\n", module_config.module_id);
 
     return 0;
 }
@@ -238,12 +238,6 @@ static void AnchorTXConfirmationCallback(const dwt_cb_data_t *data) {
         anchor_task_list[task_id].poll_tx = dwt_readtxtimestamplo32();
     } else if (msg_type == STAGE_FINAL) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent final to %d for task %d.\n", dest_id, task_id);
-
-        // TODO: Debug, 结论: 算出的 final_tx 和发出去的实际时间确实一样. final_tx 是需要手动加上 TX_ANT_DLY 的, 因为 delayed TX 的时间会自动考虑 TX_ANT_DLY.
-//        uint32_t final_tx;
-//        uint16_t payload_head_index = re_get_payload_head_index();
-//        memcpy(&final_tx, tx_buffer + payload_head_index + 8, 4);
-//        debug_printf("%lu, %lu.\n", final_tx, dwt_readtxtimestamplo32());
     }
 }
 
@@ -288,8 +282,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dwt_writetxfctrl(tx_len, 0, 1);
         dwt_starttx(DWT_START_TX_DELAYED);
 
-        // Destroy the task, TODO: 不应该销毁! 可能会有多个 Tag 都在等待这个 task_id 的回复.
-//        terminate_anchor_task(task_id);
+        /* Should not destroy the task, there can be multiple tags waiting for the same poll_tx */
     }
 
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
@@ -330,15 +323,16 @@ static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
     uint8_t task_id = re_get_task_id(tx_buffer);
     uint8_t dest_id = re_get_dest_id(tx_buffer);
 
+    uint32_t tx_ts = dwt_readtxtimestamplo32();
+
     uwb_mode_t dest_mode = JudgeModeFromID(dest_id);
     if (dest_mode == ANCHOR) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Sent resp to %d for task %d.\n", dest_id, task_id);
 
         // Record the response transmission timestamp
-        tag_task_list[dest_id][task_id].resp_tx = dwt_readtxtimestamplo32();
+        tag_task_list[dest_id][task_id].resp_tx = tx_ts;
     } else if (dest_mode == TAG) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Shared position with other tags.\n");
-        // TODO: Tag 广播位置, 似乎没有什么要在这里做的.
     }
 }
 
@@ -466,14 +460,15 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //                    debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
 
                     // Upload the position
-                    // TODO: 帧格式
-                    debug_printf("Position of %d: (%d, %d). %d, %d.\n", module_config.module_id, (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
-
+//                    debug_printf("Position of %d: (%d, %d). %d, %d.\n", module_config.module_id, (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+                    send_upload_position_msg(module_config.module_id, p.x, p.y, d1, d2);
 
                     // Broadcast the position
-                    uint8_t payload[8] = {0x00};
+                    uint8_t payload[16] = {0x00};
                     memcpy(payload, &p.x, 4);
                     memcpy(payload + 4, &p.y, 4);
+                    memcpy(payload + 8, &d1, 4);
+                    memcpy(payload + 12, &d2, 4);
                     tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, 0xFF, STAGE_SHARE_POSITION, payload, sizeof(payload));
                     dwt_writetxdata(tx_len, tx_buffer, 0);
                     dwt_writetxfctrl(tx_len, 0, 1);
@@ -481,10 +476,9 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 }
 
                 // Remove the task
-                terminate_tag_task(anchor_index, task_id);
+//                terminate_tag_task(anchor_index, task_id);
             }
         } else {
-            // TODO: Tag 间.
             if (
                 (dest_id == MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
                 msg_type == STAGE_SHARE_POSITION
@@ -492,14 +486,16 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received position from %d.\n", src_id);
 
                 // Unpack the position
-                float x, y;
+                float x, y, d1, d2;
                 uint16_t payload_head_index = re_get_payload_head_index();
                 memcpy(&x, rx_buffer + payload_head_index, 4);
                 memcpy(&y, rx_buffer + payload_head_index + 4, 4);
+                memcpy(&d1, rx_buffer + payload_head_index + 8, 4);
+                memcpy(&d2, rx_buffer + payload_head_index + 12, 4);
 
                 // Upload the position
-                // TODO: 帧格式
-                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (x * 10000), (int) (y * 10000));
+//                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (x * 10000), (int) (y * 10000));
+                send_upload_position_msg(src_id, x, y, d1, d2);
             }
         }
     }

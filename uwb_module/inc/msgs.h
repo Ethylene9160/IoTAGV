@@ -21,6 +21,8 @@ uint8_t re_get_task_id(const uint8_t *buf);
 uint8_t re_get_msg_type(const uint8_t *buf);
 uint16_t re_get_payload_head_index();
 
+void send_upload_position_msg(uint8_t src_id, float x, float y, float d0, float d1); // TODO
+
 //void set_buffer(uint16_t self_id, uint16_t target_id, uint8_t CRC8, uint16_t data_len, uint8_t* data, uint8_t* buffer, uint32_t buffer_len) {
 //    buffer[0] = 0x0A;
 //    buffer[1] = (self_id >> 8) & 0xFF;

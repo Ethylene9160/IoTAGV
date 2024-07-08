@@ -29,7 +29,7 @@ static uwb_module_config_t module_config = {
     .module_id = 0x01, /* 0x00 - 0x7F: Anchor; 0x80 - 0xFF: Tag. */
     .ranging_exchange_debug_output = 0,
     .ranging_exchange_poll_interval = 100,
-    .anchor_x = 1.0f,
+    .anchor_x = 2.0f,
     .anchor_y = 0.0f
 };
 #endif
