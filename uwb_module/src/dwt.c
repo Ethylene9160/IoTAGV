@@ -29,6 +29,7 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 #define STAGE_POLL 0x01
 #define STAGE_RESPONSE 0x02
 #define STAGE_FINAL 0x03
+#define STAGE_SHARE_POSITION 0x04
 
 #define MAX_ANCHOR_NUMBER 4
 #define MAX_TASK_NUMBER 128
@@ -265,7 +266,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dest_id == module_config.module_id &&
         !is_anchor_task_idle(task_id) &&
         msg_type == STAGE_RESPONSE
-        ) {
+    ) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received response from %d for task %d.\n", src_id, task_id);
 
         // Set expected time of transmission
@@ -336,7 +337,8 @@ static void TagTXConfirmationCallback(const dwt_cb_data_t *data) {
         // Record the response transmission timestamp
         tag_task_list[dest_id][task_id].resp_tx = dwt_readtxtimestamplo32();
     } else if (dest_mode == TAG) {
-        // TODO: Tag 间.
+        if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Shared position with other tags.\n");
+        // TODO: Tag 广播位置, 似乎没有什么要在这里做的.
     }
 }
 
@@ -442,7 +444,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                         valid_anchor_indices[valid_anchor_number ++] = i;
                     }
                 }
-                // TODO: 暂时两点定位, 后续补充多点定位
+
+                // Able to calculate the position TODO: 暂时两点定位, 后续补充多点定位
                 if (valid_anchor_number >= 2) {
 //                    Point2d p1 = {anchor_info_list[valid_anchor_indices[0]].x, anchor_info_list[valid_anchor_indices[0]].y};
 //                    Point2d p2 = {anchor_info_list[valid_anchor_indices[1]].x, anchor_info_list[valid_anchor_indices[1]].y};
@@ -460,7 +463,21 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     Point2d p = dis2cart(d1, d2, d);
 //                    debug_printf("%.4f, %.4f\n", p.x, p.y);
 //                    debug_printf("%d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000));
-                    debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+//                    debug_printf("%d, %d, %d, %d\n", (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+
+                    // Upload the position
+                    // TODO: 帧格式
+                    debug_printf("Position of %d: (%d, %d). %d, %d.\n", module_config.module_id, (int) (p.x * 10000), (int) (p.y * 10000), (int) (d1 * 10000), (int) (d2 * 10000));
+
+
+                    // Broadcast the position
+                    uint8_t payload[8] = {0x00};
+                    memcpy(payload, &p.x, 4);
+                    memcpy(payload + 4, &p.y, 4);
+                    tx_len = gen_ranging_exchange_msg(tx_buffer, MSG_PAN_ID, MSG_BROADCAST_ID, module_config.module_id, 0xFF, STAGE_SHARE_POSITION, payload, sizeof(payload));
+                    dwt_writetxdata(tx_len, tx_buffer, 0);
+                    dwt_writetxfctrl(tx_len, 0, 1);
+                    dwt_starttx(DWT_START_TX_IMMEDIATE);
                 }
 
                 // Remove the task
@@ -468,6 +485,22 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
             }
         } else {
             // TODO: Tag 间.
+            if (
+                (dest_id == MSG_BROADCAST_ID || dest_id == module_config.module_id) &&
+                msg_type == STAGE_SHARE_POSITION
+            ) { /* shared_position */
+                if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received position from %d.\n", src_id);
+
+                // Unpack the position
+                float x, y;
+                uint16_t payload_head_index = re_get_payload_head_index();
+                memcpy(&x, rx_buffer + payload_head_index, 4);
+                memcpy(&y, rx_buffer + payload_head_index + 4, 4);
+
+                // Upload the position
+                // TODO: 帧格式
+                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (x * 10000), (int) (y * 10000));
+            }
         }
     }
 
