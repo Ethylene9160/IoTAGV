@@ -44,9 +44,9 @@ extern UART_HandleTypeDef huart2;
 extern QueueHandle_t S_Queue;
 extern osMutexId_t USART1_MutexHandle;
 
-#define BUFFER_SIZE 19
+#define BUFFER_SIZE 25
 // #define BUFFER_SIZE 16
-  extern uint8_t rx_buffer[BUFFER_SIZE];
+  extern uint8_t rx_buffer[BUFFER_SIZE<<3];
   extern volatile uint8_t buffer_index;
   /* USER CODE END Private defines */
 
