@@ -35,7 +35,7 @@ class SerialPlotter:
         self.ani = animation.FuncAnimation(self.fig, self.update_plot, interval=1, init_func=self.init_plot, blit=True)
 
     def init_plot(self):
-        self.ax.set_xlim(-3000, 23000)
+        self.ax.set_xlim(-10000, 30000)
         self.ax.set_ylim(0, 50000)
         self.red_dot.set_data([], [])
         self.blue_dot.set_data([], [])
@@ -62,8 +62,8 @@ class SerialPlotter:
                     print(id, ' ', x, ' ', y)
                 elif num_list[0] == 1:
                     vx, vy = num_list[1:3]
-                    self.vx = (vx - 50000) / 10
-                    self.vy = (vy - 50000) / 10
+                    self.vx = (vx - 50000) / 4
+                    self.vy = (vy - 50000) / 4
                 
             except Exception as e:
                 print(f"Error reading line: {e}")

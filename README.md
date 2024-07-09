@@ -1,6 +1,6 @@
 # IoTAGV
 
-本项目旨在实现多智能体智能规划。
+应用 UWB 通信技术，构建去中心化的多车定位及车间通信系统，实现多车协同运动与自动防撞。
 
 ## 演示
 
@@ -10,47 +10,47 @@
 
 ### 文件结构
 
+### 系统架构
 
+TODO
 
-## GPIO多功能引脚
+### 文件结构
 
-参考官方手册，如下功能应当对应引脚如下：
+```
+center_module: 主控模块
+TODO.
+```
 
-* STLink烧录
+### Memo
 
-|   PA14   |    SWCLW  |
+模块间连接与常用功能引脚接线快速查询：
+
+* STM32 SWD Wires
+
+| Pin | Desc |
 | :--: | :--: |
-|   PA13   |   SWDIO   |
+| PA13 | SWDIO |
+| PA14 | SWCLK |
 
-* USART1
+* Center Module UART1 (with UWB Module)
 
-|   PA10   | USART1_RX  |
+| Pin | Desc |
 | :--: | :--: |
-|   PA9   |   USART1_TX   |
-|   PA8   |   USART1_CK   |
+| PA9 | USART1_TX |
+| PA10 | USART1_RX |
 
-## 开发计划
+* Center Module UART2 (with PC, debug)
 
-### 通信
+| Pin | Desc |
+| :--: | :--: |
+| PA2 | USART2_TX |
+| PA3 | USART2_RX |
 
-* `uwb_module`与`center_module`
+### 使用手册
 
-预使用USART通信，每个元素是一个8位的无符号整型`uint16_t`变量。通信格式如下：
+TODO
 
-
-### 数据帧格式
-
-
-
-* `center_module`与`controller_module`
-
-该模块的通信需要与`controller_module`保持一致。
-
-
-
-## 使用手册
-
-# Contributors
+### Contributors
 
 <a href="https://github.com/Ethylene9160/IoTAGV/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Ethylene9160/IoTAGV" />
