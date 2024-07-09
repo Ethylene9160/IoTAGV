@@ -4,8 +4,8 @@
 
 #include "usart.h"
 
-float vehicle_controller::v_cons = 25.0f;
-float vehicle_controller::v_k = 13.0f;
+float vehicle_controller::v_cons = 26.0f;
+float vehicle_controller::v_k = 12.0f;
 
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
@@ -20,6 +20,7 @@ vehicle_controller::vehicle_controller(
 }
 
 void vehicle_controller::tick() {
+    static float _v_norm = 20.0f;
     float total_weight_x = 0.0f;
     float total_weight_y = 0.0f;
     float bias_x = 0.0f;
@@ -45,6 +46,14 @@ void vehicle_controller::tick() {
 
     self_vel.vx = vehicle_controller::v_cons * _dx/_d + bias_x * vehicle_controller::v_k;
     self_vel.vy = vehicle_controller::v_cons * _dy/_d + bias_y * vehicle_controller::v_k;
+
+    float _v_square = std::sqrt(self_vel.vx * self_vel.vx + self_vel.vy * self_vel.vy);
+    if (_v_square > 0.15f && _v_square < 18.0f) {
+        float _k = _v_norm / _v_square;
+        self_vel.vx *= _k;
+        self_vel.vy *= _k;
+    }
+
 
     // for (const auto &vehicle: vehicle_position) {
     //     if (_is_obstacle_near(vehicle.second, self_vel.vx, self_vel.vy)) {
@@ -86,11 +95,11 @@ inline void vehicle_controller::_update_self_vel(
     float d2 = dx * dx + dy * dy;
     float distance = std::sqrt(d2);
 
-    if (distance < 0.1f || distance > 2.0f) {
+    if (distance < 0.1f || distance > 1.5f) {
         return;
     }
 
-    float weight = 1.0f / d2;
+    float weight = 1.15f / d2;
 
     bias_x -= weight * dx;
     bias_y -= weight * dy;

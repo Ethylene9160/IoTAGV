@@ -36,7 +36,7 @@ namespace ostask_vehicle_controller {
 
 
         char str[32];
-        int len = sprintf(str, "1vx: %d, vy: %d\n", (int)(v.vx * 2000/3+50001), (int)(v.vy * 2000/3+50001));
+        int len = sprintf(str, "1vx: %d, vy: %d\n", (int)(v.vx * 1200+50001), (int)(v.vy * 1200+50001));
         HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
 
         // msgs::Twist2D* t = new msgs::Twist2D(v.vx, v.vy, v.w);
