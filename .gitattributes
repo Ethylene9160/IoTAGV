@@ -1,5 +1,5 @@
 # ignore .c
-*.c export-ignore
-*.h export-ignore
+*.c linguist-language=ignore
+*.h linguist-language=ignore
 # .ipynb -> .py
 *.ipynb linguist-language=Python

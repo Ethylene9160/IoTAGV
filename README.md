@@ -1,5 +1,10 @@
 # IoTAGV
 
+![Static STM](https://img.shields.io/badge/STM-32-green)
+![Static C++](https://img.shields.io/badge/C++-11-blue)
+![Static License](https://img.shields.io/badge/License-NO-orange)
+![Static Date](https://img.shields.io/badge/Date-2024--07--10-lightgrey)
+
 应用 UWB 通信技术，构建去中心化的多车定位及车间通信系统，实现多车协同运动与自动防撞。
 
 ## 演示
