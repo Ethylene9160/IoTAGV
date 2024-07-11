@@ -6,7 +6,21 @@
 
 ### 仿真
 
-![image_sim](vehicle_simulation.gif)
+![image_sim](README.assets/vehicle_simulation.gif)
+
+### 实机
+
+* 静态障碍物躲避
+
+![static_sim](README.assets/static_sim.gif)
+
+* 动态障碍物躲避
+
+![dynamic_sim](README.assets/dynamic_sim.gif)
+
+* 复杂障碍物躲避
+
+![sophisticated_sim](README.assets/sophisticated_sim.gif)
 
 ### 文件结构
 
