@@ -411,17 +411,18 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //                debug_printf("    Db: %lu\n", resp_tx - poll_rx);
 //                debug_printf("%.4f\n", (float) distance);
                     // debug_printf("id %d receive: %d\r\n", module_config.module_id, (int) (distance * 1000));
-                    debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (distance * 1000));
                     float d = 2.0;
                     Point2d p = dis2cart(tag_storage.d1, tag_storage.d2, d);
                     tag_storage.x = p.x;
                     tag_storage.y = p.y;
-                    // send_upload_position_msg(
-                    //     module_config.module_id,
-                    //     p.x,
-                    //     p.y,
-                    //     tag_storage.d1,
-                    //     tag_storage.d2);
+
+                    debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
+                    send_upload_position_msg(
+                        module_config.module_id,
+                        p.x,
+                        p.y,
+                        tag_storage.d1,
+                        tag_storage.d2);
 
                     // Broadcast the position
                     uint8_t payload[16] = {0x00};
@@ -473,7 +474,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //
                 // Upload the position
                 debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
-                // send_upload_position_msg(src_id, x, y, d1, d2);
+                send_upload_position_msg(src_id, x, y, d1, d2);
                 // debug_printf("src_id: %d, x: %f, y: %f, d1: %f, d2: %f\r\n", src_id, x, y, d1, d2);
             }
         }
