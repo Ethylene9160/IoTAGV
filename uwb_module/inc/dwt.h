@@ -6,6 +6,7 @@
 #include "deca_port.h"
 #include "deca_device_api.h"
 #include "linked_list.h"
+#include "adc.h"
 
 #include "uwb_module_config.h"
 
@@ -62,8 +63,9 @@ static dwt_config_t dwt_config = {
 
 //#define POLL_RX_TO_RESP_TX_DLY_UUS 8000
 #define RESP_RX_TO_FINAL_TX_DLY_UUS 8000
-#define RX_TIMEOUT_UUS 5000
-#define RANDOM_TIMEOUT_DELAY random_generator(GetSystickMs(), 6000, 10000) // random delay
+#define RX_TIMEOUT_UUS 3000
+#define RANDOM_TIMEOUT_DELAY random_generator(8500, 10500) // random delay
+// #define RANDOM_TIMEOUT_DELAY  1000000 // random delay
 
 #define SPEED_OF_LIGHT 299702547
 
@@ -91,7 +93,7 @@ static uint32_t anchor_resp_rx = 0;
 
 void put_distance(tag_info_t* self, uint8_t anchor_id, float d);
 
-uint32_t random_generator(uint32_t zhongzi, uint32_t low, uint32_t high);
+uint32_t random_generator(uint32_t low, uint32_t high);
 
 uint8_t Initialize();
 

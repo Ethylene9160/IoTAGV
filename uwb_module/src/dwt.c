@@ -35,11 +35,14 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 #define MAX_ANCHOR_NUMBER 4
 #define MAX_TASK_NUMBER 128
 
-inline uint32_t random_generator(uint32_t zhongzi, uint32_t low, uint32_t high) {
-    srand(zhongzi);//随机数种子设置
-    uint32_t random_value = rand() % (high + 1 - low) + low;//随机数生成
+inline uint32_t random_generator(uint32_t low, uint32_t high) {
+    srand(GetSystickMs());//随机数种子设置
+    uint32_t random_value2 = ADCRandomNumber(low, high);
+    uint32_t random_value1 =  rand() % (high + 1 - low) + low;//随机数生成
+    uint32_t random_value = random_value1 + random_value2;
     // printf("current random number is: %d\r\n", random_value);
-    return random_value;
+
+    return random_value >> 1;
 }
 
 inline void put_distance(tag_info_t* self, uint8_t anchor_id, float d) {
@@ -70,18 +73,23 @@ uint8_t Initialize() {
     } else if (mode == ANCHOR) {
         current_state = ANCHOR_FREE;
         // 添加三个tag进去。写死。
-        n1.id = 0x81;
+        n1.id = 0x80;
         n1.next = &n2;
-        n2.id = 0x82;
+        n2.id = 0x81;
         n2.next = &n3;
-        n3.id = 0x83;
+        n3.id = 0x82;
         n3.next = &n1;
+
+        // n1.next = &n1;
         current_node = &n1;
     } else if (mode == TAG) {
         current_state = TAG_FREE;
         tag_storage.d1 = 0.0f;
         tag_storage.d2 = 0.0f;
     }
+
+    uint32_t dlaytime = RANDOM_TIMEOUT_DELAY;
+    debug_printf("delay time: %d\r\n", dlaytime);
 
     reset_DW1000();
     spi_set_rate_low();
@@ -151,6 +159,9 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dwt_readrxdata(rx_buffer, data->datalength, 0);
     }
 
+    print_msg_string(rx_buffer, data->datalength);
+    // debug_printf("current_state: %d\r\n", current_state);
+
     uint32_t rx_ts_hi = dwt_readrxtimestamphi32();
     uint32_t rx_ts_lo = dwt_readrxtimestamplo32();
 
@@ -210,7 +221,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
                 tle_times = 0;
                 current_state = ANCHOR_FREE;
                 current_node = current_node->next;
-                dwt_setrxtimeout(RANDOM_TIMEOUT_DELAY/2); // 设置一个小的延迟
+                dwt_setrxtimeout(RANDOM_TIMEOUT_DELAY); // 设置一个小的延迟
             }
         default: break;
     }
@@ -331,6 +342,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
     if (data->datalength <= MSG_MAX_FRAME_LENGTH) {
         dwt_readrxdata(rx_buffer, data->datalength, 0);
     }
+    // print_msg_string(rx_buffer, data->datalength);
+    // debug_printf("current_state: %d\r\n", current_state);
 
     uint32_t rx_ts = dwt_readrxtimestamplo32();
 
@@ -344,20 +357,26 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
         uwb_mode_t src_mode = JudgeModeFromID(src_id);
         if (src_mode == ANCHOR) { // 来自基站的消息
             if (dest_id == module_config.module_id) {// TAG 在free状态，接收到anchor发来的poll
+                // debug_printf("333my id is %d.\n", module_config.module_id);
+                // print_msg_string(rx_buffer, data->datalength);
+                // debug_printf("current_state: %d\r\n", current_state);
                 if (current_state == TAG_FREE && msg_type == STAGE_POLL) {
+                    // debug_printf("Received 1.\r\n");
                     tag_poll_rx = rx_ts;// 记录poll_rx
                     // todo: 有没有开tx
                     send_response_from_tag(src_id);
+                    dwt_setrxtimeout(RANDOM_TIMEOUT_DELAY);
                     // 状态设置：进入抱死状态
                     current_connect_id = src_id;
                     current_state = TAG_RESPONSE;
+
                 } else if (// 当前在tag response阶段，收到了来自anchor的stage_fianl消息
                     current_state == TAG_RESPONSE &&
                     msg_type == STAGE_FINAL &&
                     src_id == current_connect_id
                     ) {
                     if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received final from %d for task %d.\n", src_id, task_id);
-
+                    // debug_printf("Received 2.\r\n");
                     // Record the final reception timestamp
                     uint32_t final_rx = rx_ts;
 
@@ -391,18 +410,18 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //                debug_printf("    Da: %lu\n", final_tx - resp_rx);
 //                debug_printf("    Db: %lu\n", resp_tx - poll_rx);
 //                debug_printf("%.4f\n", (float) distance);
-//                debug_printf("%d\n", (int) (distance * 10000));
-
+                    // debug_printf("id %d receive: %d\r\n", module_config.module_id, (int) (distance * 1000));
+                    debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (distance * 1000));
                     float d = 2.0;
                     Point2d p = dis2cart(tag_storage.d1, tag_storage.d2, d);
                     tag_storage.x = p.x;
                     tag_storage.y = p.y;
-                    send_upload_position_msg(
-                        module_config.module_id,
-                        p.x,
-                        p.y,
-                        tag_storage.d1,
-                        tag_storage.d2);
+                    // send_upload_position_msg(
+                    //     module_config.module_id,
+                    //     p.x,
+                    //     p.y,
+                    //     tag_storage.d1,
+                    //     tag_storage.d2);
 
                     // Broadcast the position
                     uint8_t payload[16] = {0x00};
@@ -451,10 +470,11 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 memcpy(&y, rx_buffer + payload_head_index + 4, 4);
                 memcpy(&d1, rx_buffer + payload_head_index + 8, 4);
                 memcpy(&d2, rx_buffer + payload_head_index + 12, 4);
-
+//
                 // Upload the position
-                //                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (x * 10000), (int) (y * 10000));
-                send_upload_position_msg(src_id, x, y, d1, d2);
+                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
+                // send_upload_position_msg(src_id, x, y, d1, d2);
+                // debug_printf("src_id: %d, x: %f, y: %f, d1: %f, d2: %f\r\n", src_id, x, y, d1, d2);
             }
         }
     }
@@ -468,6 +488,7 @@ static void TagRXTimeoutCallback(const dwt_cb_data_t *data) {
     switch (state) {
         case TAG_RESPONSE: // response期间超时，则再次发送response
             // todo: 开tx，关rx
+            // debug_printf("timeout with %d\r\n", current_connect_id);
             send_response_from_tag(current_connect_id);
             tle_times += 1;
             if (tle_times == MAX_TLE_TIMES) {
@@ -477,23 +498,24 @@ static void TagRXTimeoutCallback(const dwt_cb_data_t *data) {
             break;
         case TAG_FREE: //广播坐标。
             // Broadcast the position
-            uint8_t payload[16] = {0x00};
-            memcpy(payload, &tag_storage.x, 4);
-            memcpy(payload + 4, &tag_storage.y, 4);
-            memcpy(payload + 8, &(tag_storage.d1), 4);
-            memcpy(payload + 12, &(tag_storage.d2), 4);
-            tx_len = gen_ranging_exchange_msg(
-                tx_buffer,
-                MSG_PAN_ID,
-                MSG_BROADCAST_ID,
-                module_config.module_id,
-                0xFF,
-                STAGE_SHARE_POSITION,
-                payload,
-                sizeof(payload));
-            dwt_writetxdata(tx_len, tx_buffer, 0);
-            dwt_writetxfctrl(tx_len, 0, 1);
-            dwt_starttx(DWT_START_TX_IMMEDIATE);
+            // debug_printf("tle broadcast position.\r\n");
+            // uint8_t payload[16] = {0x00};
+            // memcpy(payload, &tag_storage.x, 4);
+            // memcpy(payload + 4, &tag_storage.y, 4);
+            // memcpy(payload + 8, &(tag_storage.d1), 4);
+            // memcpy(payload + 12, &(tag_storage.d2), 4);
+            // tx_len = gen_ranging_exchange_msg(
+            //     tx_buffer,
+            //     MSG_PAN_ID,
+            //     MSG_BROADCAST_ID,
+            //     module_config.module_id,
+            //     0xFF,
+            //     STAGE_SHARE_POSITION,
+            //     payload,
+            //     sizeof(payload));
+            // dwt_writetxdata(tx_len, tx_buffer, 0);
+            // dwt_writetxfctrl(tx_len, 0, 1);
+            // dwt_starttx(DWT_START_TX_IMMEDIATE);
             break;
     }
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
