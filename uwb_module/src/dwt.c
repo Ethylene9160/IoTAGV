@@ -412,7 +412,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //                debug_printf("    Db: %lu\n", resp_tx - poll_rx);
 //                debug_printf("%.4f\n", (float) distance);
                     // debug_printf("id %d receive: %d\r\n", module_config.module_id, (int) (distance * 1000));
-                    float d = 1.2;
+                    float d = 2.0;
                     Point2d p = dis2cart(tag_storage.d1, tag_storage.d2, d);
                     tag_storage.x = p.x;
                     tag_storage.y = p.y;

@@ -97,14 +97,17 @@ inline void vehicle_controller::_update_self_vel(
 
     float d2 = dx * dx + dy * dy;
     float distance = std::sqrt(d2) - vehicle_controller::collision_radius * 2.0f;
-    d2 = distance * distance;
-    if(distance < 0.0f) {
-        bias_x -= vehicle_controller::large_bias * dx;
-        bias_y -= vehicle_controller::large_bias * dy;
-        return;
+    if (distance < 0.02f) {
+        distance = 0.02f;
     }
+    d2 = distance * distance;
+    // if(distance < 0.0f) {
+    // bias_x -= vehicle_controller::large_bias * dx;
+    //     bias_y -= vehicle_controller::large_bias * dy;
+    //     return;
+    // }
 
-    if (distance < 0.1f || distance > 3.68f) {
+    if (distance > 3.68f) {
         return;
     }
 

@@ -13,7 +13,7 @@ typedef struct _uwb_module_config_t {
     uint64_t distance_expired_time; /* In milliseconds, for Tag. */
 } uwb_module_config_t;
 
-#define T1
+#define A0
 
 #ifdef A0
 static uwb_module_config_t module_config = {
@@ -44,6 +44,14 @@ static uwb_module_config_t module_config = {
 #ifdef T1
 static uwb_module_config_t module_config = {
     .module_id = 0x81, /* 0x00 - 0x7F: Anchor; 0x80 - 0xFF: Tag. */
+    .ranging_exchange_debug_output = 0,
+//    .ranging_exchange_poll_interval = 0,
+    .distance_expired_time = 1000
+};
+#endif
+#ifdef T2
+static uwb_module_config_t module_config = {
+    .module_id = 0x82, /* 0x00 - 0x7F: Anchor; 0x80 - 0xFF: Tag. */
     .ranging_exchange_debug_output = 0,
 //    .ranging_exchange_poll_interval = 0,
     .distance_expired_time = 1000

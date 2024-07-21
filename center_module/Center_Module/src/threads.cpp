@@ -16,6 +16,30 @@
 
 #include "ostask_vehicle_controller.h"
 
+typedef struct {
+    cart_point start;
+    cart_point terminal;
+    uint16_t id;
+} _vehicle_config;
+
+#define V0
+
+#ifdef V0
+_vehicle_config vehicle_config = {
+        .start = {1.6f, 2.0f},
+        .terminal = {1.0f, 4.2f},
+        .id = 0x80
+};
+#endif
+
+#ifdef V1
+_vehicle_config vehicle_config = {
+        .start = {1.6f, 2.0f},
+        .terminal = {1.0f, 1.0f},
+        .id = 0x81
+};
+#endif
+
 /* ** Example Begin ** */
 const osThreadAttr_t test_task_attributes = {
     .name = "osTaskControllerModulePort",
@@ -47,12 +71,12 @@ const osThreadAttr_t test_task_attributes = {
 void startThreads() {
 
     // 设置起点和终点坐标
-    cart_point _start{1.6f,2.0f};
-    cart_point _terminal{1.0f,3.6f};
+    // cart_point _start{1.6f,2.0f};
+    // cart_point _terminal{1.0f,1.2f};
 
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
-    auto* vehicle_controller_ptr = new vehicle_controller(0x80, _start, _terminal);
-
+    // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);
+    auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config.id, vehicle_config.start, vehicle_config.terminal);
     // 随机放入一些障碍物
     // cart_point ob1{1.0f, 0.0f};
     // cart_point ob2{3.0f, 3.0f};
