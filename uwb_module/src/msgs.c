@@ -59,24 +59,24 @@ uint16_t re_get_payload_head_index() {
  * @param buffer buffer.
  * @param len
  */
-void print_msg_string(uint8_t* buffer, uint32_t len) {
-    uint8_t src_id = re_get_src_id(buffer);
-    uint8_t dest_id = re_get_dest_id(buffer);
-    uint8_t msg_type = re_get_msg_type(buffer);
-    debug_printf("%d recv: src: %d, dest: %d, msg_type: %d\n", module_config.module_id, src_id, dest_id, msg_type);
-}
-
-
-void print_distance_msg(uint8_t* buffer) {
-    uint8_t src_id = re_get_src_id(buffer);
-    uint8_t dest_id = re_get_dest_id(buffer);
-    uint8_t msg_type = re_get_msg_type(buffer);
-    float d0 = 0;
-    float d1 = 0;
-    memcpy(&d0, &buffer[7], 4);
-    memcpy(&d1, &buffer[11], 4);
-    debug_printf("src_id: %d, dest_id: %d, msg_type: %d, d0: %f, d1: %f\r\n", src_id, dest_id, msg_type, d0, d1);
-}
+// void print_msg_string(uint8_t* buffer, uint32_t len) {
+//     uint8_t src_id = re_get_src_id(buffer);
+//     uint8_t dest_id = re_get_dest_id(buffer);
+//     uint8_t msg_type = re_get_msg_type(buffer);
+//     debug_printf("%d recv: src: %d, dest: %d, msg_type: %d\n", module_config.module_id, src_id, dest_id, msg_type);
+// }
+//
+//
+// void print_distance_msg(uint8_t* buffer) {
+//     uint8_t src_id = re_get_src_id(buffer);
+//     uint8_t dest_id = re_get_dest_id(buffer);
+//     uint8_t msg_type = re_get_msg_type(buffer);
+//     float d0 = 0;
+//     float d1 = 0;
+//     memcpy(&d0, &buffer[7], 4);
+//     memcpy(&d1, &buffer[11], 4);
+//     debug_printf("src_id: %d, dest_id: %d, msg_type: %d, d0: %f, d1: %f\r\n", src_id, dest_id, msg_type, d0, d1);
+// }
 
 void send_upload_position_msg(uint8_t src_id, float x, float y, float d0, float d1) {
     uart_send_byte(0x5A); // Head

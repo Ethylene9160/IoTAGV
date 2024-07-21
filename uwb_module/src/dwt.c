@@ -159,7 +159,7 @@ static void AnchorRXOkCallback(const dwt_cb_data_t *data) {
         dwt_readrxdata(rx_buffer, data->datalength, 0);
     }
 
-    print_msg_string(rx_buffer, data->datalength);
+    // print_msg_string(rx_buffer, data->datalength);
     // debug_printf("current_state: %d\r\n", current_state);
 
     uint32_t rx_ts_hi = dwt_readrxtimestamphi32();
@@ -401,7 +401,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     double Db = (double) (tag_resp_tx - tag_poll_rx);
                     double tof = ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db)) * DWT_TIME_UNITS;
                     float distance = (float) (tof * SPEED_OF_LIGHT);
-                    put_distance(&tag_storage, src_id, distance);
+                    if (distance < 10.0 && distance > 0.1)
+                        put_distance(&tag_storage, src_id, distance);
                 // Print the result
 //                debug_printf("   Tag: %lu, \t%lu, \t%lu\n", poll_rx, resp_tx, final_rx);
 //                debug_printf("Anchor: %lu, \t%lu, \t%lu\n", poll_tx, resp_rx, final_tx);
@@ -411,12 +412,13 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 //                debug_printf("    Db: %lu\n", resp_tx - poll_rx);
 //                debug_printf("%.4f\n", (float) distance);
                     // debug_printf("id %d receive: %d\r\n", module_config.module_id, (int) (distance * 1000));
-                    float d = 2.0;
+                    float d = 1.2;
                     Point2d p = dis2cart(tag_storage.d1, tag_storage.d2, d);
                     tag_storage.x = p.x;
                     tag_storage.y = p.y;
 
-                    debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
+                    if (module_config.ranging_exchange_debug_output)
+                        debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
                     send_upload_position_msg(
                         module_config.module_id,
                         p.x,
@@ -473,7 +475,10 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 memcpy(&d2, rx_buffer + payload_head_index + 12, 4);
 //
                 // Upload the position
-                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
+                if (module_config.ranging_exchange_debug_output)
+                    // debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
+
+                    debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
                 send_upload_position_msg(src_id, x, y, d1, d2);
                 // debug_printf("src_id: %d, x: %f, y: %f, d1: %f, d2: %f\r\n", src_id, x, y, d1, d2);
             }

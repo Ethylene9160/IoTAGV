@@ -62,9 +62,9 @@ static dwt_config_t dwt_config = {
 #define RX_ANT_DLY 16436
 
 //#define POLL_RX_TO_RESP_TX_DLY_UUS 8000
-#define RESP_RX_TO_FINAL_TX_DLY_UUS 8000
+#define RESP_RX_TO_FINAL_TX_DLY_UUS 3500
 #define RX_TIMEOUT_UUS 3000
-#define RANDOM_TIMEOUT_DELAY random_generator(8500, 10500) // random delay
+#define RANDOM_TIMEOUT_DELAY random_generator(4500, 8000) // random delay
 // #define RANDOM_TIMEOUT_DELAY  1000000 // random delay
 
 #define SPEED_OF_LIGHT 299702547
