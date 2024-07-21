@@ -6,6 +6,7 @@
 #include "usart.h"
 
 #include "dwt.h"
+#include "adc.h"
 
 #include "uwb_module_config.h"
 
@@ -38,6 +39,8 @@ static uint8_t is_initialized = 0;
 int main(void) {
     // Initialization
     InitPeripherals();
+    ADC_InitConfig();
+    // Adc_Init();
 
     // Load the configurations
     // TODO, 读配置, 修改全局 module_config

@@ -59,6 +59,8 @@ private:
     bool isTerminal;
     static float v_cons;
     static float v_k;
+    static float collision_radius;
+    static float large_bias;
     std::map<uint16_t, cart_point> vehicle_position;
 
     osMutexId_t vehicle_controller_mutex;
