@@ -40,7 +40,7 @@ center_module: 主控模块
 TODO.
 ```
 
-### Memo
+## Memo
 
 模块间连接与常用功能引脚接线快速查询：
 
@@ -65,9 +65,21 @@ TODO.
 | PA2 | USART2_TX |
 | PA3 | USART2_RX |
 
-### 使用手册
+## 使用手册
 
-TODO
+### 单车清单
+
+* STM32F425IIB6
+* STM32F405RGT6
+* DWM1000套装
+* 基站2个（天线）
+* 车3个。
+* 遥控器两个及以上
+* STLink至少拿5个
+* **充电宝**尽可能多
+* 2.5mm螺丝刀*2
+* 2.0mm螺丝刀*2
+* 
 
 ### Contributors
 
