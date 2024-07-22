@@ -34,6 +34,7 @@ namespace ostask_vehicle_controller {
     }
 
     void set_control_msg(vehicle_controller* controller) {
+        static uint8_t tx_buffer[13] = {0x5A, 0,0,0,0,0,0,0,0,0,0,0,0x7F};
         controller -> tick();
         cart_velocity v = controller -> get_self_velocity();
 
@@ -42,9 +43,11 @@ namespace ostask_vehicle_controller {
         flt_vx = alpha * v.vx + (1 - alpha) * flt_vx;
         flt_vy = alpha * v.vy + (1 - alpha) * flt_vy;
 
-        char str[32];
-        int len = sprintf(str, "1vx: %d, vy: %d\n", (int)(flt_vx * 1200+50001), (int)(flt_vy * 1200+50001));
-        HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
+        tx_buffer[1] = (controller->get_self_id()&0xFF);
+        tx_buffer[2] = 0x01;
+        memcpy(tx_buffer + 3, &flt_vx, 4);
+        memcpy(tx_buffer + 7, &flt_vy, 4);
+        HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
 
         // msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
         msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w);
@@ -55,6 +58,7 @@ namespace ostask_vehicle_controller {
 
     void read_queue(vehicle_controller* controller) {
         uint8_t buffer[27];
+        static uint8_t tx_buffer[13] = {0x5A, 0,0,0,0,0,0,0,0,0,0,0,0x7F};
         while(get_xQueueReceive(buffer, 20) == pdTRUE) {
             //tag_receive_broad(buffer);
             uint16_t source_id = 0;
@@ -69,20 +73,21 @@ namespace ostask_vehicle_controller {
                 memcpy(&y, buffer + 12, 4);
                 memcpy(&d1, buffer + 16, 4);
                 memcpy(&d2, buffer + 20, 4);
-                char str[64];
-                // // int len = sprintf(str, "source_id: %d, x: %f, y: %f\n", source_id, x, y);
-                int len = sprintf(str, "0id: %d, x: %d, y: %d, d1: %d, d2: %d\n",
-                    source_id,
-                    (int) (x * 10000),
-                    (int) (y * 10000),
-                    (int) (d1 * 10000),
-                    (int) (d2 * 10000));
-                HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
+
 
                 // nan，那么返回。
                 if (std::isnan(x) || std::isnan(y)) {
                     return;
                 }
+
+                tx_buffer[1] = source_id & 0xFF;
+                tx_buffer[2] = 0x00; // position信息
+
+                memcpy(tx_buffer + 3, &x, 4);
+                memcpy(tx_buffer + 7, &y, 4);
+
+                HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
+
                 cart_point point = {x, y};
                 controller->push_back(source_id, point);
             }

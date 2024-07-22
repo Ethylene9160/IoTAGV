@@ -29,14 +29,17 @@
 #include "queue.h"
 
 #define BUFFER_SIZE_WITH_TIMESTAMP 27
+#define REMOTE_RX_MAX_SIZE 13
 
 // DEFINE A LARGE BUFFER.
-uint8_t rx_buffer[BUFFER_SIZE<<3];
-volatile uint8_t buffer_index = 0;
-
-QueueHandle_t S_Queue;
+uint8_t u1_rx_buffer[BUFFER_SIZE<<3];
+uint8_t u2_rx_buffer[BUFFER_SIZE<<2];
+volatile uint8_t usart1_buffer_index = 0;
+volatile uint8_t usart2_buffer_index = 0;
+QueueHandle_t S_Queue; // get the message from uwb
+QueueHandle_t Remote_Queue; // get the message from remote machine
 osMutexId_t USART1_MutexHandle;
-
+osMutexId_t USART2_MutexHandle;
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
@@ -73,6 +76,12 @@ void MX_USART1_UART_Init(void) {
         .name = "USART_Mutex"
     };
     USART1_MutexHandle = osMutexNew(&USART_MutexAttr);
+
+    Remote_Queue = xQueueCreate(25, REMOTE_RX_MAX_SIZE * sizeof(uint8_t));
+    const osMutexAttr_t USART2_MutexAttr = {
+        .name = "USART2_Mutex"
+    };
+    USART2_MutexHandle = osMutexNew(&USART2_MutexAttr);
     /* USER CODE END USART1_Init 2 */
 }
 
@@ -209,23 +218,70 @@ void USART1_IRQHandler(void) {
     if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
         HAL_UART_Receive(&huart1, &received_byte, 1, 0);
         if (flag == 0) {
-            // HAL_UART_Transmit(&huart2, (uint8_t*)"error!\n", 7, HAL_MAX_DELAY);
             if (received_byte == 0x5A) {
                 flag = 1;
-                buffer_index = 0;
-                // rx_buffer[buffer_index++] = received_byte;
+                usart1_buffer_index = 0;
             } else {
                 return;
             }
         }
-        rx_buffer[buffer_index++] = received_byte;
+        u1_rx_buffer[usart1_buffer_index++] = received_byte;
 
-        if (buffer_index >= BUFFER_SIZE) {
-            buffer_index = 0;
-            if (rx_buffer[0] == 0x5A && rx_buffer[24] == 0x7F) {
-                memcpy(buffer, rx_buffer, 24);
+        if (usart1_buffer_index >= BUFFER_SIZE) {
+            usart1_buffer_index = 0;
+            if (u1_rx_buffer[0] == 0x5A && u1_rx_buffer[24] == 0x7F) {
+                memcpy(buffer, u1_rx_buffer, 24);
                 buffer[26] = 0x7F;
                 if (xQueueSendFromISR(S_Queue, buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
+                    Error_Handler();
+                }
+            }else {
+                flag = 0;
+            }
+        }
+    }
+}
+
+/**
+ * This is used for receving remote msg.
+ */
+void USART2_IRQHandler(void) {
+    static uint8_t flag = 1;
+    static uint8_t usart2_buffer[BUFFER_SIZE];
+
+    /**
+     *0: 0x5A
+     *1: type
+     *2: id
+     *3-7: float x
+     *8-11: float y
+     *12: 0x7F
+     *total length = 13.
+     */
+    uint8_t received_byte;
+
+    uint8_t buffer[REMOTE_RX_MAX_SIZE];
+
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    HAL_UART_IRQHandler(&huart2);
+
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE)) {
+        HAL_UART_Receive(&huart2, &received_byte, 1, 0);
+        if (flag == 0) {
+            if (received_byte == 0x5A) {
+                flag = 1;
+                usart2_buffer_index = 0;
+            } else {
+                return;
+            }
+        }
+        u2_rx_buffer[usart2_buffer_index++] = received_byte;
+
+        if (usart2_buffer_index >= REMOTE_RX_MAX_SIZE) {
+            usart2_buffer_index = 0;
+            if (u2_rx_buffer[0] == 0x5A && u2_rx_buffer[REMOTE_RX_MAX_SIZE-1] == 0x7F) {
+                memcpy(buffer, u2_rx_buffer, REMOTE_RX_MAX_SIZE);
+                if (xQueueSendFromISR(Remote_Queue, buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
                     Error_Handler();
                 }
             }else {
