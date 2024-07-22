@@ -4,8 +4,8 @@
 
 #include "usart.h"
 
-float vehicle_controller::v_cons = 26.0f;
-float vehicle_controller::v_k = 12.0f;
+float vehicle_controller::v_cons = 48.0f;
+float vehicle_controller::v_k = 17.5f;
 float vehicle_controller::collision_radius = 0.3f;
 float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
 
@@ -107,11 +107,11 @@ inline void vehicle_controller::_update_self_vel(
     //     return;
     // }
 
-    if (distance > 3.68f) {
+    if (distance > 2.08f) {
         return;
     }
 
-    float weight = 0.25f / d2;
+    float weight = 1.0f / distance;
 
     bias_x -= weight * dx;
     bias_y -= weight * dy;
@@ -127,8 +127,8 @@ void vehicle_controller::push_back(uint16_t id, cart_point point) {
             point.x = (self_point.x+point.x)/2.0f;
             point.y = (self_point.y+point.y)/2.0f;
             set_self_point(point); // 更新自己的cart_point
-            if(std::abs(self_point.x - target_point.x) < 0.08f &&
-               std::abs(self_point.y - target_point.y) < 0.08f) {
+            if(std::abs(self_point.x - target_point.x) < 0.16f &&
+               std::abs(self_point.y - target_point.y) < 0.16f) {
                 isTerminal = true;
             }
         } else {
