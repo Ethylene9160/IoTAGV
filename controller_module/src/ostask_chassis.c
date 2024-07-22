@@ -125,13 +125,14 @@ void ostask_chassis(void const *argu) {
         memcpy(&rc, &white_rc, sizeof(white_rc));
         taskEXIT_CRITICAL();
 
-        if (rc.sw1 == 1) { // 上, 停止
-            mode = CHASSIS_STOP;
-        } else if (rc.sw1 == 3) { // 中, 指令控制
-            mode = CHASSIS_CAN_CONTROL;
-        } else { // 下, 遥控器控制
-            mode = CHASSIS_REMOTE_CONTROL;
-        }
+        mode = CHASSIS_CAN_CONTROL;
+        // if (rc.sw1 == 1) { // 上, 停止
+        //     mode = CHASSIS_STOP;
+        // } else if (rc.sw1 == 3) { // 中, 指令控制
+        //     mode = CHASSIS_CAN_CONTROL;
+        // } else { // 下, 遥控器控制
+        //     mode = CHASSIS_REMOTE_CONTROL;
+        // }
 
         switch (mode) {
             case CHASSIS_REMOTE_CONTROL: {

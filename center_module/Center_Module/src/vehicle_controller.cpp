@@ -6,6 +6,9 @@
 
 float vehicle_controller::v_cons = 26.0f;
 float vehicle_controller::v_k = 12.0f;
+float vehicle_controller::collision_radius = 0.3f;
+float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
+
 
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
@@ -20,7 +23,7 @@ vehicle_controller::vehicle_controller(
 }
 
 void vehicle_controller::tick() {
-    static float _v_norm = 20.0f;
+    static float _v_norm = 18.0f;
     float total_weight_x = 0.0f;
     float total_weight_y = 0.0f;
     float bias_x = 0.0f;
@@ -48,7 +51,7 @@ void vehicle_controller::tick() {
     self_vel.vy = vehicle_controller::v_cons * _dy/_d + bias_y * vehicle_controller::v_k;
 
     float _v_square = std::sqrt(self_vel.vx * self_vel.vx + self_vel.vy * self_vel.vy);
-    if (_v_square > 0.15f && _v_square < 18.0f) {
+    if (_v_square > 0.1f && _v_square < _v_norm) {
         float _k = _v_norm / _v_square;
         self_vel.vx *= _k;
         self_vel.vy *= _k;
@@ -75,8 +78,8 @@ void vehicle_controller::_add_noise_to_velocity(float &vx, float &vy) {
     static std::default_random_engine generator;
     static std::normal_distribution<float> distribution(0.0f, 1.0f);
 
-    vx += distribution(generator);
-    vy += distribution(generator);
+    vx += distribution(generator) * 0.02;
+    vy += distribution(generator) * 0.02;
 }
 
 inline void vehicle_controller::_update_self_vel(
@@ -93,13 +96,22 @@ inline void vehicle_controller::_update_self_vel(
     float dy = obstacle.y - self_point.y;
 
     float d2 = dx * dx + dy * dy;
-    float distance = std::sqrt(d2);
+    float distance = std::sqrt(d2) - vehicle_controller::collision_radius * 2.0f;
+    if (distance < 0.02f) {
+        distance = 0.02f;
+    }
+    d2 = distance * distance;
+    // if(distance < 0.0f) {
+    // bias_x -= vehicle_controller::large_bias * dx;
+    //     bias_y -= vehicle_controller::large_bias * dy;
+    //     return;
+    // }
 
-    if (distance < 0.1f || distance > 1.5f) {
+    if (distance > 3.68f) {
         return;
     }
 
-    float weight = 1.15f / d2;
+    float weight = 0.25f / d2;
 
     bias_x -= weight * dx;
     bias_y -= weight * dy;
