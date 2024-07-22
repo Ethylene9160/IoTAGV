@@ -35,8 +35,16 @@ _vehicle_config vehicle_config = {
 #ifdef V1
 _vehicle_config vehicle_config = {
         .start = {1.6f, 2.0f},
-        .terminal = {1.0f, 1.3f},
+        .terminal = {3.0f, 1.5f},
         .id = 0x81
+};
+#endif
+
+#ifdef V2
+_vehicle_config vehicle_config = {
+    .start = {1.6f, 2.0f},
+    .terminal = {-0.3f, 1.5f},
+    .id = 0x82
 };
 #endif
 

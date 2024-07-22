@@ -4,9 +4,9 @@
 
 #include "usart.h"
 
-float vehicle_controller::v_cons = 48.0f;
-float vehicle_controller::v_k = 17.5f;
-float vehicle_controller::collision_radius = 0.3f;
+float vehicle_controller::v_cons = 48.5f;
+float vehicle_controller::v_k = 16.5f;
+float vehicle_controller::collision_radius = 0.30f;
 float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
 
 
@@ -107,7 +107,7 @@ inline void vehicle_controller::_update_self_vel(
     //     return;
     // }
 
-    if (distance > 2.08f) {
+    if (distance > 0.98f) {
         return;
     }
 
