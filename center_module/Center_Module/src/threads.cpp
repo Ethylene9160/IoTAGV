@@ -27,7 +27,7 @@ typedef struct {
 #ifdef V0
 _vehicle_config vehicle_config = {
         .start = {1.6f, 2.0f},
-        .terminal = {1.0f, 4.2f},
+        .terminal = {1.0f, 4.5f},
         .id = 0x80
 };
 #endif
@@ -35,8 +35,16 @@ _vehicle_config vehicle_config = {
 #ifdef V1
 _vehicle_config vehicle_config = {
         .start = {1.6f, 2.0f},
-        .terminal = {1.0f, 1.0f},
+        .terminal = {3.0f, 1.5f},
         .id = 0x81
+};
+#endif
+
+#ifdef V2
+_vehicle_config vehicle_config = {
+    .start = {1.6f, 2.0f},
+    .terminal = {-0.3f, 1.5f},
+    .id = 0x82
 };
 #endif
 
@@ -77,9 +85,10 @@ void startThreads() {
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
     // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);
     auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config.id, vehicle_config.start, vehicle_config.terminal);
+
     // 随机放入一些障碍物
-    // cart_point ob1{1.0f, 0.0f};
-    // cart_point ob2{3.0f, 3.0f};
+    // cart_point ob1{0.0f, 0.0f};
+    // cart_point ob2{0.0f, 2.0f};
     // vehicle_controller_ptr->push_back(2, ob1);
     // vehicle_controller_ptr->push_back(3, ob2);
 

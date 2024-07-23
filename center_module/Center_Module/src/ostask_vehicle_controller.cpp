@@ -9,6 +9,8 @@
 #include "queue.h"
 #include <memory>
 namespace ostask_vehicle_controller {
+    float flt_vx = 0.0f, flt_vy = 0.0f;
+    float alpha = 0.233f;
     BaseType_t get_xQueueReceive(uint8_t*buffer, TickType_t xTicksToWait) {
         osStatus_t status = osMutexAcquire(USART1_MutexHandle, osWaitForever);
         if (status == osOK) {
@@ -35,13 +37,16 @@ namespace ostask_vehicle_controller {
         cart_velocity v = controller -> get_self_velocity();
 
 
+        // msgs::Twist2D* t = new msgs::Twist2D(v.vx, v.vy, v.w);
+        flt_vx = alpha * v.vx + (1 - alpha) * flt_vx;
+        flt_vy = alpha * v.vy + (1 - alpha) * flt_vy;
+
         char str[32];
-        int len = sprintf(str, "1vx: %d, vy: %d\n", (int)(v.vx * 1200+50001), (int)(v.vy * 1200+50001));
+        int len = sprintf(str, "1vx: %d, vy: %d\n", (int)(flt_vx * 1200+50001), (int)(flt_vy * 1200+50001));
         HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
 
-        // msgs::Twist2D* t = new msgs::Twist2D(v.vx, v.vy, v.w);
-
-        msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
+        // msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
+        msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w);
         auto command = msgs::Command(CTRL_CMD_SET_TWIST, t);
 
         ostask_controller_module_port::pushCommand(command);
