@@ -76,10 +76,9 @@ _vehicle_config vehicle_config_default = {
 /* ** Example End ** */
 
 void startThreads() {
-
     // 设置起点和终点坐标
-    // cart_point _start{1.6f,2.0f};
-    // cart_point _terminal{1.0f,1.2f};
+    // cart_point _start{1.6f, 2.0f};
+    // cart_point _terminal{1.0f, 1.2f};
 
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
     // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);

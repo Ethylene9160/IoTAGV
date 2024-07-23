@@ -53,7 +53,9 @@ public:
 
     void set_terminated(bool is_terminated);
 
-    void set_target_point(const cart_point &target_point);
+    cart_point get_target_point() const;
+
+    void set_target_point(const cart_point _target_point);
 
 private:
     uint16_t self_id;

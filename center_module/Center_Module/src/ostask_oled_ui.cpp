@@ -1,5 +1,7 @@
 #include "ostask_oled_ui.h"
 
+#include "stdio.h"
+
 #include "vehicle_controller.h"
 
 #include "user_gpio.h"
@@ -9,11 +11,25 @@
 
 namespace ostask_oled_ui {
 
-    UserGPIO KeyConfirm("A0"), Key0("C1"), Key1("C13");
+    UserGPIO KeyConfirm("A0", false), Key0("C13", true), Key1("C1", true);
     UserI2CMaster Oled("B6", "B7");
     u8g2_t u8g2;
 
-    void init_gpio() {
+    enum Page { MAIN_PAGE, LIST_PAGE, SETTING_PAGE };
+    Page currentPage = MAIN_PAGE;
+
+    const char* listItems[] = { "Set target X", "Set target Y", "Back" }; //, "None", "None", "None" };
+    int listItemsCount = sizeof(listItems) / sizeof(listItems[0]);
+    int currentItem = 0;
+    float settingConfigs[2][3] = {
+        { -1.5f, 3.5f, 0.1f },
+        { 0.0f, 5.0f, 0.1f }
+    };
+    float settingValue = 0.0f;
+
+    vehicle_controller* controller = nullptr;
+
+    void initGPIO() {
         GPIO_InitTypeDef GPIO_InitStruct = {0};
 
         /* GPIO Ports Clock Enable */
@@ -81,47 +97,118 @@ namespace ostask_oled_ui {
         u8g2_InitDisplay(&u8g2);
         u8g2_SetPowerSave(&u8g2, 0);
         u8g2_ClearBuffer(&u8g2);
-        osDelay(1000);
+        osDelay(200);
+    }
+
+    void drawMainPage() {
+        u8g2_ClearBuffer(&u8g2);
+
+        char buffer[30];
+        snprintf(buffer, sizeof(buffer), "Current: (%.1f, %.1f)", controller->get_self_point().x, controller->get_self_point().y);
+        u8g2_SetFont(&u8g2, u8g2_font_ncenB08_tr);
+        u8g2_DrawStr(&u8g2, 0, 24, buffer);
+        snprintf(buffer, sizeof(buffer), "Target: (%.1f, %.1f)", controller->get_target_point().x, controller->get_target_point().y);
+        u8g2_SetFont(&u8g2, u8g2_font_ncenB08_tr);
+        u8g2_DrawStr(&u8g2, 0, 48, buffer);
+
+        u8g2_SendBuffer(&u8g2);
+    }
+
+    void drawListPage() {
+        u8g2_ClearBuffer(&u8g2);
+        u8g2_SetFont(&u8g2, u8g2_font_ncenB08_tr);
+        for (int i = 0; i < listItemsCount; ++i) {
+            if (i == currentItem) {
+                u8g2_DrawBox(&u8g2, 0, i * 10, 128, 10);
+                u8g2_SetDrawColor(&u8g2, 0);
+            }
+            u8g2_DrawStr(&u8g2, 2, (i + 1) * 10, listItems[i]);
+            if (i == currentItem) {
+                u8g2_SetDrawColor(&u8g2, 1);
+            }
+        }
+        u8g2_SendBuffer(&u8g2);
+    }
+
+    void drawSettingPage() {
+        char buffer[20];
+        snprintf(buffer, sizeof(buffer), "Value: %.1f", settingValue);
+
+        u8g2_ClearBuffer(&u8g2);
+        u8g2_SetFont(&u8g2, u8g2_font_ncenB08_tr);
+        u8g2_DrawStr(&u8g2, 0, 24, buffer);
+        u8g2_SendBuffer(&u8g2);
+    }
+
+    void updateMainPage() {
+        if (KeyConfirm.pressed()) {
+            currentPage = LIST_PAGE;
+        }
+        drawMainPage();
+    }
+
+    void updateListPage() {
+        if (KeyConfirm.pressed()) {
+            if (currentItem == 0) {
+                settingValue = controller->get_target_point().x;
+                currentPage = SETTING_PAGE;
+            } else if (currentItem == 1) {
+                settingValue = controller->get_target_point().y;
+                currentPage = SETTING_PAGE;
+            } else if (currentItem == 2) {
+                currentPage = MAIN_PAGE;
+            } else {
+                // TODO
+            }
+        } else if (Key0.pressed()) {
+            currentItem = (currentItem + listItemsCount - 1) % listItemsCount;
+        } else if (Key1.pressed()) {
+            currentItem = (currentItem + 1) % listItemsCount;
+        }
+        drawListPage();
+    }
+
+    void updateSettingPage() {
+        float settingMin = settingConfigs[currentItem][0];
+        float settingMax = settingConfigs[currentItem][1];
+        float settingStep = settingConfigs[currentItem][2];
+        if (KeyConfirm.pressed()) {
+            if (currentItem == 0) {
+                controller->set_target_point({ settingValue, controller->get_target_point().y });
+            } else if (currentItem == 1) {
+                controller->set_target_point({ controller->get_target_point().x, settingValue });
+            }
+            currentPage = LIST_PAGE;
+        } else if (Key0.pressed(1)) {
+            settingValue -= settingStep;
+            if (settingValue < settingMin) settingValue = settingMin;
+        } else if (Key1.pressed(1)) {
+            settingValue += settingStep;
+            if (settingValue > settingMax) settingValue = settingMax;
+        }
+        drawSettingPage();
     }
 
     void taskProcedure(void *argument) {
-        auto* controller = static_cast<vehicle_controller *>(argument);
+        controller = static_cast<vehicle_controller *>(argument);
 
         // initialization
-        init_gpio();
+        initGPIO();
         initU8g2Platform();
 
-//        u8g2_SetFontMode(&u8g2, 1);
-//        u8g2_SetFontDirection(&u8g2, 0);
-//        u8g2_SetFont(&u8g2, u8g2_font_inb24_mf);
-//        u8g2_DrawStr(&u8g2, 0, 20, "U");
-//
-//        u8g2_SetFontDirection(&u8g2, 1);
-//        u8g2_SetFont(&u8g2, u8g2_font_inb30_mn);
-//        u8g2_DrawStr(&u8g2, 21,8,"8");
-//
-//        u8g2_SetFontDirection(&u8g2, 0);
-//        u8g2_SetFont(&u8g2, u8g2_font_inb24_mf);
-//        u8g2_DrawStr(&u8g2, 51,30,"g");
-//        u8g2_DrawStr(&u8g2, 67,30,"\xb2");
-//
-//        u8g2_DrawHLine(&u8g2, 2, 35, 47);
-//        u8g2_DrawHLine(&u8g2, 3, 36, 47);
-//        u8g2_DrawVLine(&u8g2, 45, 32, 12);
-//        u8g2_DrawVLine(&u8g2, 46, 33, 12);
-//
-//        u8g2_SetFont(&u8g2, u8g2_font_4x6_tr);
-//        u8g2_DrawStr(&u8g2, 1,54,"github.com/olikraus/u8g2");
-//
-//        u8g2_SendBuffer(&u8g2);
-//        osDelay(1000);
-
         while (true) {
-            // TODO
-//            cart_point target_point = {-0.3f, 1.5f};
-//            controller->set_target_point(target_point);
-
-            osDelay(20);
+            switch (currentPage) {
+                case MAIN_PAGE:
+                    updateMainPage();
+                    break;
+                case LIST_PAGE:
+                    updateListPage();
+                    break;
+                case SETTING_PAGE:
+                    updateSettingPage();
+                    break;
+            }
+            osDelay(5);
         }
     }
 
