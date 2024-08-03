@@ -207,6 +207,7 @@ export default {
             if (plotContainer) {
                 const layout = plotContainer.layout || {};
 
+                // 绘制点的数据
                 const data = points.map(item => ('id' in item && 'position' in item) ? {
                     x: [item.position[0]],
                     y: [item.position[1]],
@@ -218,10 +219,80 @@ export default {
                         color: ('color' in item ? `rgb(${item.color[0]}, ${item.color[1]}, ${item.color[2]})` : 'grey')
                     },
                     text: `${item.id}`,
-                    textposition: 'top right'
+                    textposition: 'top right',
+                    hoverinfo: 'none',
+                    // showlegend: false
                 } : null).filter(d => d !== null);
 
-                Plotly.react(plotContainer, data, layout);
+                // 绘制目标区域的圆形
+                const targetAreas = points.map(item => {
+                    if ('id' in item && 'target_position' in item && item.target_position) {
+                        const [tx, ty] = item.target_position;
+                        const targetColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.3)` : 'rgba(128, 128, 128, 0.3)');
+                        const borderColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.6)` : 'rgba(128, 128, 128, 0.6)');
+
+                        // 计算圆形区域的点
+                        const theta = Array.from({ length: 36 }, (_, i) => i * (2 * Math.PI / 36));
+                        const xCircle = theta.map(angle => tx + 0.3 * Math.cos(angle));
+                        const yCircle = theta.map(angle => ty + 0.3 * Math.sin(angle));
+
+                        return {
+                            x: xCircle,
+                            y: yCircle,
+                            mode: 'lines',
+                            type: 'scatter',
+                            line: {
+                                width: 2,
+                                color: borderColor,
+                                dash: 'dash'
+                            },
+                            fill: 'toself',
+                            fillcolor: targetColor,
+                            hoverinfo: 'none',
+                            showlegend: false
+                        };
+                    } else {
+                        return null;
+                    }
+                }).filter(d => d !== null);
+
+                // 绘制箭头的注释
+                const annotations = points.map(item => {
+                    if ('id' in item && 'position' in item && 'velocity' in item && item.velocity) {
+                        const [x, y] = item.position;
+                        const [vx, vy] = item.velocity;
+                        const endX = x + vx;
+                        const endY = y + vy;
+                        const arrowColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.6)` : 'rgba(128, 128, 128, 0.6)');
+
+                        return {
+                            x: endX,
+                            y: endY,
+                            ax: x,
+                            ay: y,
+                            xref: 'x',
+                            yref: 'y',
+                            axref: 'x',
+                            ayref: 'y',
+                            showarrow: true,
+                            arrowhead: 2,
+                            arrowsize: 1,
+                            arrowwidth: 2,
+                            arrowcolor: arrowColor
+                        };
+                    } else {
+                        return null;
+                    }
+                }).filter(d => d !== null);
+
+                // 将箭头和目标区域分开处理
+                const allData = [...data, ...targetAreas];
+
+                // 更新图形
+                Plotly.react(plotContainer, allData, layout);
+
+                // 添加箭头注释
+                Plotly.relayout(plotContainer, { annotations: annotations });
             }
         },
         resizePlot() {

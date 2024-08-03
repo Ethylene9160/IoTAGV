@@ -23,6 +23,10 @@ anchors = AnchorsPool()
 anchors.append(Anchor(0x00, [0.0, 0.0]))
 anchors.append(Anchor(0x01, [2.0, 0.0]))
 
+# TODO: mock agents
+agents.append(Agent(0x80, [1.0, 2.0], [-0.3, 1.0], [3.0, 4.0]))
+agents.append(Agent(0x81, [2.0, 2.0], [-0.3, -0.4], [-0.5, 3.0]))
+
 
 """
     跨域请求处理中间件
@@ -110,22 +114,22 @@ async def serial_listener():
                 # 输入缓存中有数据
                 data = serials.read()
                 
-                # TODO 处理
+                # TODO 处理指令
                 
                 # TODO 如果有信息更新则广播画布更新信息
                 # if
-                message = {
+                await clients.broadcast(json.dumps({
                     'type': 'plot',
                     'agents': agents.to_list(),
                     'anchors': anchors.to_list()
-                }
-                await clients.broadcast(json.dumps(message))
+                }))
         await asyncio.sleep(SERIAL_POLL_INTERVAL)
 
 async def mock_serial_talker():
     while True:
         if serials.is_ready():
-            print('mock')
+            # print('mock')
+            serials.write(b'mock')
         await asyncio.sleep(1.0)
 
 @app.listener('before_server_start')

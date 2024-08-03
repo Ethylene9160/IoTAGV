@@ -1,10 +1,24 @@
+import random
+
 class Agent:
-    def __init__(self, id, position):
+    used_colors = set()  # 类属性，保存已经使用的颜色
+
+    def __init__(self, id, position, velocity=None, target_position=None):
         self.id = id
         self.position = position
-        self.velocity = None
-        self.target_position = None
-        self.color = [0, 0, 255]
+        self.velocity = velocity
+        self.target_position = target_position
+        self.color = self.generate_unique_color()
+
+    @staticmethod
+    def generate_unique_color():
+        """生成一个不重复的颜色。"""
+        while True:
+            color = [random.randint(0, 255) for _ in range(3)]
+            color_tuple = tuple(color)
+            if color_tuple not in Agent.used_colors:
+                Agent.used_colors.add(color_tuple)
+                return color
 
 class AgentsPool:
     def __init__(self):
