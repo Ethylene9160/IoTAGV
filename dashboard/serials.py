@@ -55,6 +55,9 @@ class SerialManager:
     
     def read(self, size = 1):
         return self.ser.read(size = size)
+    
+    def readline(self):
+        return self.ser.readline()
 
     def write(self, data):
         self.ser.write(data)

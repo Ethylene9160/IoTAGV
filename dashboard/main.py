@@ -1,4 +1,5 @@
 import json
+import random
 import asyncio
 
 from sanic import Sanic, response
@@ -111,26 +112,57 @@ async def serial_listener():
         if serials.is_ready():
             # 串口处于开启状态
             if serials.is_received():
-                # 输入缓存中有数据
-                data = serials.read()
-                
-                # TODO 处理指令
-                
-                # TODO 如果有信息更新则广播画布更新信息
-                # if
-                await clients.broadcast(json.dumps({
-                    'type': 'plot',
-                    'agents': agents.to_list(),
-                    'anchors': anchors.to_list()
-                }))
+                try:
+                    # 输入缓存中有数据, 处理指令
+                    command = serials.readline().decode().strip().split(',')
+                    canvas_updated = False
+                    if len(command) > 0:
+                        if int(command[0]) == 0: # 坐标: 0, id, x, y
+                            id, x, y = float(command[1]), float(command[2]), float(command[3])
+                            agent = agents.get_agent_by_id(id)
+                            if agent is None:
+                                # 未见过的 agent, 创建
+                                agents.append(Agent(id, [x, y]))
+                            else:
+                                agent.position = [x, y] # TODO: 是引用吗
+                            
+                            canvas_updated = True
+                        elif int(command[0]) == 1: # 速度: 1, id, vx, vy
+                            id, vx, vy = float(command[1]), float(command[2]), float(command[3])
+                            agent = agents.get_agent_by_id(id)
+                            if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 velocity 不予创建
+                                agent.velocity = [vx, vy]
+                            
+                            canvas_updated = True
+                        elif int(command[0]) == 2: # 目标: 2, id, tx, ty
+                            id, tx, ty = float(command[1]), float(command[2]), float(command[3])
+                            agent = agents.get_agent_by_id(id)
+                            if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 target_position 不予创建
+                                agent.target_position = [tx, ty]
+                            
+                            canvas_updated = True
+                        else:
+                            pass
+                    
+                    # 如果有画布信息更新则广播
+                    if canvas_updated:
+                        await clients.broadcast(json.dumps({
+                            'type': 'plot',
+                            'agents': agents.to_list(),
+                            'anchors': anchors.to_list()
+                        }))
+                except Exception as e:
+                    print(f'{e}') # TODO
         await asyncio.sleep(SERIAL_POLL_INTERVAL)
 
 async def mock_serial_talker():
     while True:
         if serials.is_ready():
             # print('mock')
-            serials.write(b'mock')
-        await asyncio.sleep(1.0)
+            serials.write(f'0,233,{random.uniform(-1, 3)},{random.uniform(0, 4)}\n'.encode())
+            serials.write(f'1,233,{random.uniform(-1, 3)},{random.uniform(0, 4)}\n'.encode())
+            serials.write(f'2,233,{random.uniform(-1, 3)},{random.uniform(0, 4)}\n'.encode())
+        await asyncio.sleep(0.1)
 
 @app.listener('before_server_start')
 async def setup_background_task(app, loop):

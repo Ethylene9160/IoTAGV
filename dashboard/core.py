@@ -1,7 +1,7 @@
 import random
 
 class Agent:
-    used_colors = set()  # 类属性，保存已经使用的颜色
+    used_colors = set()
 
     def __init__(self, id, position, velocity=None, target_position=None):
         self.id = id
@@ -12,7 +12,6 @@ class Agent:
 
     @staticmethod
     def generate_unique_color():
-        """生成一个不重复的颜色。"""
         while True:
             color = [random.randint(0, 255) for _ in range(3)]
             color_tuple = tuple(color)
@@ -38,6 +37,12 @@ class AgentsPool:
             'target_position': item.target_position,
             'color': item.color
         } for item in self.agents]
+    
+    def get_agent_by_id(self, id):
+        for agent in self.agents:
+            if agent.id == id:
+                return agent
+        return None
 
 class Anchor:
     def __init__(self, id, position):
