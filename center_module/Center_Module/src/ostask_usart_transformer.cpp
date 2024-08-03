@@ -1,4 +1,5 @@
 #include "ostask_usart_transformer.h"
+// deprecated.
 namespace ostask_usart_transformer{
 inline BaseType_t get_xQueueReceive(uint8_t*pdata, uint32_t timeout){
     osStatus_t status = osMutexAcquire(USART1_MutexHandle, timeout);
