@@ -4,17 +4,17 @@
 
 #include "usart.h"
 
-float vehicle_controller::v_cons = 26.0f;
-float vehicle_controller::v_k = 12.0f;
-float vehicle_controller::collision_radius = 0.3f;
+float vehicle_controller::v_cons = 48.5f;
+float vehicle_controller::v_k = 16.5f;
+float vehicle_controller::collision_radius = 0.30f;
 float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
 
 
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
     cart_point current_point,
-    cart_point target_point)
-    : target_point(target_point), self_id(self_id), self_point(current_point), isTerminal(0) {
+    cart_point target_point
+): target_point(target_point), self_id(self_id), self_point(current_point), isTerminal(0) { // TODO: 之后改为初始默认停止 (isTerminal = 1)，由控制器控制启动
     self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
     const osMutexAttr_t Controller_MutexAttr = {
         .name = "Controller_Mutex"
@@ -56,7 +56,6 @@ void vehicle_controller::tick() {
         self_vel.vx *= _k;
         self_vel.vy *= _k;
     }
-
 
     // for (const auto &vehicle: vehicle_position) {
     //     if (_is_obstacle_near(vehicle.second, self_vel.vx, self_vel.vy)) {
@@ -100,18 +99,18 @@ inline void vehicle_controller::_update_self_vel(
     if (distance < 0.02f) {
         distance = 0.02f;
     }
-    d2 = distance * distance;
+    // d2 = distance * distance;
     // if(distance < 0.0f) {
     // bias_x -= vehicle_controller::large_bias * dx;
     //     bias_y -= vehicle_controller::large_bias * dy;
     //     return;
     // }
 
-    if (distance > 3.68f) {
+    if (distance > 0.98f) {
         return;
     }
 
-    float weight = 0.25f / d2;
+    float weight = 1.0f / distance;
 
     bias_x -= weight * dx;
     bias_y -= weight * dy;
@@ -124,11 +123,10 @@ void vehicle_controller::push_back(uint16_t id, cart_point point) {
     auto status = osMutexAcquire(this->vehicle_controller_mutex, osWaitForever);
     if (status == osOK) {
         if (id == self_id) {
-            point.x = (self_point.x+point.x)/2.0f;
-            point.y = (self_point.y+point.y)/2.0f;
+            point.x = (self_point.x + point.x) / 2.0f;
+            point.y = (self_point.y + point.y) / 2.0f;
             set_self_point(point); // 更新自己的cart_point
-            if(std::abs(self_point.x - target_point.x) < 0.08f &&
-               std::abs(self_point.y - target_point.y) < 0.08f) {
+            if (std::abs(self_point.x - target_point.x) < 0.16f && std::abs(self_point.y - target_point.y) < 0.16f) {
                 isTerminal = true;
             }
         } else {
@@ -169,4 +167,22 @@ cart_velocity vehicle_controller::get_self_velocity() const {
         return {0.0f, 0.0f, 0.0f};
     }
     return self_vel;
+}
+
+void vehicle_controller::set_terminated(bool is_terminated) {
+    this->isTerminal = is_terminated;
+}
+
+cart_point vehicle_controller::get_target_point() const {
+    return this->target_point;
+}
+
+#define EPS 1e-5
+
+void vehicle_controller::set_target_point(const cart_point _target_point) {
+    if (std::abs(this->target_point.x - _target_point.x) < EPS && abs(this->target_point.y - _target_point.y) < EPS) {
+        return;
+    }
+    this->target_point = _target_point;
+    this->set_terminated(false);
 }

@@ -51,12 +51,18 @@ public:
 
     bool is_near_terminal();
 
+    void set_terminated(bool is_terminated);
+
+    cart_point get_target_point() const;
+
+    void set_target_point(const cart_point _target_point);
+
 private:
     uint16_t self_id;
     cart_point target_point;
     cart_point self_point;
     cart_velocity self_vel;
-    bool isTerminal;
+    bool isTerminal; // TODO: 是否需要加锁? bool 直接赋值似乎是原子操作.
     static float v_cons;
     static float v_k;
     static float collision_radius;
