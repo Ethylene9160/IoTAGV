@@ -126,7 +126,8 @@ void vehicle_controller::push_back(uint16_t id, cart_point point) {
             point.x = (self_point.x + point.x) / 2.0f;
             point.y = (self_point.y + point.y) / 2.0f;
             set_self_point(point); // 更新自己的cart_point
-            if (std::abs(self_point.x - target_point.x) < 0.16f && std::abs(self_point.y - target_point.y) < 0.16f) {
+
+            if(this->_is_near_target(this->target_point)) {
                 isTerminal = true;
             }
         } else {
@@ -146,7 +147,7 @@ void vehicle_controller::push_back(uint16_t id, cart_point point) {
     osMutexRelease(this->vehicle_controller_mutex);
 }
 
-void vehicle_controller::set_self_point(const cart_point &point) {
+inline void vehicle_controller::set_self_point(const cart_point &point) {
     self_point = point;
 }
 
@@ -158,7 +159,7 @@ void vehicle_controller::set_self_velocity(const cart_velocity &velocity) {
     self_vel = velocity;
 }
 
-bool vehicle_controller::is_near_terminal() {
+bool vehicle_controller::is_terminal() {
     return isTerminal;
 }
 
@@ -169,20 +170,54 @@ cart_velocity vehicle_controller::get_self_velocity() const {
     return self_vel;
 }
 
-void vehicle_controller::set_terminated(bool is_terminated) {
-    this->isTerminal = is_terminated;
+//<<<<<<< master
+//void vehicle_controller::set_terminated(bool is_terminated) {
+  //  this->isTerminal = is_terminated;
+//}
+
+//#define EPS 1e-5
+
+//void vehicle_controller::set_target_point(const cart_point _target_point) {
+  //  if (std::abs(this->target_point.x - _target_point.x) < EPS && abs(this->target_point.y - _target_point.y) < EPS) {
+    //    return;
+    //}
+    //this->target_point = _target_point;
+    //this->set_terminated(false);
+//}
+//=======
+void vehicle_controller::set_target_point(const cart_point &point) {
+    if (std::abs(point.x - target_point.x) < 0.05f && std::abs(point.y - target_point.y) < 0.05f) {
+        return;
+    }
+
+    target_point = point;
+    if(this->_is_near_target(target_point)) {
+        isTerminal = true;
+    }else {
+        isTerminal = false;
+    }
 }
 
 cart_point vehicle_controller::get_target_point() const {
-    return this->target_point;
+    return target_point;
 }
 
-#define EPS 1e-5
-
-void vehicle_controller::set_target_point(const cart_point _target_point) {
-    if (std::abs(this->target_point.x - _target_point.x) < EPS && abs(this->target_point.y - _target_point.y) < EPS) {
-        return;
-    }
-    this->target_point = _target_point;
-    this->set_terminated(false);
+void vehicle_controller::stop() {
+    self_vel.vx = 0.0f;
+    self_vel.vy = 0.0f;
+    isTerminal = 1;
 }
+
+void vehicle_controller::start() {
+    isTerminal = 0;
+}
+
+bool vehicle_controller::_is_near_target(const cart_point &target) {
+    return (std::abs(target.x - self_point.x) < 0.16f) && (std::abs(target.y - self_point.y) < 0.16f);
+}
+
+uint16_t vehicle_controller::get_self_id() const {
+    return this->self_id;
+}
+
+//>>>>>>> ethy_branch
