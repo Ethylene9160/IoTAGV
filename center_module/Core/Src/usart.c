@@ -109,6 +109,8 @@ void MX_USART2_UART_Init(void) {
     if (HAL_UART_Init(&huart2) != HAL_OK) {
         Error_Handler();
     }
+    // Enable the UART Data Register not empty Interrupt
+    __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
     /* USER CODE END USART2_Init 2 */
 }
 
@@ -209,7 +211,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle) {
 
 /* USER CODE BEGIN 1 */
 void USART1_IRQHandler(void) {
-    static uint8_t flag = 1;
+    static uint8_t flag = 0;
+    static uint8_t last_receive_byte = 0x7F;
     uint8_t received_byte;
     uint8_t buffer[27];
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -218,10 +221,11 @@ void USART1_IRQHandler(void) {
     if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
         HAL_UART_Receive(&huart1, &received_byte, 1, 0);
         if (flag == 0) {
-            if (received_byte == 0x5A) {
+            if (received_byte == 0x5A && last_receive_byte == 0x7F) {
                 flag = 1;
                 usart1_buffer_index = 0;
             } else {
+                last_receive_byte = received_byte;
                 return;
             }
         }
@@ -239,16 +243,54 @@ void USART1_IRQHandler(void) {
                 flag = 0;
             }
         }
+        last_receive_byte = received_byte;
     }
 }
 
+
+void USART233_IRQHandler(void) {
+    static uint8_t flag = 0;
+    static uint8_t last_receive_byte = 0x7F;
+    uint8_t received_byte;
+    uint8_t buffer[27];
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    HAL_UART_IRQHandler(&huart2);
+
+    if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE)) {
+        HAL_UART_Receive(&huart2, &received_byte, 1, 0);
+        if (flag == 0) {
+            if (received_byte == 0x5A && last_receive_byte == 0x7F) {
+                flag = 1;
+                usart1_buffer_index = 0;
+            } else {
+                last_receive_byte = received_byte;
+                return;
+            }
+        }
+        u1_rx_buffer[usart1_buffer_index++] = received_byte;
+
+        if (usart1_buffer_index >= BUFFER_SIZE) {
+            usart1_buffer_index = 0;
+            if (u1_rx_buffer[0] == 0x5A && u1_rx_buffer[24] == 0x7F) {
+                memcpy(buffer, u1_rx_buffer, 24);
+                buffer[26] = 0x7F;
+                if (xQueueSendFromISR(S_Queue, buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
+                    Error_Handler();
+                }
+                // HAL_UART_Transmit(&huart1, u1_rx_buffer, BUFFER_SIZE, HAL_MAX_DELAY);
+            }else {
+                flag = 0;
+            }
+        }
+        last_receive_byte = received_byte;
+    }
+}
 /**
  * This is used for receving remote msg.
  */
 void USART2_IRQHandler(void) {
-    static uint8_t flag = 1;
-    static uint8_t usart2_buffer[BUFFER_SIZE];
-
+    static uint8_t flag = 0;
+    static uint8_t last_receive_byte = 0x7F;
     /**
      *0: 0x5A
      *1: type
@@ -259,19 +301,20 @@ void USART2_IRQHandler(void) {
      *total length = 13.
      */
     uint8_t received_byte;
-
     uint8_t buffer[REMOTE_RX_MAX_SIZE];
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     HAL_UART_IRQHandler(&huart2);
-
+    // static uint8_t s2[] = {'d','b','\r','\n'};
+    // HAL_UART_Transmit(&huart2, s2, 4, 0xffffffff);
     if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE)) {
         HAL_UART_Receive(&huart2, &received_byte, 1, 0);
         if (flag == 0) {
-            if (received_byte == 0x5A) {
+            if (received_byte == 0x5A && last_receive_byte == 0x7F) {
                 flag = 1;
                 usart2_buffer_index = 0;
             } else {
+                last_receive_byte = received_byte;
                 return;
             }
         }
@@ -283,11 +326,16 @@ void USART2_IRQHandler(void) {
                 memcpy(buffer, u2_rx_buffer, REMOTE_RX_MAX_SIZE);
                 if (xQueueSendFromISR(Remote_Queue, buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
                     Error_Handler();
+                    // HAL_UART_Transmit(&huart2, "failed!", 7, HAL_MAX_DELAY);
+                }else {
+                    // HAL_UART_Transmit(&huart2, "succeed", 7, HAL_MAX_DELAY);
                 }
+                // HAL_UART_Transmit(&huart1, u2_rx_buffer, REMOTE_RX_MAX_SIZE, HAL_MAX_DELAY);
             }else {
                 flag = 0;
             }
         }
+        last_receive_byte = received_byte;
     }
 }
 
