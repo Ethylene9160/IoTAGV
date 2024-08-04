@@ -14,6 +14,8 @@
 #include "ostask_uwb_module_port.h"
 #include "ostask_usart_transformer.h"
 #include "ostask_test_task.h"
+#include "ostask_mpu6050.h"
+#include "mpu6050.h"
 
 typedef struct {
     cart_point start;
@@ -92,19 +94,24 @@ void startThreads() {
     // vehicle_controller_ptr->push_back(3, ob2);
 
     // controller module port thread
-    osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
+    // osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 
     // test task: 走正方形。
     // osThreadNew(testTaskProcedure, nullptr, &test_task_attributes); // ** Example: 超时时间设为 1s, 每隔 2s 动作一次 (2s 内前 1s 动作, 后 1s 输出 "Expired." 并停止), 绕逆时针方形轨迹. **
 
     // vehicle controller thread
-    osThreadNew(ostask_vehicle_controller::taskProcedure, vehicle_controller_ptr, &ostask_vehicle_controller::task_attributes);
+    //param1; main function
+    //param2; argument 指针
+    //param3: stake size and thread attributes
+    // osThreadNew(ostask_vehicle_controller::taskProcedure, vehicle_controller_ptr, &ostask_vehicle_controller::task_attributes);
 
     // test task: 随机发送障碍物位置，看速度是否正确。
     // osThreadNew(ostask_test_task::taskProcedure, 0, &ostask_test_task::task_attributes);
 
     // ui task: OLED GUI.
-    osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
+    // osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
+    // osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
+    osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
 }
 
 /*

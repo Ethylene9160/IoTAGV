@@ -7,6 +7,7 @@
 #include "vehicle_controller.h"
 
 #include "queue.h"
+#include "mpu.h"
 #include <memory>
 
 namespace ostask_vehicle_controller {
