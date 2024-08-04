@@ -11,6 +11,7 @@
 #include "ostask_controller_module_port.h"
 #include "ostask_vehicle_controller.h"
 #include "ostask_oled_ui.h"
+#include "ostask_remote_control.h"
 #include "ostask_uwb_module_port.h"
 #include "ostask_usart_transformer.h"
 #include "ostask_test_task.h"
@@ -47,34 +48,6 @@ _vehicle_config vehicle_config_default = {
 };
 #endif
 
-/* ** Example Begin ** */
-//const osThreadAttr_t test_task_attributes = {
-//    .name = "osTaskControllerModulePort",
-//    .stack_size = 256 * 4,
-//    .priority = (osPriority_t) osPriorityNormal,
-//};
-//
-//[[noreturn]] void testTaskProcedure(void *argument) {
-//    auto *v = new msgs::Value<uint32_t>(1000);
-//    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_EXPIRED_TIME, v));
-//    osDelay(1000);
-//    while (true) {
-//        msgs::Twist2D* t1 = new msgs::Twist2D(20.0f, 0.0f, 0.0f);
-//        msgs::Twist2D* t2 = new msgs::Twist2D(0.0f, 20.0f, 0.0f);
-//        msgs::Twist2D* t3 = new msgs::Twist2D(-20.0f, 0.0f, 0.0f);
-//        msgs::Twist2D* t4 = new msgs::Twist2D(0.0f, -20.0f, 0.0f);
-//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t1));
-//        osDelay(2000);
-//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t2));
-//        osDelay(2000);
-//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t3));
-//        osDelay(2000);
-//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t4));
-//        osDelay(2000);
-//    }
-//}
-/* ** Example End ** */
-
 void startThreads() {
     // 设置起点和终点坐标
     // cart_point _start{1.6f, 2.0f};
@@ -94,15 +67,12 @@ void startThreads() {
     // controller module port thread
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 
-    // test task: 走正方形。
-    // osThreadNew(testTaskProcedure, nullptr, &test_task_attributes); // ** Example: 超时时间设为 1s, 每隔 2s 动作一次 (2s 内前 1s 动作, 后 1s 输出 "Expired." 并停止), 绕逆时针方形轨迹. **
-
     // vehicle controller thread
     osThreadNew(ostask_vehicle_controller::taskProcedure, vehicle_controller_ptr, &ostask_vehicle_controller::task_attributes);
 
     // test task: 随机发送障碍物位置，看速度是否正确。
     // osThreadNew(ostask_test_task::taskProcedure, 0, &ostask_test_task::task_attributes);
-
+    osThreadNew(ostask_remote_control::taskProcedure, vehicle_controller_ptr, &ostask_remote_control::task_attributes);
     // ui task: OLED GUI.
     osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
 }
