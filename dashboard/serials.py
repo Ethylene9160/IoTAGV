@@ -9,7 +9,7 @@ class SerialManager:
         # self.bytesize: int = 8
         # self.parity: str = 'N'
         # self.stopbits: float = 1
-        self.ser = None
+        self.ser: serial.Serial = None
         
         self.status = False
     
@@ -58,6 +58,9 @@ class SerialManager:
     
     def readline(self):
         return self.ser.readline()
+
+    def readall(self):
+        return self.ser.read(self.ser.in_waiting)
 
     def write(self, data):
         self.ser.write(data)

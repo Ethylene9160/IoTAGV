@@ -36,10 +36,10 @@
 
             <collapsible-card class="primary-card" title="属性" :default-open="true">
                 <div class="properties-content">
-                    <!-- <div class="property-row" v-for="(value, key) in selected_agent" :key="key">
+                    <div class="property-row" v-for="(value, key) in selected_agent" :key="key">
                         <div class="property-name">{{ key }}</div>
                         <div class="property-value">{{ value }}</div>
-                    </div> -->
+                    </div>
                 </div>
             </collapsible-card>
         </div>
@@ -62,7 +62,8 @@ export default {
             serialPorts: [],
             selectedPort: '',
             isConnected: false,
-            selected_agent_id: null
+            selected_agent_id: null,
+            selected_agent: {}
         };
     },
     async mounted() {
@@ -186,6 +187,8 @@ export default {
             }
         },
         initializePlot() {
+            const plotContainer = this.$refs.plotlyContainer;
+
             const layout = {
                 xaxis: {
                     title: 'x (m)',
@@ -198,13 +201,17 @@ export default {
                 dragmode: 'pan'
             };
 
-            Plotly.newPlot(this.$refs.plotlyContainer, [], layout, {
+            Plotly.newPlot(plotContainer, [], layout, {
                 scrollZoom: true
             });
         },
         updatePlot(points) {
             const plotContainer = this.$refs.plotlyContainer;
             if (plotContainer) {
+                // 解绑原先的监听器
+                plotContainer.removeAllListeners('plotly_click');
+
+                // 保存当前的 layout 状态
                 const layout = plotContainer.layout || {};
 
                 // 绘制点的数据
@@ -220,7 +227,8 @@ export default {
                     },
                     text: `${item.id}`,
                     textposition: 'top right',
-                    hoverinfo: 'none',
+                    // hoverinfo: 'none',
+                    hovermode: 'closest', // TODO
                     // showlegend: false
                 } : null).filter(d => d !== null);
 
@@ -293,10 +301,35 @@ export default {
 
                 // 添加箭头注释
                 Plotly.relayout(plotContainer, { annotations: annotations });
+
+                // 绑定点击事件
+                plotContainer.on('plotly_click', this.handlePlotClick);
             }
         },
         resizePlot() {
             Plotly.Plots.resize(this.$refs.plotlyContainer);
+        },
+        handlePlotClick(event) {
+            console.log(event);
+            if (event.points && event.points.length > 0) {
+                const point = event.points[0];
+                const agentId = point.data.id; // 获取点击点的 ID
+
+                if (agentId) {
+                    this.selected_agent_id = agentId;
+
+                    // 更新属性内容
+                    const agent = this.points.find(p => p.id === agentId);
+                    if (agent) {
+                        this.selected_agent = {
+                            名称: agent.id,
+                            位置: `(${agent.position[0].toFixed(2)}, ${agent.position[1].toFixed(2)})`,
+                            速度: agent.velocity ? `(${agent.velocity[0].toFixed(2)}, ${agent.velocity[1].toFixed(2)})` : '无',
+                            颜色: `rgb(${agent.color.join(', ')})`
+                        };
+                    }
+                }
+            }
         }
     }
 };

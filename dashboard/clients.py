@@ -1,3 +1,5 @@
+import json
+
 from sanic import Websocket
 
 
@@ -19,4 +21,4 @@ class WebSocketClientsPool:
                 # print(f"Failed to send message to a client: {e}")
                 print(f"Deprecated client removed.")
                 self.clients.remove(client) # TODO
-
+    

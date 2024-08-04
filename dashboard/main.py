@@ -1,4 +1,5 @@
 import json
+import struct
 import random
 import asyncio
 
@@ -7,13 +8,13 @@ from sanic import HTTPResponse, Request, Websocket
 
 from clients import WebSocketClientsPool
 from serials import SerialManager
-from core import Agent, AgentsPool, Anchor, AnchorsPool
+from core import Agent, AgentsPool, Anchor, AnchorsPool, CommandUtils, CommandFSM
 
 
 APP_NAME = 'Enormous233'
 APP_HOST = 'localhost'
 APP_PORT = 4560
-SERIAL_POLL_INTERVAL = 0.1
+SERIAL_POLL_INTERVAL = 0.2
 
 app = Sanic(APP_NAME)
 clients = WebSocketClientsPool()
@@ -105,74 +106,94 @@ async def check_serial(request: Request):
 
 
 """
-    后台监听串口
+    串口与指令处理任务
 """
+async def broadcast_canvas_update():
+    await clients.broadcast(json.dumps({
+        'type': 'plot',
+        'agents': agents.to_list(),
+        'anchors': anchors.to_list()
+    }))
+
+async def execute_command(content):
+    """
+    0 坐标更新:
+        0x5A ... 0x5A (同步, 三个及以上)
+        0xFF (开始)
+        0x0A 0x00 (长度, uint16)
+        0x00 (type, 0x00 为坐标)
+        0x00 (id, uint8)
+        0x 0x 0x 0x (x, float)
+        0x 0x 0x 0x (y, float)
+        0x7F (结束)
+
+    1 速度更新:
+        0x5A ... 0x5A (同步, 三个及以上)
+        0xFF (开始)
+        0x0A 0x00 (长度, uint16)
+        0x01 (type, 0x01 为速度)
+        0x00 (id, uint8)
+        0x 0x 0x 0x (vx, float)
+        0x 0x 0x 0x (vy, float)
+        0x7F (结束)
+
+    2 目标坐标更新:
+        0x5A ... 0x5A (同步, 三个及以上)
+        0xFF (开始)
+        0x0A 0x00 (长度, uint16)
+        0x02 (type, 0x02 为目标坐标)
+        0x00 (id, uint8)
+        0x 0x 0x 0x (tx, float)
+        0x 0x 0x 0x (ty, float)
+        0x7F (结束)
+    """
+    msg_type = content[0]
+    if msg_type in [0, 1, 2] and len(content) == 10:
+        id, opt1, opt2 = struct.unpack('<Bff', content[1:])
+        agent = agents.get_agent_by_id(id)
+        if msg_type == 0:
+            if agent is None: # 未见过的 agent, 创建
+                agents.append(Agent(id, [opt1, opt2]))
+            else:
+                agent.position = [opt1, opt2]
+        elif msg_type == 1:
+            if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 velocity 不予创建
+                agent.velocity = [opt1, opt2]
+        else: # msg_type == 2:
+            if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 target_position 不予创建
+                agent.target_position = [opt1, opt2]
+            
+        await broadcast_canvas_update() # 0, 1, 2 命令皆需广播画布更新
+
+fsm = CommandFSM(execute_command)
+
 async def serial_listener():
     while True:
-        if serials.is_ready():
-            # 串口处于开启状态
-            if serials.is_received():
-                try:
-                    # 输入缓存中有数据, 处理指令
-                    command = serials.readline().decode().strip().split(',')
-                    canvas_updated = False
-                    if len(command) > 0:
-                        if int(command[0]) == 0: # 坐标: 0, id, x, y
-                            id, x, y = float(command[1]), float(command[2]), float(command[3])
-                            agent = agents.get_agent_by_id(id)
-                            if agent is None:
-                                # 未见过的 agent, 创建
-                                agents.append(Agent(id, [x, y]))
-                            else:
-                                agent.position = [x, y] # TODO: 是引用吗
-                            
-                            canvas_updated = True
-                        elif int(command[0]) == 1: # 速度: 1, id, vx, vy
-                            id, vx, vy = float(command[1]), float(command[2]), float(command[3])
-                            agent = agents.get_agent_by_id(id)
-                            if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 velocity 不予创建
-                                agent.velocity = [vx, vy]
-                            
-                            canvas_updated = True
-                        elif int(command[0]) == 2: # 目标: 2, id, tx, ty
-                            id, tx, ty = float(command[1]), float(command[2]), float(command[3])
-                            agent = agents.get_agent_by_id(id)
-                            if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 target_position 不予创建
-                                agent.target_position = [tx, ty]
-                            
-                            canvas_updated = True
-                        else:
-                            pass
-                    
-                    # 如果有画布信息更新则广播
-                    if canvas_updated:
-                        await clients.broadcast(json.dumps({
-                            'type': 'plot',
-                            'agents': agents.to_list(),
-                            'anchors': anchors.to_list()
-                        }))
-                except Exception as e:
-                    print(f'{e}') # TODO
-        await asyncio.sleep(SERIAL_POLL_INTERVAL)
+        if serials.is_ready(): # 串口处于开启状态
+            if serials.is_received(): # 输入缓存中有数据
+                await fsm.parse(serials.readall())
+        else: # 串口关闭, 清空状态
+            fsm.reset()
+        await asyncio.sleep(SERIAL_POLL_INTERVAL) # 间隔取 buffer, 每次处理取的部分
 
-async def mock_serial_talker():
+async def serial_talker_mock():
     while True:
         if serials.is_ready():
-            # print('mock')
-            serials.write(f'0,233,{random.uniform(-1, 3)},{random.uniform(0, 4)}\n'.encode())
-            serials.write(f'1,233,{random.uniform(-1, 3)},{random.uniform(0, 4)}\n'.encode())
-            serials.write(f'2,233,{random.uniform(-1, 3)},{random.uniform(0, 4)}\n'.encode())
-        await asyncio.sleep(0.1)
+            # serials.write(CommandUtils.pack_position_datagram(233, 0.2, 0.3))
+            serials.write(CommandUtils.pack_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
+            serials.write(CommandUtils.pack_velocity_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
+            serials.write(CommandUtils.pack_target_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
+        await asyncio.sleep(0.2)
 
+
+"""
+    启动后台任务和服务端
+"""
 @app.listener('before_server_start')
 async def setup_background_task(app, loop):
     loop.create_task(serial_listener())
-    loop.create_task(mock_serial_talker())
+    loop.create_task(serial_talker_mock())
 
-
-"""
-    启动服务端
-"""
 if __name__ == '__main__':
     app.run(host = APP_HOST, port = APP_PORT)
 
