@@ -8,6 +8,7 @@
 
 #include "queue.h"
 #include <memory>
+
 namespace ostask_vehicle_controller {
     float flt_vx = 0.0f, flt_vy = 0.0f;
     float alpha = 0.233f;

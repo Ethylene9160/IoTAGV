@@ -1,20 +1,19 @@
 #include <ios>
-
-#include "main.h"
+#include <memory>
 
 #include "cmsis_os.h"
 
-#include "ostask_controller_module_port.h"
-#include "ostask_uwb_module_port.h"
-#include "ostask_usart_transformer.h"
-#include "ostask_test_task.h"
+#include "main.h"
 
 #include "port_uart.h"
 #include "vehicle_controller.h"
 
-#include <memory>
-
+#include "ostask_controller_module_port.h"
 #include "ostask_vehicle_controller.h"
+#include "ostask_oled_ui.h"
+#include "ostask_uwb_module_port.h"
+#include "ostask_usart_transformer.h"
+#include "ostask_test_task.h"
 
 typedef struct {
     cart_point start;
@@ -22,10 +21,10 @@ typedef struct {
     uint16_t id;
 } _vehicle_config;
 
-#define V0
+#define V2
 
 #ifdef V0
-_vehicle_config vehicle_config = {
+_vehicle_config vehicle_config_default = {
         .start = {1.6f, 2.0f},
         .terminal = {1.0f, 4.5f},
         .id = 0x80
@@ -33,7 +32,7 @@ _vehicle_config vehicle_config = {
 #endif
 
 #ifdef V1
-_vehicle_config vehicle_config = {
+_vehicle_config vehicle_config_default = {
         .start = {1.6f, 2.0f},
         .terminal = {3.0f, 1.5f},
         .id = 0x81
@@ -41,7 +40,7 @@ _vehicle_config vehicle_config = {
 #endif
 
 #ifdef V2
-_vehicle_config vehicle_config = {
+_vehicle_config vehicle_config_default = {
     .start = {1.6f, 2.0f},
     .terminal = {-0.3f, 1.5f},
     .id = 0x82
@@ -49,42 +48,42 @@ _vehicle_config vehicle_config = {
 #endif
 
 /* ** Example Begin ** */
-const osThreadAttr_t test_task_attributes = {
-    .name = "osTaskControllerModulePort",
-    .stack_size = 256 * 4,
-    .priority = (osPriority_t) osPriorityNormal,
-};
-
-[[noreturn]] void testTaskProcedure(void *argument) {
-    auto *v = new msgs::Value<uint32_t>(1000);
-    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_EXPIRED_TIME, v));
-    osDelay(1000);
-    while (true) {
-        msgs::Twist2D* t1 = new msgs::Twist2D(20.0f, 0.0f, 0.0f);
-        msgs::Twist2D* t2 = new msgs::Twist2D(0.0f, 20.0f, 0.0f);
-        msgs::Twist2D* t3 = new msgs::Twist2D(-20.0f, 0.0f, 0.0f);
-        msgs::Twist2D* t4 = new msgs::Twist2D(0.0f, -20.0f, 0.0f);
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t1));
-        osDelay(2000);
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t2));
-        osDelay(2000);
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t3));
-        osDelay(2000);
-        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t4));
-        osDelay(2000);
-    }
-}
+//const osThreadAttr_t test_task_attributes = {
+//    .name = "osTaskControllerModulePort",
+//    .stack_size = 256 * 4,
+//    .priority = (osPriority_t) osPriorityNormal,
+//};
+//
+//[[noreturn]] void testTaskProcedure(void *argument) {
+//    auto *v = new msgs::Value<uint32_t>(1000);
+//    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_EXPIRED_TIME, v));
+//    osDelay(1000);
+//    while (true) {
+//        msgs::Twist2D* t1 = new msgs::Twist2D(20.0f, 0.0f, 0.0f);
+//        msgs::Twist2D* t2 = new msgs::Twist2D(0.0f, 20.0f, 0.0f);
+//        msgs::Twist2D* t3 = new msgs::Twist2D(-20.0f, 0.0f, 0.0f);
+//        msgs::Twist2D* t4 = new msgs::Twist2D(0.0f, -20.0f, 0.0f);
+//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t1));
+//        osDelay(2000);
+//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t2));
+//        osDelay(2000);
+//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t3));
+//        osDelay(2000);
+//        ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, t4));
+//        osDelay(2000);
+//    }
+//}
 /* ** Example End ** */
 
 void startThreads() {
-
     // 设置起点和终点坐标
-    // cart_point _start{1.6f,2.0f};
-    // cart_point _terminal{1.0f,1.2f};
+    // cart_point _start{1.6f, 2.0f};
+    // cart_point _terminal{1.0f, 1.2f};
 
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
     // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);
-    auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config.id, vehicle_config.start, vehicle_config.terminal);
+
+    auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
 
     // 随机放入一些障碍物
     // cart_point ob1{0.0f, 0.0f};
@@ -103,6 +102,9 @@ void startThreads() {
 
     // test task: 随机发送障碍物位置，看速度是否正确。
     // osThreadNew(ostask_test_task::taskProcedure, 0, &ostask_test_task::task_attributes);
+
+    // ui task: OLED GUI.
+    osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
 }
 
 /*
