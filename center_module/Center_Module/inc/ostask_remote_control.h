@@ -1,7 +1,3 @@
-//
-// Created by 季吉安 on 2024/8/3.
-//
-
 #ifndef CENTER_MODULE_OSTASK_REMOTE_CONTROL_H
 #define CENTER_MODULE_OSTASK_REMOTE_CONTROL_H
 #include "usart.h"
