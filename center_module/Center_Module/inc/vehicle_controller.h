@@ -28,8 +28,18 @@ typedef struct {
     float w;
 } cart_velocity;
 
+typedef struct {
+    cart_point current_point;
+    cart_point target_point;
+} vehicle_info;
+
 class vehicle_controller {
 public:
+    static float v_cons;
+    static float v_k;
+    static float collision_radius;
+    static float large_bias;
+
     vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point);
 
     void tick();
@@ -66,11 +76,8 @@ private:
     cart_point target_point;
     cart_point self_point;
     cart_velocity self_vel;
-    bool isTerminal; // TODO: 是否需要加锁? bool 直接赋值似乎是原子操作.
-    static float v_cons;
-    static float v_k;
-    static float collision_radius;
-    static float large_bias;
+    bool isTerminal;
+
     std::map<uint16_t, cart_point> vehicle_position;
 
     osMutexId_t vehicle_controller_mutex;
