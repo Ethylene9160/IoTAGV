@@ -25,7 +25,7 @@
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
-#include "mpu6050.h"
+#include "mpu.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -96,12 +96,13 @@ int main(void)
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   // char init_msg[] = "usart2 initialized\n";
   // HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
 
-  // MPU_Init();
-    MPU6050_Init();
+  MPU_Init();
+  // MPU6050_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */

@@ -48,7 +48,11 @@ namespace ostask_vehicle_controller {
         tx_buffer[2] = 0x01;
         memcpy(tx_buffer + 3, &flt_vx, 4);
         memcpy(tx_buffer + 7, &flt_vy, 4);
-        HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
+        // HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
+
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Running ostask_vehicle_controller\r\n");
+        HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 
         // msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
         msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w);

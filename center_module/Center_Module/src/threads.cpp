@@ -15,7 +15,7 @@
 #include "ostask_usart_transformer.h"
 #include "ostask_test_task.h"
 #include "ostask_mpu6050.h"
-#include "mpu6050.h"
+#include "mpu.h"
 
 typedef struct {
     cart_point start;
@@ -85,7 +85,7 @@ void startThreads() {
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
     // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);
 
-    auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
+    // auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
 
     // 随机放入一些障碍物
     // cart_point ob1{0.0f, 0.0f};
@@ -110,8 +110,8 @@ void startThreads() {
 
     // ui task: OLED GUI.
     // osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
-    // osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
     osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
+    // osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
 }
 
 /*

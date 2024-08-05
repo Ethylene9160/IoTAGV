@@ -1,5 +1,5 @@
 #include "ostask_mpu6050.h"
-#include "mpu6050.h"
+#include "mpu.h"
 #include <stdio.h>
 #include <string.h>
 
