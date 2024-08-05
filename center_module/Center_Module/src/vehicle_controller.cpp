@@ -34,9 +34,6 @@ void vehicle_controller::tick() {
     float _d = std::sqrt(_dx * _dx + _dy * _dy);
 
     for (const auto &vehicle: vehicle_position) {
-        // char buffer[64];
-        // int len = sprintf(buffer, "obstacle:%d,  %.2f, %.2f, self: %.2f, %.2f\n", vehicle.first, vehicle.second.x, vehicle.second.y, self_point.x, self_point.y);
-        // HAL_UART_Transmit(&huart2, (uint8_t *)buffer, len, 0xffff);
         _update_self_vel(vehicle.second, bias_x, bias_y, total_weight_x, total_weight_y);
     }
 

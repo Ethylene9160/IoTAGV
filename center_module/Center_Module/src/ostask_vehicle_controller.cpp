@@ -13,6 +13,8 @@
 namespace ostask_vehicle_controller {
     float flt_vx = 0.0f, flt_vy = 0.0f;
     float alpha = 0.233f;
+    uint8_t tx_buffer[19];
+
     BaseType_t get_xQueueReceive(uint8_t*buffer, TickType_t xTicksToWait) {
         osStatus_t status = osMutexAcquire(USART1_MutexHandle, osWaitForever);
         if (status == osOK) {
@@ -25,8 +27,28 @@ namespace ostask_vehicle_controller {
         return pdFALSE;
     }
 
+    void send_msg(uint8_t msg_type, uint8_t id, float f1, float f2) {
+        tx_buffer[18] = 0x7F;
+        // return;
+        tx_buffer[8] = msg_type;
+        tx_buffer[9] = id;
+        memcpy(tx_buffer + 10, &f1, 4);
+        memcpy(tx_buffer + 14, &f2, 4);
+        HAL_UART_Transmit(&huart2, tx_buffer, 19, HAL_MAX_DELAY);
+    }
+
     void taskProcedure(void *argument) {
         auto* controller = static_cast<vehicle_controller *>(argument);
+        tx_buffer[0] = 0x5A;
+        tx_buffer[1] = 0x5A;
+        tx_buffer[2] = 0x5A;
+        tx_buffer[3] = 0x5A;
+        tx_buffer[4] = 0x5A;
+        tx_buffer[5] = 0xFF;
+
+        // 小端在前
+        tx_buffer[6] = 10;
+        tx_buffer[7] = 0;
         while (true) {
             read_queue(controller);
             set_control_msg(controller);
@@ -35,7 +57,7 @@ namespace ostask_vehicle_controller {
     }
 
     void set_control_msg(vehicle_controller* controller) {
-        static uint8_t tx_buffer[13] = {0x5A, 0,0,0,0,0,0,0,0,0,0,0,0x7F};
+        // static uint8_t tx_buffer[13] = {0x5A, 0,0,0,0,0,0,0,0,0,0,0,0x7F};
         controller -> tick();
         cart_velocity v = controller -> get_self_velocity();
 
@@ -44,15 +66,8 @@ namespace ostask_vehicle_controller {
         flt_vx = alpha * v.vx + (1 - alpha) * flt_vx;
         flt_vy = alpha * v.vy + (1 - alpha) * flt_vy;
 
-        tx_buffer[1] = (controller->get_self_id()&0xFF);
-        tx_buffer[2] = 0x01;
-        memcpy(tx_buffer + 3, &flt_vx, 4);
-        memcpy(tx_buffer + 7, &flt_vy, 4);
         // HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
-
-        char msg[128];
-        snprintf(msg, sizeof(msg), "Running ostask_vehicle_controller\r\n");
-        HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+        send_msg((uint8_t)0x01, (uint8_t)(controller->get_self_id()&0xFF), flt_vx, flt_vy);
 
         // msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
         msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w);
@@ -63,7 +78,6 @@ namespace ostask_vehicle_controller {
 
     void read_queue(vehicle_controller* controller) {
         uint8_t buffer[27];
-        static uint8_t tx_buffer[13] = {0x5A, 0,0,0,0,0,0,0,0,0,0,0,0x7F};
         while(get_xQueueReceive(buffer, 20) == pdTRUE) {
             //tag_receive_broad(buffer);
             uint16_t source_id = 0;
@@ -85,14 +99,8 @@ namespace ostask_vehicle_controller {
                     return;
                 }
 
-                tx_buffer[1] = source_id & 0xFF;
-                tx_buffer[2] = 0x00; // position信息
-
-                memcpy(tx_buffer + 3, &x, 4);
-                memcpy(tx_buffer + 7, &y, 4);
-
-                HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
-
+                // HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
+                send_msg((uint8_t)0x00, (uint8_t)(source_id&0xFF), x, y);
                 cart_point point = {x, y};
                 controller->push_back(source_id, point);
             }
