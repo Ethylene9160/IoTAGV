@@ -77,7 +77,7 @@ void startThreads() {
 
     // test task: 随机发送障碍物位置，看速度是否正确。
     // osThreadNew(ostask_test_task::taskProcedure, 0, &ostask_test_task::task_attributes);
-    osThreadNew(ostask_remote_control::taskProcedure, vehicle_controller_ptr, &ostask_remote_control::task_attributes);
+    // osThreadNew(ostask_remote_control::taskProcedure, vehicle_controller_ptr, &ostask_remote_control::task_attributes);
     // ui task: OLED GUI.
     // osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
     osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);

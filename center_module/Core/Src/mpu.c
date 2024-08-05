@@ -6,25 +6,23 @@
 #include "queue.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+#include "kalman.h"
+
+#define PI 3.14159f  // 定义 PI
 
 QueueHandle_t MPU_Queue;
+Kalman kalmanYaw;
 
 void I2C_Write(uint8_t devAddr, uint8_t regAddr, uint8_t data);
 void I2C_Read(uint8_t devAddr, uint8_t regAddr, uint8_t* buffer, uint16_t length);
-void MPU_Task(void *argument);
 
 void MPU_Init(void) {
     uint8_t check;
     uint8_t data;
     char msg[128];
 
-    // 创建队列
     MPU_Queue = xQueueCreate(10, sizeof(float));
-    if (MPU_Queue == NULL) {
-        snprintf(msg, sizeof(msg), "Queue creation failed\r\n");
-        HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-        while(1); // 如果创建队列失败，则停止程序
-    }
 
     // Check device ID WHO_AM_I
     I2C_Read(MPU6050_ADDR, WHO_AM_I_REG, &check, 1);
@@ -49,6 +47,9 @@ void MPU_Init(void) {
     }
 
     MPU_Queue = xQueueCreate(10, sizeof(float));
+
+    // Initialize the Kalman filter for yaw
+    Kalman_Init(&kalmanYaw);
 }
 
 void MPU_Read_Accel(float* ax, float* ay, float* az) {
@@ -81,12 +82,6 @@ void MPU_Read_Gyro(float* gx, float* gy, float* gz) {
     *gz = (float)raw_gz / 131.0f;
 }
 
-float MPU_Calculate_Yaw(float gx, float dt) {
-    static float yaw = 0.0f;
-    yaw += gx * dt;
-    return yaw;
-}
-
 void I2C_Write(uint8_t devAddr, uint8_t regAddr, uint8_t data) {
     uint8_t buffer[2];
     buffer[0] = regAddr;
@@ -99,19 +94,29 @@ void I2C_Read(uint8_t devAddr, uint8_t regAddr, uint8_t* buffer, uint16_t length
     HAL_I2C_Master_Receive(&hi2c2, devAddr, buffer, length, HAL_MAX_DELAY);
 }
 
-void MPU_Process_Data(void) {
-    static float alpha = 0.0f;
-    float gx, gy, gz;
-
-    MPU_Read_Gyro(&gx, &gy, &gz);
-    alpha = MPU_Calculate_Yaw(gz, 0.01f); // assuming 0.01s time interval for simplicity
-
-    char debug_msg[128];
-    snprintf(debug_msg, sizeof(debug_msg), "Processing data: gx=%.2f, gy=%.2f, gz=%.2f, alpha=%.2f\r\n", gx, gy, gz, alpha);
-    HAL_UART_Transmit(&huart2, (uint8_t*)debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
-
-    if (xQueueSendFromISR(MPU_Queue, &alpha, NULL) != pdTRUE) {
-        Error_Handler();
-    }
-}
-
+// void MPU_Process_Data(void) {
+//     static float yaw = 0.0f;
+//     float gx, gy, gz;
+//     float ax, ay, az;
+//     float dt = 0.01f; // assuming 0.01s time interval for simplicity
+//
+//     MPU_Read_Gyro(&gx, &gy, &gz);
+//     MPU_Read_Accel(&ax, &ay, &az);
+//
+//     yaw = Kalman_Update(&kalmanYaw, atan2(ay, ax) * 180 / PI, gz, dt); // Using Kalman filter for yaw
+//
+//     char debug_msg[128];
+//     snprintf(debug_msg, sizeof(debug_msg), "Processing data: gx=%.2f, gy=%.2f, gz=%.2f, yaw=%.2f\r\n", gx, gy, gz, yaw);
+//     HAL_UART_Transmit(&huart2, (uint8_t*)debug_msg, strlen(debug_msg), HAL_MAX_DELAY);
+//
+//     if (xQueueSendFromISR(MPU_Queue, &yaw, NULL) != pdTRUE) {
+//         Error_Handler();
+//     }
+// }
+//
+// void MPU_Task(void *argument) {
+//     while (1) {
+//         MPU_Process_Data();
+//         vTaskDelay(pdMS_TO_TICKS(10)); // 10ms delay
+//     }
+// }
