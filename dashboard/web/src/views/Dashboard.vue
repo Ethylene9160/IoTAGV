@@ -35,10 +35,64 @@
             </collapsible-card>
 
             <collapsible-card class="primary-card" title="属性" :default-open="true">
+                <el-select v-model="selected_agent_id" placeholder="选择 Agent ID" class="full-width">
+                    <el-option
+                        v-for="agent in agents"
+                        :key="agent.id"
+                        :label="agent.id"
+                        :value="agent.id"
+                    ></el-option>
+                </el-select>
                 <div class="properties-content">
-                    <div class="property-row" v-for="(value, key) in selected_agent" :key="key">
+                    <div class="property-row" v-for="(value, key) in formattedSelectedAgent" :key="key" >
                         <div class="property-name">{{ key }}</div>
-                        <div class="property-value">{{ value }}</div>
+                        <div class="property-value">
+                            <span v-if="key !== '颜色'">{{ value }}</span>
+                            <span v-else :style="{ backgroundColor: value, display: 'inline-block', width: '20px', height: '20px' }"></span>
+                        </div>
+                    </div>
+                </div>
+                <hr />
+                <div class="command-section">
+                    <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
+                        <el-option label="设置目标位置" value="0"></el-option>
+                        <el-option label="设置速度因子" value="1"></el-option>
+                        <el-option label="暂停" value="2"></el-option>
+                        <el-option label="启动" value="3"></el-option>
+                    </el-select>
+                    <div v-if="selectedCommand === '0'">
+                        <el-row :gutter="20" class="command-inputs">
+                            <el-col :span="12">
+                                <el-input v-model="targetPositionX" type="number" placeholder="X"></el-input>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-input v-model="targetPositionY" type="number" placeholder="Y"></el-input>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20" class="button-row">
+                            <el-col :span="24">
+                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                            </el-col>
+                        </el-row>
+                    </div>
+                    <div v-if="selectedCommand === '1'">
+                        <el-row :gutter="20" class="command-inputs">
+                            <el-col :span="24">
+                                <el-input v-model="velocityRatio" type="number" placeholder="速度系数"></el-input>
+                            </el-col>
+                        </el-row>
+                        <el-row :gutter="20" class="button-row">
+                            <el-col :span="24">
+                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                            </el-col>
+                        </el-row>
+                    </div>
+                    <div v-if="selectedCommand === '2' || selectedCommand === '3'">
+                        <el-row :gutter="20" class="button-row">
+                            <el-col :span="24">
+                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                            </el-col>
+                        </el-row>
                     </div>
                 </div>
             </collapsible-card>
@@ -63,8 +117,34 @@ export default {
             selectedPort: '',
             isConnected: false,
             selected_agent_id: null,
-            selected_agent: {}
+            selected_agent: {},
+            agents: [],
+            selectedCommand: '0',
+            targetPositionX: null,
+            targetPositionY: null,
+            velocityRatio: null
         };
+    },
+    computed: {
+        formattedSelectedAgent() {
+            const name_mapping = {
+                'id': '编号',
+                'position': '位置',
+                'velocity': '速度',
+                'target_position': '目标位置'
+            }
+            const formattedAgent = {};
+            for (const [key, value] of Object.entries(this.selected_agent)) {
+                if (Object.keys(name_mapping).includes(key)) {
+                    if (key === 'position' || key === 'velocity' || key === 'target_position') {
+                        formattedAgent[name_mapping[key]] = value[0].toFixed(2) + ', ' + value[1].toFixed(2)
+                    } else {
+                        formattedAgent[name_mapping[key]] = value;
+                    }
+                }
+            }
+            return formattedAgent;
+        }
     },
     async mounted() {
         this.scanPorts();
@@ -74,7 +154,6 @@ export default {
 
         this.$options.sockets.onmessage = (msg) => {
             const data = JSON.parse(msg.data);
-            // console.log(data);
 
             /*
                 画布更新消息: data = {
@@ -104,6 +183,8 @@ export default {
             */
             if (data.type === 'plot') {
                 this.updatePlot(data.agents.concat(data.anchors));
+                this.agents = data.agents;
+                this.updateSelectedAgent();
             } else if (data.type === 'serial_status') {
                 this.isConnected = data.new_status;
                 ElMessage({
@@ -192,7 +273,7 @@ export default {
             const layout = {
                 xaxis: {
                     title: 'x (m)',
-                    range: [-1.5, 3.5]
+                    range: [-1.75, 3.75]
                 },
                 yaxis: {
                     title: 'y (m)',
@@ -208,61 +289,56 @@ export default {
         updatePlot(points) {
             const plotContainer = this.$refs.plotlyContainer;
             if (plotContainer) {
-                // 解绑原先的监听器
-                plotContainer.removeAllListeners('plotly_click');
-
                 // 保存当前的 layout 状态
                 const layout = plotContainer.layout || {};
 
-                // 绘制点的数据
-                const data = points.map(item => ('id' in item && 'position' in item) ? {
-                    x: [item.position[0]],
-                    y: [item.position[1]],
-                    mode: 'markers+text',
-                    type: 'scatter',
-                    name: `${item.id}`,
-                    marker: {
-                        size: 12,
-                        color: ('color' in item ? `rgb(${item.color[0]}, ${item.color[1]}, ${item.color[2]})` : 'grey')
-                    },
-                    text: `${item.id}`,
-                    textposition: 'top right',
-                    // hoverinfo: 'none',
-                    hovermode: 'closest', // TODO
-                    // showlegend: false
-                } : null).filter(d => d !== null);
-
-                // 绘制目标区域的圆形
-                const targetAreas = points.map(item => {
-                    if ('id' in item && 'target_position' in item && item.target_position) {
-                        const [tx, ty] = item.target_position;
-                        const targetColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.3)` : 'rgba(128, 128, 128, 0.3)');
-                        const borderColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.6)` : 'rgba(128, 128, 128, 0.6)');
-
-                        // 计算圆形区域的点
-                        const theta = Array.from({ length: 36 }, (_, i) => i * (2 * Math.PI / 36));
-                        const xCircle = theta.map(angle => tx + 0.3 * Math.cos(angle));
-                        const yCircle = theta.map(angle => ty + 0.3 * Math.sin(angle));
-
-                        return {
-                            x: xCircle,
-                            y: yCircle,
-                            mode: 'lines',
+                // 绘制坐标点和目标点的数据
+                var data = [];
+                for (let item of points) {
+                    if ('id' in item && 'position' in item && item.position) {
+                        data.push({
+                            x: [item.position[0]],
+                            y: [item.position[1]],
+                            mode: 'markers+text',
                             type: 'scatter',
-                            line: {
-                                width: 2,
-                                color: borderColor,
-                                dash: 'dash'
+                            name: `${item.id}`,
+                            marker: {
+                                size: 12,
+                                color: ('color' in item ? `rgb(${item.color[0]}, ${item.color[1]}, ${item.color[2]})` : 'grey')
                             },
-                            fill: 'toself',
-                            fillcolor: targetColor,
+                            text: `${item.id}`,
+                            textposition: 'top right',
                             hoverinfo: 'none',
+                            // hovermode: 'closest',
                             showlegend: false
-                        };
-                    } else {
-                        return null;
+                        });
+                        if ('target_position' in item && item.target_position) {
+                            const [tx, ty] = item.target_position;
+                            const targetColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.3)` : 'rgba(128, 128, 128, 0.3)');
+                            const borderColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.6)` : 'rgba(128, 128, 128, 0.6)');
+
+                            const theta = Array.from({ length: 36 }, (_, i) => i * (2 * Math.PI / 36));
+                            const xCircle = theta.map(angle => tx + 0.3 * Math.cos(angle));
+                            const yCircle = theta.map(angle => ty + 0.3 * Math.sin(angle));
+
+                            data.push({
+                                x: xCircle,
+                                y: yCircle,
+                                mode: 'lines',
+                                type: 'scatter',
+                                line: {
+                                    width: 2,
+                                    color: borderColor,
+                                    dash: 'dash'
+                                },
+                                fill: 'toself',
+                                fillcolor: targetColor,
+                                hoverinfo: 'none',
+                                showlegend: false
+                            });
+                        }
                     }
-                }).filter(d => d !== null);
+                }
 
                 // 绘制箭头的注释
                 const annotations = points.map(item => {
@@ -293,42 +369,65 @@ export default {
                     }
                 }).filter(d => d !== null);
 
-                // 将箭头和目标区域分开处理
-                const allData = [...data, ...targetAreas];
-
                 // 更新图形
-                Plotly.react(plotContainer, allData, layout);
+                Plotly.react(plotContainer, data, layout);
 
                 // 添加箭头注释
                 Plotly.relayout(plotContainer, { annotations: annotations });
-
-                // 绑定点击事件
-                plotContainer.on('plotly_click', this.handlePlotClick);
             }
         },
         resizePlot() {
             Plotly.Plots.resize(this.$refs.plotlyContainer);
         },
-        handlePlotClick(event) {
-            console.log(event);
-            if (event.points && event.points.length > 0) {
-                const point = event.points[0];
-                const agentId = point.data.id; // 获取点击点的 ID
+        updateSelectedAgent() {
+            const selected = this.agents.find(agent => agent.id === this.selected_agent_id);
+            this.selected_agent = selected ? selected : {};
+        },
+        async sendCommand() {
+            if (!this.selected_agent_id) {
+                ElMessage({
+                    message: '请先选择一个 Agent ID',
+                    type: 'warning'
+                });
+                return;
+            }
 
-                if (agentId) {
-                    this.selected_agent_id = agentId;
+            var commandArgs = {
+                type: Number(this.selectedCommand),
+                id: Number(this.selected_agent_id),
+                opt1: null,
+                opt2: null
+            };
+            if (this.selectedCommand === '0') {
+                commandArgs.opt1 = Number(this.targetPositionX);
+                commandArgs.opt2 = Number(this.targetPositionY);
+            } else if (this.selectedCommand === '1') {
+                commandArgs.opt1 = Number(this.velocityRatio);
+                commandArgs.opt2 = 0;
+            } else {
+                commandArgs.opt1 = 0;
+                commandArgs.opt2 = 0;
+            }
 
-                    // 更新属性内容
-                    const agent = this.points.find(p => p.id === agentId);
-                    if (agent) {
-                        this.selected_agent = {
-                            名称: agent.id,
-                            位置: `(${agent.position[0].toFixed(2)}, ${agent.position[1].toFixed(2)})`,
-                            速度: agent.velocity ? `(${agent.velocity[0].toFixed(2)}, ${agent.velocity[1].toFixed(2)})` : '无',
-                            颜色: `rgb(${agent.color.join(', ')})`
-                        };
-                    }
+            try {
+                const response = await axios.post((new URL("/command", global_config.http_address)).href, commandArgs);
+                if (response.data.status) {
+                    ElMessage({
+                        message: '指令发送成功',
+                        type: 'success'
+                    });
+                } else {
+                    ElMessage({
+                        message: '指令发送失败',
+                        type: 'error'
+                    });
                 }
+            } catch (error) {
+                console.error('Error sending command:', error);
+                ElMessage({
+                    message: '指令发送失败',
+                    type: 'error'
+                });
             }
         }
     }
@@ -356,6 +455,9 @@ export default {
     width: 100%;
 }
 .serial-port-controls {
+    margin-top: 1rem;
+}
+.command-inputs {
     margin-top: 1rem;
 }
 .button-col {
@@ -389,5 +491,15 @@ export default {
     flex: 1;
     color: #666;
     text-align: right;
+}
+.command-section {
+    margin-top: 1rem;
+}
+.button-col {
+    display: flex;
+    align-items: center;
+}
+.button-row {
+    margin-top: 1rem; /* 添加间隔 */
 }
 </style>

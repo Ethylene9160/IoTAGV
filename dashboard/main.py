@@ -26,8 +26,8 @@ anchors.append(Anchor(0x00, [0.0, 0.0]))
 anchors.append(Anchor(0x01, [2.0, 0.0]))
 
 # TODO: mock agents
-agents.append(Agent(0x80, [1.0, 2.0], [-0.3, 1.0], [3.0, 4.0]))
-agents.append(Agent(0x81, [2.0, 2.0], [-0.3, -0.4], [-0.5, 3.0]))
+# agents.append(Agent(0x80, [1.0, 2.0], [-0.3, 1.0], [3.0, 4.0]))
+# agents.append(Agent(0x81, [2.0, 2.0], [-0.3, -0.4], [-0.5, 3.0]))
 
 
 """
@@ -104,9 +104,36 @@ async def open_serial(request: Request):
 async def check_serial(request: Request):
     return response.json({'status': serials.is_ready()})
 
+@app.post('/command')
+async def command(request: Request):
+    data = request.json
+    msg_type = data.get('type', None)
+    id = data.get('id', None)
+    opt1 = data.get('opt1', None)
+    opt2 = data.get('opt2', None)
+    
+    if msg_type is None or id is None:
+        return response.json({'status': False})
+    
+    if msg_type == 0 and opt1 is not None and opt2 is not None: # 设置目标位置
+        cmd = CommandUtils.pack_set_target_position_command(id, opt1, opt2)
+    elif msg_type == 1 and opt1 is not None: # 设置速度系数
+        cmd = CommandUtils.pack_set_velocity_ratio_command(id, opt1)
+    elif msg_type == 2: # 暂停
+        cmd = CommandUtils.pack_pause_command(id)
+    elif msg_type == 3: # 继续
+        cmd = CommandUtils.pack_resume_command(id)
+    else:
+        return response.json({'status': False})
+    
+    serials.write(cmd)
+    print(f'Command sent: type = {msg_type}, id = {id}, opt1 = {opt1}, opt2 = {opt2}, raw = {cmd}.')
+    
+    return response.json({'status': True})
+
 
 """
-    串口与指令处理任务
+    串口与接收报文处理任务
 """
 async def broadcast_canvas_update():
     await clients.broadcast(json.dumps({
