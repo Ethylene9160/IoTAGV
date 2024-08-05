@@ -77,6 +77,12 @@ static dwt_config_t dwt_config = {
 #define ANCHOR_POLL 1
 //#define ANCHOR_EXCHANGING 2
 #define ANCHOR_FINAL 3
+
+#define CONTROL_MSG_ID 0xFE
+
+#define POSITION_UPDATE 0
+#define UPDATE_TARGET 1
+
 static uint8_t const MAX_TLE_TIMES = 3;
 
 static tag_info_t tag_storage;

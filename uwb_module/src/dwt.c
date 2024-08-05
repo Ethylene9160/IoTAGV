@@ -421,6 +421,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                         debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
                     send_upload_position_msg(
                         module_config.module_id,
+                        POSITION_UPDATE,
                         p.x,
                         p.y,
                         tag_storage.d1,
@@ -460,10 +461,9 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 
                 // }
             }
-        }else { //来自tag的消息
-            if (dest_id == MSG_BROADCAST_ID
-                && current_state == TAG_FREE // todo: 能不能在测试的间隙，接收别的tag的位置。
-                ) {
+        }else if (src_mode == TAG){ //来自tag的消息
+            if (current_state != TAG_FREE) return; // todo: 能不能在测试的间隙，接收别的tag的位置。
+            if (dest_id == MSG_BROADCAST_ID) {
                 if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received position from %d.\n", src_id);
 
                 // Unpack the position
@@ -479,8 +479,16 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     // debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
 
                     debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
-                send_upload_position_msg(src_id, x, y, d1, d2);
+                send_upload_position_msg(src_id, POSITION_UPDATE, x, y, d1, d2);
                 // debug_printf("src_id: %d, x: %f, y: %f, d1: %f, d2: %f\r\n", src_id, x, y, d1, d2);
+            }
+            else if (dest_id == CONTROL_MSG_ID) { // 收到的是控制信号
+                float f1 = 0.0f, f2 = 0.0f;
+                //7: ctrl_msg
+                // 8-11,12-15
+                memcpy(&f1, rx_buffer[8], 4);
+                memcpy(&f2, rx_buffer[12], 4);
+                send_upload_position_msg(src_id, rx_buffer[7], f1, f2, 0.0f, 0.0f);
             }
         }
     }
