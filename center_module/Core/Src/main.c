@@ -102,7 +102,6 @@ int main(void)
   // HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
 
   MPU_Init();
-  // MPU6050_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */

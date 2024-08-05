@@ -9,14 +9,22 @@
 
 QueueHandle_t MPU_Queue;
 
-static void I2C_Write(uint8_t devAddr, uint8_t regAddr, uint8_t data);
-static void I2C_Read(uint8_t devAddr, uint8_t regAddr, uint8_t* buffer, uint16_t length);
+void I2C_Write(uint8_t devAddr, uint8_t regAddr, uint8_t data);
+void I2C_Read(uint8_t devAddr, uint8_t regAddr, uint8_t* buffer, uint16_t length);
 void MPU_Task(void *argument);
 
 void MPU_Init(void) {
     uint8_t check;
     uint8_t data;
     char msg[128];
+
+    // 创建队列
+    MPU_Queue = xQueueCreate(10, sizeof(float));
+    if (MPU_Queue == NULL) {
+        snprintf(msg, sizeof(msg), "Queue creation failed\r\n");
+        HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+        while(1); // 如果创建队列失败，则停止程序
+    }
 
     // Check device ID WHO_AM_I
     I2C_Read(MPU6050_ADDR, WHO_AM_I_REG, &check, 1);
@@ -79,14 +87,14 @@ float MPU_Calculate_Yaw(float gx, float dt) {
     return yaw;
 }
 
-static void I2C_Write(uint8_t devAddr, uint8_t regAddr, uint8_t data) {
+void I2C_Write(uint8_t devAddr, uint8_t regAddr, uint8_t data) {
     uint8_t buffer[2];
     buffer[0] = regAddr;
     buffer[1] = data;
     HAL_I2C_Master_Transmit(&hi2c2, devAddr, buffer, 2, HAL_MAX_DELAY);
 }
 
-static void I2C_Read(uint8_t devAddr, uint8_t regAddr, uint8_t* buffer, uint16_t length) {
+void I2C_Read(uint8_t devAddr, uint8_t regAddr, uint8_t* buffer, uint16_t length) {
     HAL_I2C_Master_Transmit(&hi2c2, devAddr, &regAddr, 1, HAL_MAX_DELAY);
     HAL_I2C_Master_Receive(&hi2c2, devAddr, buffer, length, HAL_MAX_DELAY);
 }
