@@ -7,12 +7,20 @@
 #include <cstdio>
 #include <cstring>
 #include <cmath>
+#include "filter.h"
 
 #define PI 3.14159f
 
 namespace ostask_mpu6050 {
 
     Kalman kalmanYaw;
+    center_filter::AverageFilter yawFilter(20, 0.0f);
+
+    float normalizeAngle(float angle) {
+        while (angle > 180.0f) angle -= 360.0f;
+        while (angle < -180.0f) angle += 360.0f;
+        return angle;
+    }
 
     [[noreturn]] void taskProcedure(void *argument) {
         float ax, ay, az;
@@ -25,24 +33,31 @@ namespace ostask_mpu6050 {
         while (true) {
             // 读取加速度计数据
             MPU_Read_Accel(&ax, &ay, &az);
-
-            // 读取陀螺仪数据
             MPU_Read_Gyro(&gx, &gy, &gz);
 
-            // 计算航向角
-            yaw = Kalman_Update(&kalmanYaw, std::atan2(ay, ax) * 180 / PI, gz, 0.1f); // 使用 Kalman 滤波器，假设时间间隔为0.01s
-            snprintf(msg, sizeof(msg), "INTO WHILE yaw %.3f\r\n", yaw);
-            HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            bool filter_yaw = 0;
 
-            // 将yaw值发送到队列
-            // if (xQueueSend(MPU_Queue, &yaw, portMAX_DELAY) != pdTRUE) {
-            //     snprintf(msg, sizeof(msg), "Queue send failed\r\n");
-            //     HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-            // }
+            // 计算yaw角
+            // yaw = Kalman_Update(&kalmanYaw, std::atan2(ay, az) * 180 / PI, gz, 0.02f);
 
-            // 延时
-            osDelay(100); // 延时100ms，模拟采样间隔
+            // 后来发现yaw无法计算，换成这里将yaw换成row
+            yaw = Kalman_Update(&kalmanYaw, std::atan2(ax, az) * 180 / PI, gy, 0.02f);
+            yaw = normalizeAngle(yaw);
+
+            if(1 - filter_yaw) {
+                snprintf(msg, sizeof(msg), "Calculated yaw %.3f\r\n", yaw);
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            }
+
+            if(filter_yaw) {
+                // 对yaw值进行滤波
+                yawFilter.filter(yaw);
+                float filtered_yaw = yawFilter.value();
+                snprintf(msg, sizeof(msg), "Filtered yaw: %.3f\r\n", filtered_yaw);
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            }
+
+            osDelay(20);
         }
     }
-
 }
