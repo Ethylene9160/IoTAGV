@@ -7,6 +7,7 @@
 #include "vehicle_controller.h"
 
 #include "queue.h"
+#include "mpu.h"
 #include <memory>
 
 namespace ostask_vehicle_controller {
@@ -67,6 +68,7 @@ namespace ostask_vehicle_controller {
 
         // HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
         send_msg((uint8_t)0x01, (uint8_t)(controller->get_self_id()&0xFF), flt_vx, flt_vy);
+
         // msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
         msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w);
         auto command = msgs::Command(CTRL_CMD_SET_TWIST, t);

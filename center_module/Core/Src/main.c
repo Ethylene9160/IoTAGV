@@ -21,9 +21,11 @@
 #include "cmsis_os.h"
 #include "can.h"
 #include "dma.h"
+#include "i2c.h"
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
+#include "mpu.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -94,11 +96,12 @@ int main(void)
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
-
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
-  char init_msg[] = "usart2 initialized\n";
-  HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
+  // char init_msg[] = "usart2 initialized\n";
+  // HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
 
+  MPU_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -108,6 +111,7 @@ int main(void)
   /* Start scheduler */
   startThreads();
   osKernelStart();
+
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
