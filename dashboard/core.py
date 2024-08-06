@@ -69,15 +69,15 @@ class AnchorsPool:
 class CommandUtils:
     @staticmethod
     def pack_position_datagram(id, x, y): # mock
-        return b'\x5A\x5A\x5A\x5A\x5A\xFF' + b'\x0A\x00' + struct.pack('<BBff', 0, id, x, y) + b'\x7F'
+        return b'\x5A\x5A\x5A\x5A\x5A\xFF' + b'\x0A\x00' + struct.pack('<BBff', 1, id, x, y) + b'\x7F'
     
     @staticmethod
     def pack_velocity_datagram(id, vx, vy): # mock
-        return b'\x5A\x5A\x5A\x5A\x5A\xFF' + b'\x0A\x00' + struct.pack('<BBff', 1, id, vx, vy) + b'\x7F'
+        return b'\x5A\x5A\x5A\x5A\x5A\xFF' + b'\x0A\x00' + struct.pack('<BBff', 2, id, vx, vy) + b'\x7F'
     
     @staticmethod
     def pack_target_position_datagram(id, tx, ty): # mock
-        return b'\x5A\x5A\x5A\x5A\x5A\xFF' + b'\x0A\x00' + struct.pack('<BBff', 2, id, tx, ty) + b'\x7F'
+        return b'\x5A\x5A\x5A\x5A\x5A\xFF' + b'\x0A\x00' + struct.pack('<BBff', 3, id, tx, ty) + b'\x7F'
 
     @staticmethod
     def pack_set_target_position_command(id, tx, ty): # to agent
