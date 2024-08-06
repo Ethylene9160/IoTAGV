@@ -1,47 +1,63 @@
 #include "ostask_mpu6050.h"
+#include "mpu.h"
+#include "kalman.h"
+#include "usart.h"
+#include "cmsis_os.h"
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include "filter.h"
 
-
-// QueueHandle_t MPU_Queue;
+#define PI 3.14159f
 
 namespace ostask_mpu6050 {
+
+    Kalman kalmanYaw;
+    center_filter::AverageFilter yawFilter(20, 0.0f);
+
+    float normalizeAngle(float angle) {
+        while (angle > 180.0f) angle -= 360.0f;
+        while (angle < -180.0f) angle += 360.0f;
+        return angle;
+    }
 
     [[noreturn]] void taskProcedure(void *argument) {
         float ax, ay, az;
         float gx, gy, gz;
-        float alpha;
+        float yaw;
         char msg[128];
 
-        // 发送任务初始化消息到UART2
-        snprintf(msg, sizeof(msg), "Stepping into MPU's ostask\r\n");
-        HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+        Kalman_Init(&kalmanYaw);
 
         while (true) {
-            // snprintf(msg, sizeof(msg), "233\r\n");
-            // HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
             // 读取加速度计数据
             MPU_Read_Accel(&ax, &ay, &az);
-
-            // 读取陀螺仪数据
             MPU_Read_Gyro(&gx, &gy, &gz);
 
-            // 计算航向角
-            alpha = MPU_Calculate_Yaw(gz, 0.01f); // 假设时间间隔为0.01s
-            snprintf(msg, sizeof(msg), "INTO WHILE alpha %.3f\r\n", alpha);
-            HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            bool filter_yaw = 0;
 
-            // 将alpha值发送到队列
-            // if (xQueueSend(MPU_Queue, &alpha, portMAX_DELAY) != pdTRUE) {
-            //     snprintf(msg, sizeof(msg), "Queue send failed\r\n");
-            //     HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-            // }
+            // 计算yaw角
+            // yaw = Kalman_Update(&kalmanYaw, std::atan2(ay, az) * 180 / PI, gz, 0.02f);
 
-            // 打印读取到的数据
-            // snprintf(msg, sizeof(msg), "Accel: ax=%.2f, ay=%.2f, az=%.2f; Gyro: gx=%.2f, gy=%.2f, gz=%.2f\r\n", ax, ay, az, gx, gy, gz);
-            // HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            // 后来发现yaw无法计算，换成这里将yaw换成row
+            yaw = Kalman_Update(&kalmanYaw, std::atan2(ax, az) * 180 / PI, gy, 0.02f);
+            yaw = normalizeAngle(yaw);
 
-            // 延时
-            osDelay(100); // 延时50ms，模拟采样间隔
+            if(1 - filter_yaw) {
+                snprintf(msg, sizeof(msg), "Calculated yaw %.3f\r\n", yaw);
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            }
+
+            if(filter_yaw) {
+                // 对yaw值进行滤波
+                yawFilter.filter(yaw);
+                float filtered_yaw = yawFilter.value();
+                snprintf(msg, sizeof(msg), "Filtered yaw: %.3f\r\n", filtered_yaw);
+                HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+            }
+
+            osDelay(20);
         }
     }
-
 }
