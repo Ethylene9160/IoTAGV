@@ -115,13 +115,13 @@ async def command(request: Request):
     if msg_type is None or id is None:
         return response.json({'status': False})
     
-    if msg_type == 0 and opt1 is not None and opt2 is not None: # 设置目标位置
+    if msg_type == 1 and opt1 is not None and opt2 is not None: # 设置目标位置
         cmd = CommandUtils.pack_set_target_position_command(id, opt1, opt2)
-    elif msg_type == 1 and opt1 is not None: # 设置速度系数
+    elif msg_type == 2 and opt1 is not None: # 设置速度系数
         cmd = CommandUtils.pack_set_velocity_ratio_command(id, opt1)
-    elif msg_type == 2: # 暂停
+    elif msg_type == 3: # 暂停
         cmd = CommandUtils.pack_pause_command(id)
-    elif msg_type == 3: # 继续
+    elif msg_type == 4: # 继续
         cmd = CommandUtils.pack_resume_command(id)
     else:
         return response.json({'status': False})

@@ -81,19 +81,19 @@ class CommandUtils:
 
     @staticmethod
     def pack_set_target_position_command(id, tx, ty): # to agent
-        return b'\x5A' + struct.pack('<BBff', 0, id, tx, ty) + b'\x7F'
+        return b'\x5A' + struct.pack('<BBff', 1, id, tx, ty) + b'\x7F'
     
     @staticmethod
     def pack_set_velocity_ratio_command(id, ratio): # to agent
-        return b'\x5A' + struct.pack('<BBff', 1, id, ratio, 0) + b'\x7F'
+        return b'\x5A' + struct.pack('<BBff', 2, id, ratio, 0) + b'\x7F'
     
     @staticmethod
     def pack_pause_command(id): # to agent
-        return b'\x5A' + struct.pack('<BBff', 2, id, 0, 0) + b'\x7F'
+        return b'\x5A' + struct.pack('<BBff', 3, id, 0, 0) + b'\x7F'
     
     @staticmethod
     def pack_resume_command(id): # to agent
-        return b'\x5A' + struct.pack('<BBff', 3, id, 0, 0) + b'\x7F'
+        return b'\x5A' + struct.pack('<BBff', 4, id, 0, 0) + b'\x7F'
 
 class CommandFSM:
     def __init__(self, func):

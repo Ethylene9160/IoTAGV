@@ -55,12 +55,12 @@
                 <hr />
                 <div class="command-section">
                     <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
-                        <el-option label="设置目标位置" value="0"></el-option>
-                        <el-option label="设置速度因子" value="1"></el-option>
-                        <el-option label="暂停" value="2"></el-option>
-                        <el-option label="启动" value="3"></el-option>
+                        <el-option label="设置目标位置" value="1"></el-option>
+                        <el-option label="设置速度因子" value="2"></el-option>
+                        <el-option label="暂停" value="3"></el-option>
+                        <el-option label="启动" value="4"></el-option>
                     </el-select>
-                    <div v-if="selectedCommand === '0'">
+                    <div v-if="selectedCommand === '1'">
                         <el-row :gutter="20" class="command-inputs">
                             <el-col :span="12">
                                 <el-input v-model="targetPositionX" type="number" placeholder="X"></el-input>
@@ -75,7 +75,7 @@
                             </el-col>
                         </el-row>
                     </div>
-                    <div v-if="selectedCommand === '1'">
+                    <div v-if="selectedCommand === '2'">
                         <el-row :gutter="20" class="command-inputs">
                             <el-col :span="24">
                                 <el-input v-model="velocityRatio" type="number" placeholder="速度系数"></el-input>
@@ -87,7 +87,7 @@
                             </el-col>
                         </el-row>
                     </div>
-                    <div v-if="selectedCommand === '2' || selectedCommand === '3'">
+                    <div v-if="selectedCommand === '3' || selectedCommand === '4'">
                         <el-row :gutter="20" class="button-row">
                             <el-col :span="24">
                                 <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
@@ -119,7 +119,7 @@ export default {
             selected_agent_id: null,
             selected_agent: {},
             agents: [],
-            selectedCommand: '0',
+            selectedCommand: '1',
             targetPositionX: null,
             targetPositionY: null,
             velocityRatio: null
@@ -395,18 +395,14 @@ export default {
             var commandArgs = {
                 type: Number(this.selectedCommand),
                 id: Number(this.selected_agent_id),
-                opt1: null,
-                opt2: null
+                opt1: 0,
+                opt2: 0
             };
-            if (this.selectedCommand === '0') {
+            if (this.selectedCommand === '1') {
                 commandArgs.opt1 = Number(this.targetPositionX);
                 commandArgs.opt2 = Number(this.targetPositionY);
-            } else if (this.selectedCommand === '1') {
+            } else if (this.selectedCommand === '2') {
                 commandArgs.opt1 = Number(this.velocityRatio);
-                commandArgs.opt2 = 0;
-            } else {
-                commandArgs.opt1 = 0;
-                commandArgs.opt2 = 0;
             }
 
             try {
