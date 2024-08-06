@@ -70,7 +70,6 @@ void EXTI0_IRQHandler(void) {
 
 uint8_t Initialize() {
     uwb_mode_t mode = JudgeModeFromID(module_config.module_id);
-
     if (mode == UNDEFINED) {
         if (module_config.ranging_exchange_debug_output) debug_printf("[Error] Invalid module ID.\n");
         return 1;
@@ -429,8 +428,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                         ctrl_msg_type,
                         p.x,
                         p.y,
-                        ctrl_msgs[0],
-                        ctrl_msgs[1]);
+                        (float)*((float*)ctrl_msgs),
+                        (float)*((float*)(ctrl_msgs+4)));
 
                     // Broadcast the position
                     uint8_t payload[18] = {0x00};
