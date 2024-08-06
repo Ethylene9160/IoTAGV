@@ -15,6 +15,10 @@ extern "C" {
 #endif
 #define DISTANCE_FILTER_LENGTH 4
 
+extern uint8_t ctrl_msgs[8];
+extern uint8_t ctrl_msg_type;
+extern uint8_t ctrl_id;
+
 typedef enum {
     ANCHOR,
     TAG,

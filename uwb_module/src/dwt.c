@@ -35,6 +35,10 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 #define MAX_ANCHOR_NUMBER 4
 #define MAX_TASK_NUMBER 128
 
+uint8_t ctrl_msgs[8] = {0};
+uint8_t ctrl_msg_type = 255;
+uint8_t ctrl_id = 0;
+
 inline uint32_t random_generator(uint32_t low, uint32_t high) {
     srand(GetSystickMs());//随机数种子设置
     uint32_t random_value2 = ADCRandomNumber(low, high);
@@ -421,18 +425,26 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                         debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
                     send_upload_position_msg(
                         module_config.module_id,
-                        POSITION_UPDATE,
+                        ctrl_id,
+                        ctrl_msg_type,
                         p.x,
                         p.y,
-                        tag_storage.d1,
-                        tag_storage.d2);
+                        ctrl_msgs[0],
+                        ctrl_msgs[1]);
 
                     // Broadcast the position
-                    uint8_t payload[16] = {0x00};
+                    uint8_t payload[18] = {0x00};
                     memcpy(payload, &p.x, 4);
                     memcpy(payload + 4, &p.y, 4);
-                    memcpy(payload + 8, &(tag_storage.d1), 4);
-                    memcpy(payload + 12, &(tag_storage.d2), 4);
+                    // memcpy(payload + 8, &(tag_storage.d1), 4);
+                    // memcpy(payload + 12, &(tag_storage.d2), 4);
+                    memcpy(payload+8, ctrl_msgs, 8); // 发送control消息
+                    payload[16] = ctrl_msg_type;
+                    payload[17] = ctrl_id;
+
+                    ctrl_msg_type= 0.0f;
+                    ctrl_id = 0.0f;
+
                     tx_len = gen_ranging_exchange_msg(
                         tx_buffer,
                         MSG_PAN_ID,
@@ -473,23 +485,25 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 memcpy(&y, rx_buffer + payload_head_index + 4, 4);
                 memcpy(&d1, rx_buffer + payload_head_index + 8, 4);
                 memcpy(&d2, rx_buffer + payload_head_index + 12, 4);
+                uint8_t rec_ctrl_type = *(rx_buffer+payload_head_index+16);
+                uint8_t rec_ctrl_id = *(rx_buffer+payload_head_index+17);
 //
                 // Upload the position
-                if (module_config.ranging_exchange_debug_output)
+                // if (module_config.ranging_exchange_debug_output)
                     // debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
 
-                    debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
-                send_upload_position_msg(src_id, POSITION_UPDATE, x, y, d1, d2);
+                    // debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
+                send_upload_position_msg(src_id, rec_ctrl_id, rec_ctrl_type, x, y, d1, d2);
                 // debug_printf("src_id: %d, x: %f, y: %f, d1: %f, d2: %f\r\n", src_id, x, y, d1, d2);
             }
-            else if (dest_id == CONTROL_MSG_ID) { // 收到的是控制信号
-                float f1 = 0.0f, f2 = 0.0f;
-                //7: ctrl_msg
-                // 8-11,12-15
-                memcpy(&f1, rx_buffer[8], 4);
-                memcpy(&f2, rx_buffer[12], 4);
-                send_upload_position_msg(src_id, rx_buffer[7], f1, f2, 0.0f, 0.0f);
-            }
+            // else if (dest_id == CONTROL_MSG_ID) { // 收到的是控制信号
+            //     float f1 = 0.0f, f2 = 0.0f;
+            //     //7: ctrl_msg
+            //     // 8-11,12-15
+            //     memcpy(&f1, rx_buffer[8], 4);
+            //     memcpy(&f2, rx_buffer[12], 4);
+            //     send_upload_position_msg(src_id, rx_buffer[7], f1, f2, 0.0f, 0.0f);
+            // }
         }
     }
     dwt_rxenable(DWT_START_RX_IMMEDIATE | DWT_NO_SYNC_PTRS);
