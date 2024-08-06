@@ -82,6 +82,7 @@ void startThreads() {
 
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
     // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);
+
     auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
 
     // 随机放入一些障碍物
