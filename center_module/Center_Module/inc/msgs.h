@@ -228,16 +228,17 @@ namespace msgs {
         uint8_t ender;
     };
 
-    uint8_t host_buffer[19] = {0x5A, 0x5A,0x5A,0x5A,0x5A,0xFF, 0x0A,0,0,0,0,0,0,0,0,0,0,0x7F};
-    inline void _send_tx_msg(UART_HandleTypeDef *huart,uint8_t type, uint8_t id, float f1, float f2) {
-        host_buffer[8] = type;
-        host_buffer[9] = id;
-        memcpy(host_buffer+10, &f1, 4);
-        memcpy(host_buffer+14, &f2, 4);
-        HAL_UART_Transmit(huart, host_buffer, 19, HAL_MAX_DELAY);
-    }
+
+    // inline void _send_tx_msg(UART_HandleTypeDef *huart,uint8_t type, uint8_t id, float f1, float f2) {
+    //     host_buffer[8] = type;
+    //     host_buffer[9] = id;
+    //     memcpy(host_buffer+10, &f1, 4);
+    //     memcpy(host_buffer+14, &f2, 4);
+    //     HAL_UART_Transmit(huart, host_buffer, 19, HAL_MAX_DELAY);
+    // }
 
     inline void send_msg_to_host(uint8_t type, uint8_t id, float f1, float f2) {
+        uint8_t host_buffer[19] = {0x5A, 0x5A,0x5A,0x5A,0x5A,0xFF, 0x0A,0,0,0,0,0,0,0,0,0,0,0x7F};
         host_buffer[8] = type;
         host_buffer[9] = id;
         memcpy(host_buffer+10, &f1, 4);
@@ -251,7 +252,7 @@ namespace msgs {
         uwb_buffer[2] = id;
         memcpy(uwb_buffer+3, &f1, 4);
         memcpy(uwb_buffer+7, &f2, 4);
-        HAL_UART_Transmit(&huart2, host_buffer, 19, HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart2, uwb_buffer, 19, HAL_MAX_DELAY);
     }
 }
 
