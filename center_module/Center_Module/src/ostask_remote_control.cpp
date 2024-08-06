@@ -1,4 +1,7 @@
 #include "ostask_remote_control.h"
+
+using msgs::send_msg_to_uwb;
+
 namespace ostask_remote_control {
     BaseType_t get_xQueueReceive(uint8_t*buffer, TickType_t xTicksToWait) {
         osStatus_t status = osMutexAcquire(USART2_MutexHandle, osWaitForever);
@@ -31,33 +34,29 @@ namespace ostask_remote_control {
             memcpy(&f1, buffer + 3, 4);
             memcpy(&f2, buffer + 8, 4);
 
+            if (id != controller->get_self_id()) {
+                send_msg_to_uwb(msg_type, id, f1, f2);
+                return;
+            }
+            //相同id，直接设置。
             switch(msg_type) {
-                // todo: judge id, whether the id maches that of the controller.
-                case 0: {
+                case POSITION_CTRL: {
                     // set position
                     controller->set_target_point({f1, f2});
-                    char str[32];
-                    int len = sprintf(str, "id: %d, self if: %d, set position.\r\n", id, uint8_t(controller->get_self_id()&0xFF));
-                    HAL_UART_Transmit(&huart2, (uint8_t*)str, len, 0xffffffff);
-                    // todo: 发送给上位机
                     break;
                 }
 
-                case 1: {
-                    //velosity?
-                    // todo: 发送给上位机
-                    // char str2[32];
-                    // int len2 = sprintf(str2, "set position.\r\n");
-                    // HAL_UART_Transmit(&huart2, (uint8_t*)str2, len2, 0xffffffff);
+                case VELOCITY_CTRL: {
+                    vehicle_controller::v_cons = f1;
                     break;
                 }
 
-                case 2: {
+                case STOP_CTRL: {
                     // force stop
                     controller -> stop();
                     break;
                 }
-                case 3: {
+                case START_CTRL: {
                     // force start
                     controller -> start();
                     break;

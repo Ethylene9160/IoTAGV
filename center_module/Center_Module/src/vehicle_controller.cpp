@@ -187,7 +187,8 @@ void vehicle_controller::set_target_point(const cart_point &point) {
         return;
     }
 
-    target_point = point;
+    target_point.x = point.x;
+    target_point.y = point.y;
     if(this->_is_near_target(target_point)) {
         isTerminal = true;
     }else {
