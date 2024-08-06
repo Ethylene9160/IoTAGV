@@ -101,13 +101,17 @@ int main(void)
   // char init_msg[] = "usart2 initialized\n";
   // HAL_UART_Transmit(&huart2, (uint8_t*)init_msg, sizeof(init_msg) - 1, HAL_MAX_DELAY);
 
-  MPU_Init();
+
+  // HAL_UART_Transmit(&huart2, (uint8_t*)"100\r\n", 5, 0xffffffff);
+  // MPU_Init();
   /* USER CODE END 2 */
 
+  // HAL_UART_Transmit(&huart2, (uint8_t*)"113\r\n", 5, 0xffffffff);
   /* Init scheduler */
   osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
+  // HAL_UART_Transmit(&huart2, (uint8_t*)"114\r\n", 5, 0xffffffff);
   /* Start scheduler */
   startThreads();
   osKernelStart();

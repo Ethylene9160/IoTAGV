@@ -24,7 +24,7 @@ typedef struct {
     uint16_t id;
 } _vehicle_config;
 
-#define V0
+#define V2
 
 #ifdef V0
 _vehicle_config vehicle_config_default = {
@@ -57,7 +57,7 @@ void startThreads() {
 
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
     // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);
-
+    // HAL_UART_Transmit(&huart2, (uint8_t*)"111\r\n", 5, 0xffffffff);
     auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
 
     // 随机放入一些障碍物
@@ -69,6 +69,7 @@ void startThreads() {
     // controller module port thread
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 
+    HAL_UART_Transmit(&huart2, (uint8_t*)"112\r\n", 5, 0xffffffff);
     // vehicle controller thread
     //param1; main function
     //param2; argument 指针
@@ -77,10 +78,10 @@ void startThreads() {
 
     // test task: 随机发送障碍物位置，看速度是否正确。
     // osThreadNew(ostask_test_task::taskProcedure, 0, &ostask_test_task::task_attributes);
-    osThreadNew(ostask_remote_control::taskProcedure, vehicle_controller_ptr, &ostask_remote_control::task_attributes);
+    // osThreadNew(ostask_remote_control::taskProcedure, vehicle_controller_ptr, &ostask_remote_control::task_attributes);
     // ui task: OLED GUI.
     // osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
-    osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
+    // osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
     // osThreadNew(ostask_mpu6050::taskProcedure, nullptr, &ostask_mpu6050::task_attributes);
 }
 

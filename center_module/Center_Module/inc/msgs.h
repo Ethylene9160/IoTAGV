@@ -238,7 +238,7 @@ namespace msgs {
     // }
 
     inline void send_msg_to_host(uint8_t type, uint8_t id, float f1, float f2) {
-        uint8_t host_buffer[19] = {0x5A, 0x5A,0x5A,0x5A,0x5A,0xFF, 0x0A,0,0,0,0,0,0,0,0,0,0,0x7F};
+        uint8_t host_buffer[19] = {0x5A, 0x5A,0x5A,0x5A,0x5A,0xFF, 0x0A,0,0,0,0,0,0,0,0,0,0,0,0x7F};
         host_buffer[8] = type;
         host_buffer[9] = id;
         memcpy(host_buffer+10, &f1, 4);
