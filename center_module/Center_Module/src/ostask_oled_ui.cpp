@@ -203,6 +203,7 @@ namespace ostask_oled_ui {
          * TODO Test Magnetic Sensor Begin
          */
         hmc5883l_Init();
+        controller->set_init_alpha(hmc5883l_GetAngle());
         /*
          * TODO Test Magnetic Sensor End
          */
@@ -219,15 +220,16 @@ namespace ostask_oled_ui {
                     updateSettingPage();
                     break;
             }
-            osDelay(5);
+            osDelay(10);
 
             /*
              * TODO Test Magnetic Sensor Begin
              */
             float res = hmc5883l_GetAngle();
-            char buffer[20];
-            snprintf(buffer, sizeof(buffer), "%6.2f\n", res);
-            HAL_UART_Transmit(&huart2, (uint8_t*) buffer, 7, HAL_MAX_DELAY);
+            controller -> set_current_alpha(res);
+            // char buffer[20];
+            // snprintf(buffer, sizeof(buffer), "%6.2f\n", res);
+            // HAL_UART_Transmit(&huart2, (uint8_t*) buffer, 7, HAL_MAX_DELAY);
             /*
              * TODO Test Magnetic Sensor End
              */
