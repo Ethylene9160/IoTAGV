@@ -1,17 +1,28 @@
 controller_module/cmake-build-debug-mingw_stm32/
 controller_module/cmake-build-release-mingw_stm32/
-controller_module/.idea/
+# controller_module/.idea/
 center_module/cmake-build-debug-mingw_stm32/
 center_module/cmake-build-release-mingw_stm32/
-center_module/.idea/
+# center_module/.idea/
 center_module/**/Backup/
 uwb_module/cmake-build-debug-mingw_stm32/
 uwb_module/cmake-build-release-mingw_stm32/
-uwb_module/.idea/
+# uwb_module/.idea/
 uwb_module/**/Backup/
 center_uwb/cmake-build-debug-mingw_stm32/
 center_uwb/cmake-build-release-mingw_stm32/
 center_uwb/.idea/
 center_uwb/**/Backup/
 
+
+uwb_module/cmake-build-debug-mingw_for_stm32/
+center_module/cmake-build-debug-mingw_for_stm32/
+controller_module/cmake-build-debug-mingw_for_stm32/
+uwb_module/cmake-build-release-mingw_for_stm32/
+center_module/cmake-build-release-mingw_for_stm32/
+controller_module/cmake-build-release-mingw_for_stm32/
+.idea/
 uwb_module/.idea/
+/doc/
+
+*.ioc
