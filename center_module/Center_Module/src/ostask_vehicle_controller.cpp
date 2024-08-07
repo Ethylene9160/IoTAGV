@@ -10,6 +10,8 @@
 #include "mpu.h"
 #include <memory>
 
+#include "hmc5883l.h"
+
 using msgs::send_msg_to_host;
 
 namespace ostask_vehicle_controller {
@@ -30,11 +32,11 @@ namespace ostask_vehicle_controller {
 
     void taskProcedure(void *argument) {
         auto* controller = static_cast<vehicle_controller *>(argument);
-        HAL_UART_Transmit(&huart2, (uint8_t*)"233\r\n", 5, 0xffffffff);
+
         while (true) {
             read_queue(controller);
             set_control_msg(controller);
-            osDelay(50);
+            osDelay(25);
         }
     }
 
@@ -48,12 +50,10 @@ namespace ostask_vehicle_controller {
         flt_vx = alpha * v.vx + (1 - alpha) * flt_vx;
         flt_vy = alpha * v.vy + (1 - alpha) * flt_vy;
 
-        // HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
-        // send_msg((uint8_t)0x01, (uint8_t)(controller->get_self_id()&0xFF), flt_vx, flt_vy);
         // send velosity to upper.
         send_msg_to_host(VELOCITY_CTRL, controller->get_self_id(), flt_vx, flt_vy);
-        // char str[32];
-        // snprintf(str, sizeof(str), "vx: %.3f, vy: %.3f\r\n", flt_vx, flt_vy);
+        // char str[48];
+        // snprintf(str, sizeof(str), "current delta: %.3f, w: %.3f\r\n", controller->get_init_alpha() - controller->get_current_alpha(), v.w);
         // HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
         // msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
         msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w);
@@ -77,7 +77,7 @@ namespace ostask_vehicle_controller {
             memcpy(&d1, buffer + 16, 4);
             memcpy(&d2, buffer + 20, 4);
             char str[64];
-            snprintf(str, sizeof(str), "srcid: %d, tarid: %d, x: %.3f, y: %.3f, d1: %.3f, d2: %.3f\r\n", source_id, target_id, x, y, d1, d2);
+            snprintf(str, sizeof(str), "srid: %d, target: %d, ctrl: %d, x: %.3f, y: %.3f, d1: %.3f, d2: %.3f\r\n", source_id ,target_id, ctrl_type, x, y, d1, d2);
             HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
             // nan, return.
             if (std::isnan(x) || std::isnan(y) || std::isnan(d1) || std::isnan(d2)) {
@@ -85,7 +85,7 @@ namespace ostask_vehicle_controller {
             }
 
             // send position to upper.
-            send_msg_to_host(POSITION_CTRL, source_id&0xFF, x, y);
+            send_msg_to_host(ctrl_type, source_id&0xFF, x, y);
 
             cart_point point = {x, y};
             controller->push_back(source_id, point);
@@ -108,7 +108,6 @@ namespace ostask_vehicle_controller {
                         break;
                 }
             }
-
         }
     }
 }

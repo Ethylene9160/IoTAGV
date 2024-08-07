@@ -35,6 +35,10 @@ namespace ostask_remote_control {
             memcpy(&f2, buffer + 7, 4);
 
             if (id != controller->get_self_id()) {
+                char str[32];
+                snprintf(str, sizeof(str), "id not match: %d, %d\r\n", id, controller->get_self_id());
+                HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+
                 send_msg_to_uwb(msg_type, id, f1, f2);
                 return;
             }

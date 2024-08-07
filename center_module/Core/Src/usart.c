@@ -242,8 +242,8 @@ void USART1_IRQHandler(void) {
                     Error_Handler();
                 }else {
 
-                    static uint8_t s2[] = {'d','b','\r','\n'};
-                    HAL_UART_Transmit(&huart2, s2, 4, 0xffffffff);
+                    // static uint8_t s2[] = {'d','b','\r','\n'};
+                    // HAL_UART_Transmit(&huart2, s2, 4, 0xffffffff);
                 }
             }else {
                 flag = 0;

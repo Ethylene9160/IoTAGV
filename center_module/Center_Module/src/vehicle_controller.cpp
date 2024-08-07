@@ -2,24 +2,37 @@
 #include <cmath>
 #include <random>
 
+
 #include "usart.h"
 
 float vehicle_controller::v_cons = 48.5f;
 float vehicle_controller::v_k = 16.5f;
+
+float vehicle_controller::kp = 0.025f;
+float vehicle_controller::ki = 0.001f;
+float vehicle_controller::kd = 0.02f;
+
 float vehicle_controller::collision_radius = 0.30f;
 float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
-
 
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
     cart_point current_point,
-    cart_point target_point)
-    : target_point(target_point), self_id(self_id), self_point(current_point), isTerminal(0) {
+    cart_point target_point
+): target_point(target_point),
+self_id(self_id),
+self_point(current_point),
+isTerminal(0) { // DONE: 之后改为初始默认停止 (isTerminal = 1)，由控制器控制启动
     self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
     const osMutexAttr_t Controller_MutexAttr = {
         .name = "Controller_Mutex"
     };
     this->vehicle_controller_mutex = osMutexNew(&Controller_MutexAttr);
+    // DONE: change current alpha.
+    this->init_alpha = 0.0f;
+    this->current_alpha = init_alpha;
+    this->filter1 = new center_filter::LBF(0.5, init_alpha);
+    this->filter2 = new center_filter::AverageFilter(10, init_alpha);
 }
 
 void vehicle_controller::tick() {
@@ -54,13 +67,16 @@ void vehicle_controller::tick() {
         self_vel.vy *= _k;
     }
 
-
     // for (const auto &vehicle: vehicle_position) {
     //     if (_is_obstacle_near(vehicle.second, self_vel.vx, self_vel.vy)) {
     //         _add_noise_to_velocity(self_vel.vx, self_vel.vy);
     //         break;
     //     }
     // }
+
+    // set w:
+    // this->self_vel.w = vehicle_controller::kp * get_delta_alpha();
+    this->_update_w();
 }
 
 inline bool vehicle_controller::_is_obstacle_near(const cart_point &obstacle, float vx, float vy) {
@@ -97,7 +113,7 @@ inline void vehicle_controller::_update_self_vel(
     if (distance < 0.02f) {
         distance = 0.02f;
     }
-    d2 = distance * distance;
+    // d2 = distance * distance;
     // if(distance < 0.0f) {
     // bias_x -= vehicle_controller::large_bias * dx;
     //     bias_y -= vehicle_controller::large_bias * dy;
@@ -121,9 +137,10 @@ void vehicle_controller::push_back(uint16_t id, cart_point point) {
     auto status = osMutexAcquire(this->vehicle_controller_mutex, osWaitForever);
     if (status == osOK) {
         if (id == self_id) {
-            point.x = (self_point.x+point.x)/2.0f;
-            point.y = (self_point.y+point.y)/2.0f;
+            point.x = (self_point.x + point.x) / 2.0f;
+            point.y = (self_point.y + point.y) / 2.0f;
             set_self_point(point); // 更新自己的cart_point
+
             if(this->_is_near_target(this->target_point)) {
                 isTerminal = true;
             }
@@ -174,7 +191,7 @@ void vehicle_controller::set_target_point(const cart_point &point) {
 
     target_point.x = point.x;
     target_point.y = point.y;
-    if(this->_is_near_target(target_point)) {
+    if(this->_is_near_target(point)) {
         isTerminal = true;
     }else {
         isTerminal = false;
@@ -203,3 +220,58 @@ uint16_t vehicle_controller::get_self_id() const {
     return this->self_id;
 }
 
+float vehicle_controller::get_delta_alpha() {
+    float res = this->init_alpha - this->current_alpha;
+    if (res > 179.99f) {
+        res -= 360.0f;
+    }else if (res < -179.99f) {
+        res += 360.0f;
+    }
+    return std::abs(res) < 2.33f? 0.0f:res;
+}
+
+void vehicle_controller::set_init_alpha(float init_alpha) {
+    this->init_alpha = init_alpha;
+    this->current_alpha = init_alpha;
+    delete this->filter1;
+    delete this->filter2;
+    this->filter1 = new center_filter::LBF(0.6, init_alpha);
+    this->filter2 = new center_filter::AverageFilter(7, init_alpha);
+}
+
+void vehicle_controller::set_current_alpha(float alpha) {
+    // this->current_alpha = alpha;
+    this->filter1->filter(alpha);
+    this->filter2->filter(this->filter1->value());
+    this->current_alpha = this->filter2->value();
+}
+
+void vehicle_controller::_update_w() {
+    static float error = 0.0f;
+    static float last_error = 0.0f;
+    // apply PID control.
+    // float current_error = this->get_delta_alpha();
+    // error += current_error;
+    // float ctrl_w = vehicle_controller::kp * current_error + vehicle_controller::ki * error + vehicle_controller::kd * (current_error - last_error);
+    // last_error = current_error;
+    float ctrl_w = vehicle_controller::kp * this->get_delta_alpha();
+    if (ctrl_w > 6.0f) {
+        ctrl_w = 6.0f;
+    }else if(ctrl_w < -6.0f) {
+        ctrl_w = -6.0f;
+    }
+    this->self_vel.w = ctrl_w;
+}
+
+vehicle_controller::~vehicle_controller() {
+    delete this->filter1;
+    delete this->filter2;
+}
+
+float vehicle_controller::get_init_alpha() {
+    return this->init_alpha;
+}
+
+float vehicle_controller::get_current_alpha() {
+    return this->current_alpha;
+}

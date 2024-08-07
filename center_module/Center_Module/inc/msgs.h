@@ -2,6 +2,7 @@
 #define CENTER_MODULE_MSGS_H_
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -252,7 +253,10 @@ namespace msgs {
         uwb_buffer[2] = id;
         memcpy(uwb_buffer+3, &f1, 4);
         memcpy(uwb_buffer+7, &f2, 4);
-        HAL_UART_Transmit(&huart2, uwb_buffer, 19, HAL_MAX_DELAY);
+        char str[32];
+        snprintf(str, sizeof(str), "send uwb: %d, %d, %f, %f\r\n", type, id, f1, f2);
+        HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart1, uwb_buffer, 12, HAL_MAX_DELAY);
     }
 }
 
