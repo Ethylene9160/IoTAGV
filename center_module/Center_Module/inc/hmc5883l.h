@@ -64,6 +64,7 @@ extern HMC5883L_T g_tMag;
 
 void hmc5883l_Init();
 void hmc5883l_ReadData();
+float hmc5883l_GetAngle();
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,7 @@
 #include "hmc5883l.h"
 
+#include "math.h"
+
 #include "i2c.h"
 
 
@@ -106,16 +108,26 @@ void hmc5883l_ReadData() {
     }
 }
 
-void hmc5883l_test() {
-    hmc5883l_Init();
+float hmc5883l_GetAngle() {
+    hmc5883l_ReadData();
 
-    while (true) {
-        hmc5883l_ReadData();
+    float Magangle = 0.0f;
+    float GaX = g_tMag.X / 1090.0f;
+    float GaY = g_tMag.Y / 1090.0f;
 
-        printf("X=%5d(%5d,%5d),Y=%6d(%5d,%5d),Z=%6d(%5d,%5d)\r",
-               g_tMag.X, g_tMag.X_Min, g_tMag.X_Max,
-               g_tMag.Y, g_tMag.Y_Min, g_tMag.Y_Max,
-               g_tMag.Z, g_tMag.Z_Min, g_tMag.Z_Max);
-        HAL_Delay(100);
-    }
+    if ((GaX > 0) && (GaY > 0)) Magangle = atan(GaY / GaX) * 57;
+    else if((GaX > 0)&&(GaY < 0)) Magangle = 360 + atan(GaY / GaX) * 57;
+    else if((GaX == 0)&&(GaY > 0)) Magangle = 90;
+    else if((GaX == 0)&&(GaY < 0)) Magangle = 270;
+    else if(GaX < 0) Magangle = 180 + atan(GaY / GaX) * 57;
+
+    return Magangle;
+
+//    char buffer[20];
+//    snprintf(buffer, sizeof(buffer), "%6.2f\n", Magangle);
+//    HAL_UART_Transmit(&huart2, (uint8_t*) buffer, 7, HAL_MAX_DELAY);
+
+//    char buffer[20];
+//    snprintf(buffer, sizeof(buffer), "%5d, %5d, %5d\n", g_tMag.X, g_tMag.Y, g_tMag.Z);
+//    HAL_UART_Transmit(&huart2, (uint8_t*) buffer, 20, HAL_MAX_DELAY);
 }
