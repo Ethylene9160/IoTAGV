@@ -1,6 +1,7 @@
 #include "ostask_oled_ui.h"
 
 #include "stdio.h"
+#include "math.h"
 
 #include "vehicle_controller.h"
 
@@ -9,11 +10,19 @@
 
 #include "u8g2.h"
 
+#include "hmc5883l.h"
+#include "usart.h"
+
 namespace ostask_oled_ui {
 
     UserGPIO KeyConfirm("A0", false), Key0("C13", true), Key1("C1", true);
     UserI2CMaster Oled("B6", "B7");
     u8g2_t u8g2;
+
+    /*
+     * TODO: Test for HMC5883L
+     */
+    UserI2CMaster MagneticSensorBus("C6", "C7");
 
     enum Page { MAIN_PAGE, LIST_PAGE, SETTING_PAGE };
     Page currentPage = MAIN_PAGE;
@@ -44,6 +53,17 @@ namespace ostask_oled_ui {
         GPIO_InitStruct.Pull = GPIO_PULLUP;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        /*
+         * TODO: Test for HMC5883L
+         */
+        /* I2C: SCL (PC6), SDA (PC7) */
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6 | GPIO_PIN_7, GPIO_PIN_SET);
+        GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
+        GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+        GPIO_InitStruct.Pull = GPIO_PULLUP;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
         /* GPIO: KeyConfirm (PA0), Key0 (PC1), Key1 (PC13) */
         GPIO_InitStruct.Pin = GPIO_PIN_0;
@@ -196,6 +216,11 @@ namespace ostask_oled_ui {
         initGPIO();
         initU8g2Platform();
 
+        /*
+         * TODO: Test for HMC5883L
+         */
+        hmc5883l_Init();
+
         while (true) {
             switch (currentPage) {
                 case MAIN_PAGE:
@@ -209,6 +234,26 @@ namespace ostask_oled_ui {
                     break;
             }
             osDelay(5);
+
+            hmc5883l_ReadData();
+
+            float Magangle = 0.0f;
+            float GaX = g_tMag.X / 1090.0f;
+            float GaY = g_tMag.Y / 1090.0f;
+
+            if ((GaX > 0) && (GaY > 0)) Magangle = atan(GaY / GaX) * 57;
+            else if((GaX > 0)&&(GaY < 0)) Magangle = 360 + atan(GaY / GaX) * 57;
+            else if((GaX == 0)&&(GaY > 0)) Magangle = 90;
+            else if((GaX == 0)&&(GaY < 0)) Magangle = 270;
+            else if(GaX < 0) Magangle = 180 + atan(GaY / GaX) * 57;
+
+            char buffer[20];
+            snprintf(buffer, sizeof(buffer), "%6.2f\n", Magangle);
+            HAL_UART_Transmit(&huart2, (uint8_t*) buffer, 7, HAL_MAX_DELAY);
+
+//            char buffer[20];
+//            snprintf(buffer, sizeof(buffer), "%5d, %5d, %5d\n", g_tMag.X, g_tMag.Y, g_tMag.Z);
+//            HAL_UART_Transmit(&huart2, (uint8_t*) buffer, 20, HAL_MAX_DELAY);
         }
     }
 
