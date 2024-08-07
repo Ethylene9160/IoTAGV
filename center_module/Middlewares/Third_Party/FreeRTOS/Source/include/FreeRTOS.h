@@ -1284,7 +1284,7 @@ typedef struct xSTATIC_STREAM_BUFFER
 	#endif
 } StaticStreamBuffer_t;
 
-/* Serializable buffers are built on stream buffers. */
+/* Message buffers are built on stream buffers. */
 typedef StaticStreamBuffer_t StaticMessageBuffer_t;
 
 #ifdef __cplusplus

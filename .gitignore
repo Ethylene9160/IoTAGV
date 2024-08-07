@@ -8,3 +8,10 @@ center_module/**/Backup/
 uwb_module/cmake-build-debug-mingw_stm32/
 uwb_module/cmake-build-release-mingw_stm32/
 uwb_module/.idea/
+uwb_module/**/Backup/
+center_uwb/cmake-build-debug-mingw_stm32/
+center_uwb/cmake-build-release-mingw_stm32/
+center_uwb/.idea/
+center_uwb/**/Backup/
+
+uwb_module/.idea/

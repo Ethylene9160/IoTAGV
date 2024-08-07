@@ -1752,7 +1752,7 @@ osStatus_t osMessageQueuePut (osMessageQueueId_t mq_id, const void *msg_ptr, uin
   osStatus_t stat;
   BaseType_t yield;
 
-  (void)msg_prio; /* Serializable priority is ignored */
+  (void)msg_prio; /* Message priority is ignored */
 
   stat = osOK;
 
@@ -1793,7 +1793,7 @@ osStatus_t osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *
   osStatus_t stat;
   BaseType_t yield;
 
-  (void)msg_prio; /* Serializable priority is ignored */
+  (void)msg_prio; /* Message priority is ignored */
 
   stat = osOK;
 

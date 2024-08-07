@@ -64,6 +64,7 @@ include_directories(
     USB_DEVICE/App
     USB_DEVICE/Target
     Center_Module/inc
+    Center_Module/libs/u8g2
     Third_Party/CRC
 )
 

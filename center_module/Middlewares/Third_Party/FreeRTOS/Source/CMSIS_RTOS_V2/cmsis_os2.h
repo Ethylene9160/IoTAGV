@@ -203,7 +203,7 @@ typedef void *osSemaphoreId_t;
 /// \details Memory Pool ID identifies the memory pool.
 typedef void *osMemoryPoolId_t;
 
-/// \details Serializable Queue ID identifies the message queue.
+/// \details Message Queue ID identifies the message queue.
 typedef void *osMessageQueueId_t;
 
 
@@ -666,21 +666,21 @@ uint32_t osMemoryPoolGetSpace (osMemoryPoolId_t mp_id);
 osStatus_t osMemoryPoolDelete (osMemoryPoolId_t mp_id);
 
 
-//  ==== Serializable Queue Management Functions ====
+//  ==== Message Queue Management Functions ====
 
-/// Create and Initialize a Serializable Queue object.
+/// Create and Initialize a Message Queue object.
 /// \param[in]     msg_count     maximum number of messages in queue.
 /// \param[in]     msg_size      maximum message size in bytes.
 /// \param[in]     attr          message queue attributes; NULL: default values.
 /// \return message queue ID for reference by other functions or NULL in case of error.
 osMessageQueueId_t osMessageQueueNew (uint32_t msg_count, uint32_t msg_size, const osMessageQueueAttr_t *attr);
 
-/// Get name of a Serializable Queue object.
+/// Get name of a Message Queue object.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \return name as NULL terminated string.
 const char *osMessageQueueGetName (osMessageQueueId_t mq_id);
 
-/// Put a Serializable into a Queue or timeout if Queue is full.
+/// Put a Message into a Queue or timeout if Queue is full.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \param[in]     msg_ptr       pointer to buffer with message to put into a queue.
 /// \param[in]     msg_prio      message priority.
@@ -688,7 +688,7 @@ const char *osMessageQueueGetName (osMessageQueueId_t mq_id);
 /// \return status code that indicates the execution status of the function.
 osStatus_t osMessageQueuePut (osMessageQueueId_t mq_id, const void *msg_ptr, uint8_t msg_prio, uint32_t timeout);
 
-/// Get a Serializable from a Queue or timeout if Queue is empty.
+/// Get a Message from a Queue or timeout if Queue is empty.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \param[out]    msg_ptr       pointer to buffer for message to get from a queue.
 /// \param[out]    msg_prio      pointer to buffer for message priority or NULL.
@@ -696,7 +696,7 @@ osStatus_t osMessageQueuePut (osMessageQueueId_t mq_id, const void *msg_ptr, uin
 /// \return status code that indicates the execution status of the function.
 osStatus_t osMessageQueueGet (osMessageQueueId_t mq_id, void *msg_ptr, uint8_t *msg_prio, uint32_t timeout);
 
-/// Get maximum number of messages in a Serializable Queue.
+/// Get maximum number of messages in a Message Queue.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \return maximum number of messages.
 uint32_t osMessageQueueGetCapacity (osMessageQueueId_t mq_id);
@@ -706,22 +706,22 @@ uint32_t osMessageQueueGetCapacity (osMessageQueueId_t mq_id);
 /// \return maximum message size in bytes.
 uint32_t osMessageQueueGetMsgSize (osMessageQueueId_t mq_id);
 
-/// Get number of queued messages in a Serializable Queue.
+/// Get number of queued messages in a Message Queue.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \return number of queued messages.
 uint32_t osMessageQueueGetCount (osMessageQueueId_t mq_id);
 
-/// Get number of available slots for messages in a Serializable Queue.
+/// Get number of available slots for messages in a Message Queue.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \return number of available slots for messages.
 uint32_t osMessageQueueGetSpace (osMessageQueueId_t mq_id);
 
-/// Reset a Serializable Queue to initial empty state.
+/// Reset a Message Queue to initial empty state.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \return status code that indicates the execution status of the function.
 osStatus_t osMessageQueueReset (osMessageQueueId_t mq_id);
 
-/// Delete a Serializable Queue object.
+/// Delete a Message Queue object.
 /// \param[in]     mq_id         message queue ID obtained by \ref osMessageQueueNew.
 /// \return status code that indicates the execution status of the function.
 osStatus_t osMessageQueueDelete (osMessageQueueId_t mq_id);

@@ -28,8 +28,18 @@ typedef struct {
     float w;
 } cart_velocity;
 
+typedef struct {
+    cart_point current_point;
+    cart_point target_point;
+} vehicle_info;
+
 class vehicle_controller {
 public:
+    static float v_cons;
+    static float v_k;
+    static float collision_radius;
+    static float large_bias;
+
     vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point);
 
     void tick();
@@ -42,6 +52,16 @@ public:
 
     cart_velocity get_self_velocity() const;
 
+    void set_target_point(const cart_point &point);
+
+    cart_point get_target_point() const;
+
+    void stop();
+
+    void start();
+
+    uint16_t get_self_id() const;
+
     /**
      * push the obstacle to the vehicle_position
      * @param id id of the obstacle
@@ -49,7 +69,7 @@ public:
      */
     void push_back(uint16_t id, cart_point point);
 
-    bool is_near_terminal();
+    bool is_terminal();
 
 private:
     uint16_t self_id;
@@ -57,10 +77,7 @@ private:
     cart_point self_point;
     cart_velocity self_vel;
     bool isTerminal;
-    static float v_cons;
-    static float v_k;
-    static float collision_radius;
-    static float large_bias;
+
     std::map<uint16_t, cart_point> vehicle_position;
 
     osMutexId_t vehicle_controller_mutex;
@@ -71,6 +88,8 @@ private:
     bool _is_obstacle_near(const cart_point &obstacle, float vx, float vy);
 
     void _add_noise_to_velocity(float &vx, float &vy);
+
+    bool _is_near_target(const cart_point& target);
 };
 
 #endif // CENTER_MODULE_VEHICLE_MANAGER_H_
