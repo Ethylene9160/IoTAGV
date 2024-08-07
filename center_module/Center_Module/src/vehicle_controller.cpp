@@ -2,6 +2,7 @@
 #include <cmath>
 #include <random>
 
+
 #include "usart.h"
 
 float vehicle_controller::v_cons = 48.5f;
@@ -16,12 +17,10 @@ float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很�
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
     cart_point current_point,
-    cart_point target_point,
-    float init_alpha
+    cart_point target_point
 ): target_point(target_point),
 self_id(self_id),
 self_point(current_point),
-init_alpha(init_alpha),
 isTerminal(0) { // DONE: 之后改为初始默认停止 (isTerminal = 1)，由控制器控制启动
     self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
     const osMutexAttr_t Controller_MutexAttr = {
@@ -30,6 +29,7 @@ isTerminal(0) { // DONE: 之后改为初始默认停止 (isTerminal = 1)，由�
     this->vehicle_controller_mutex = osMutexNew(&Controller_MutexAttr);
     // DONE: change current alpha.
     // this->current_alpha = 0.0f;
+    this->init_alpha = 0.0f;
     this->current_alpha = init_alpha;
 }
 
@@ -240,6 +240,15 @@ float vehicle_controller::get_delta_alpha() {
         res = 180.0f;
     }
     return res;
+}
+
+void vehicle_controller::set_init_alpha(float init_alpha) {
+    this->init_alpha = init_alpha;
+    this->current_alpha = init_alpha;
+}
+
+void vehicle_controller::set_current_alpha(float alpha) {
+    this->current_alpha = alpha;
 }
 
 

@@ -41,7 +41,7 @@ public:
     static float collision_radius;
     static float large_bias;
 
-    vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point, float init_alpha);
+    vehicle_controller(uint16_t self_id, cart_point current_point, cart_point target_point);
 
     void tick();
 
@@ -74,6 +74,10 @@ public:
 
     float get_delta_alpha();
 
+    void set_init_alpha(float init_alpha);
+
+    void set_current_alpha(float alpha);
+
 private:
     uint16_t self_id;
     cart_point target_point;
@@ -96,6 +100,7 @@ private:
     void _add_noise_to_velocity(float &vx, float &vy);
 
     bool _is_near_target(const cart_point& target);
+
 };
 
 #endif // CENTER_MODULE_VEHICLE_MANAGER_H_
