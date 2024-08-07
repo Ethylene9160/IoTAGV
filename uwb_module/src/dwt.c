@@ -404,7 +404,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     double Db = (double) (tag_resp_tx - tag_poll_rx);
                     double tof = ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db)) * DWT_TIME_UNITS;
                     float distance = (float) (tof * SPEED_OF_LIGHT);
-                    if (distance < 10.0 && distance > 0.1)
+                    if (distance < 20.0 && distance > 0.1)
                         put_distance(&tag_storage, src_id, distance);
                 // Print the result
 //                debug_printf("   Tag: %lu, \t%lu, \t%lu\n", poll_rx, resp_tx, final_rx);
@@ -422,14 +422,17 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 
                     if (module_config.ranging_exchange_debug_output)
                         debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
+                    float ctrl1 = 0, ctrl2 = 0;
+                    memcpy(&ctrl1, ctrl_msgs, 4);
+                    memcpy(&ctrl2, ctrl_msgs+4, 4);
                     send_upload_position_msg(
                         module_config.module_id,
                         ctrl_id,
                         ctrl_msg_type,
                         p.x,
                         p.y,
-                        (float)*((float*)ctrl_msgs),
-                        (float)*((float*)(ctrl_msgs+4)));
+                        ctrl1,
+                        ctrl2);
 
                     // Broadcast the position
                     uint8_t payload[18] = {0x00};
