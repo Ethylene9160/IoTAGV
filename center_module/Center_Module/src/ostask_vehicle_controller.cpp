@@ -36,7 +36,7 @@ namespace ostask_vehicle_controller {
         while (true) {
             read_queue(controller);
             set_control_msg(controller);
-            osDelay(50);
+            osDelay(25);
         }
     }
 

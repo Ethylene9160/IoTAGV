@@ -101,6 +101,8 @@ private:
 
     bool _is_near_target(const cart_point& target);
 
+    void _update_w();
+
 };
 
 #endif // CENTER_MODULE_VEHICLE_MANAGER_H_

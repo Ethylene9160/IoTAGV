@@ -8,7 +8,7 @@
 float vehicle_controller::v_cons = 48.5f;
 float vehicle_controller::v_k = 16.5f;
 
-float vehicle_controller::kp = 1.2f;
+float vehicle_controller::kp = 0.12f;
 
 float vehicle_controller::collision_radius = 0.30f;
 float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
@@ -73,7 +73,8 @@ void vehicle_controller::tick() {
     // }
 
     // set w:
-    this->self_vel.w = vehicle_controller::kp * get_delta_alpha();
+    // this->self_vel.w = vehicle_controller::kp * get_delta_alpha();
+    this->_update_w();
 }
 
 inline bool vehicle_controller::_is_obstacle_near(const cart_point &obstacle, float vx, float vy) {
@@ -249,6 +250,16 @@ void vehicle_controller::set_init_alpha(float init_alpha) {
 
 void vehicle_controller::set_current_alpha(float alpha) {
     this->current_alpha = alpha;
+}
+
+void vehicle_controller::_update_w() {
+    float ctrl_w = vehicle_controller::kp * this->get_delta_alpha();
+    if (ctrl_w > 6.0f) {
+        ctrl_w = 6.0f;
+    }else if(ctrl_w < 6.0f) {
+        ctrl_w = -6.0f;
+    }
+    this->self_vel.w = ctrl_w;
 }
 
 
