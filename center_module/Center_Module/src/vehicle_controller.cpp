@@ -6,6 +6,9 @@
 
 float vehicle_controller::v_cons = 48.5f;
 float vehicle_controller::v_k = 16.5f;
+
+float vehicle_controller::kp = 1.2f;
+
 float vehicle_controller::collision_radius = 0.30f;
 float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
 
@@ -13,13 +16,21 @@ float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很�
 vehicle_controller::vehicle_controller(
     uint16_t self_id,
     cart_point current_point,
-    cart_point target_point
-): target_point(target_point), self_id(self_id), self_point(current_point), isTerminal(0) { // TODO: 之后改为初始默认停止 (isTerminal = 1)，由控制器控制启动
+    cart_point target_point,
+    float init_alpha
+): target_point(target_point),
+self_id(self_id),
+self_point(current_point),
+init_alpha(init_alpha),
+isTerminal(0) { // DONE: 之后改为初始默认停止 (isTerminal = 1)，由控制器控制启动
     self_vel.vx = self_vel.vy = self_vel.w = 0.0f;
     const osMutexAttr_t Controller_MutexAttr = {
         .name = "Controller_Mutex"
     };
     this->vehicle_controller_mutex = osMutexNew(&Controller_MutexAttr);
+    // DONE: change current alpha.
+    // this->current_alpha = 0.0f;
+    this->current_alpha = init_alpha;
 }
 
 void vehicle_controller::tick() {
@@ -60,6 +71,9 @@ void vehicle_controller::tick() {
     //         break;
     //     }
     // }
+
+    // set w:
+    this->self_vel.w = vehicle_controller::kp * get_delta_alpha();
 }
 
 inline bool vehicle_controller::_is_obstacle_near(const cart_point &obstacle, float vx, float vy) {
@@ -189,7 +203,7 @@ void vehicle_controller::set_target_point(const cart_point &point) {
 
     target_point.x = point.x;
     target_point.y = point.y;
-    if(this->_is_near_target(target_point)) {
+    if(this->_is_near_target(point)) {
         isTerminal = true;
     }else {
         isTerminal = false;
@@ -217,5 +231,16 @@ bool vehicle_controller::_is_near_target(const cart_point &target) {
 uint16_t vehicle_controller::get_self_id() const {
     return this->self_id;
 }
+
+float vehicle_controller::get_delta_alpha() {
+    float res = this->current_alpha - init_alpha;
+    if (res > 179.99f) {
+        res = -180.0f;
+    }else if (res < -179.99f) {
+        res = 180.0f;
+    }
+    return res;
+}
+
 
 //>>>>>>> ethy_branch

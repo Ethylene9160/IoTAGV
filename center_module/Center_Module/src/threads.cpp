@@ -24,7 +24,7 @@ typedef struct {
     uint16_t id;
 } _vehicle_config;
 
-#define V0
+#define V2
 
 #ifdef V0
 _vehicle_config vehicle_config_default = {
@@ -58,7 +58,12 @@ void startThreads() {
     // auto vehicle_controller_ptr = std::make_unique<vehicle_controller>(0, _start, _terminal);
     // auto* vehicle_controller_ptr = new vehicle_controller(0x81, _start, _terminal);
     // HAL_UART_Transmit(&huart2, (uint8_t*)"111\r\n", 5, 0xffffffff);
-    auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
+    auto* vehicle_controller_ptr = new vehicle_controller(
+        vehicle_config_default.id,
+        vehicle_config_default.start,
+        vehicle_config_default.terminal,
+        1.0f
+        );
 
     // 随机放入一些障碍物
     // cart_point ob1{0.0f, 0.0f};

@@ -19,8 +19,6 @@ namespace ostask_vehicle_controller{
 
     [[noreturn]] void taskProcedure(void *argument);
 
-    void send_msg(uint8_t msg_type, uint8_t id, float f1, float f2);
-
     void set_control_msg(vehicle_controller* controller);
 
     void read_queue(vehicle_controller* controller);

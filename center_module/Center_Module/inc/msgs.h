@@ -252,7 +252,7 @@ namespace msgs {
         uwb_buffer[2] = id;
         memcpy(uwb_buffer+3, &f1, 4);
         memcpy(uwb_buffer+7, &f2, 4);
-        HAL_UART_Transmit(&huart2, uwb_buffer, 19, HAL_MAX_DELAY);
+        HAL_UART_Transmit(&huart2, uwb_buffer, 12, HAL_MAX_DELAY);
     }
 }
 
