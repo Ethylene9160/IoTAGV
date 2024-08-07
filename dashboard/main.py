@@ -127,7 +127,7 @@ async def command(request: Request):
         return response.json({'status': False})
     
     serials.write(cmd)
-    print(f'Command sent: type = {msg_type}, id = {id}, opt1 = {opt1}, opt2 = {opt2}, raw = {cmd}.')
+    print(f'command sent: type = {msg_type}, id = {id}, opt1 = {opt1}, opt2 = {opt2}, raw = {cmd}.')
     
     return response.json({'status': True})
 
@@ -142,9 +142,9 @@ async def broadcast_canvas_update():
         'anchors': anchors.to_list()
     }))
 
-async def execute_command(content):
+async def execute_datagram_update(content):
     """
-    0 坐标更新:
+    1 坐标更新:
         0x5A ... 0x5A (同步, 三个及以上)
         0xFF (开始)
         0x0A 0x00 (长度, uint16)
@@ -154,7 +154,7 @@ async def execute_command(content):
         0x 0x 0x 0x (y, float)
         0x7F (结束)
 
-    1 速度更新:
+    2 速度更新:
         0x5A ... 0x5A (同步, 三个及以上)
         0xFF (开始)
         0x0A 0x00 (长度, uint16)
@@ -164,7 +164,7 @@ async def execute_command(content):
         0x 0x 0x 0x (vy, float)
         0x7F (结束)
 
-    2 目标坐标更新:
+    3 目标坐标更新:
         0x5A ... 0x5A (同步, 三个及以上)
         0xFF (开始)
         0x0A 0x00 (长度, uint16)
@@ -174,25 +174,27 @@ async def execute_command(content):
         0x 0x 0x 0x (ty, float)
         0x7F (结束)
     """
+    print(f'datagram executed: {content}')
+    
     msg_type = content[0]
-    if msg_type in [0, 1, 2] and len(content) == 10:
+    if msg_type in [1, 2, 3] and len(content) == 10:
         id, opt1, opt2 = struct.unpack('<Bff', content[1:])
         agent = agents.get_agent_by_id(id)
-        if msg_type == 0:
+        if msg_type == 1:
             if agent is None: # 未见过的 agent, 创建
                 agents.append(Agent(id, [opt1, opt2]))
             else:
                 agent.position = [opt1, opt2]
-        elif msg_type == 1:
+        elif msg_type == 2:
             if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 velocity 不予创建
                 agent.velocity = [opt1, opt2]
-        else: # msg_type == 2:
+        else: # msg_type == 3:
             if agent is not None: # 必须先有 position, 故仅收到未见过的 agent 的 target_position 不予创建
                 agent.target_position = [opt1, opt2]
-            
-        await broadcast_canvas_update() # 0, 1, 2 命令皆需广播画布更新
+        
+        await broadcast_canvas_update() # 1, 2, 3 命令皆需广播画布更新
 
-fsm = CommandFSM(execute_command)
+fsm = CommandFSM(execute_datagram_update)
 
 async def serial_listener():
     while True:
@@ -206,7 +208,6 @@ async def serial_listener():
 async def serial_talker_mock():
     while True:
         if serials.is_ready():
-            # serials.write(CommandUtils.pack_position_datagram(233, 0.2, 0.3))
             serials.write(CommandUtils.pack_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
             serials.write(CommandUtils.pack_velocity_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
             serials.write(CommandUtils.pack_target_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
