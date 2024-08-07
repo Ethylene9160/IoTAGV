@@ -10,6 +10,8 @@
 #include "mpu.h"
 #include <memory>
 
+#include "hmc5883l.h"
+
 using msgs::send_msg_to_host;
 
 namespace ostask_vehicle_controller {
@@ -30,7 +32,7 @@ namespace ostask_vehicle_controller {
 
     void taskProcedure(void *argument) {
         auto* controller = static_cast<vehicle_controller *>(argument);
-        HAL_UART_Transmit(&huart2, (uint8_t*)"233\r\n", 5, 0xffffffff);
+
         while (true) {
             read_queue(controller);
             set_control_msg(controller);
@@ -108,7 +110,6 @@ namespace ostask_vehicle_controller {
                         break;
                 }
             }
-
         }
     }
 }

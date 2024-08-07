@@ -55,10 +55,9 @@ void MX_I2C2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN I2C2_Init 2 */
-
-  char msg[128];
-  snprintf(msg, sizeof(msg), "I2C INIT\r\n");
-  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+//  char msg[128];
+//  snprintf(msg, sizeof(msg), "I2C INIT\r\n");
+//  HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
   /* USER CODE END I2C2_Init 2 */
 
 }
