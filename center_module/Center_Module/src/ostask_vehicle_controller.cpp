@@ -30,7 +30,7 @@ namespace ostask_vehicle_controller {
 
     void taskProcedure(void *argument) {
         auto* controller = static_cast<vehicle_controller *>(argument);
-        // HAL_UART_Transmit(&huart2, (uint8_t*)"233\r\n", 5, 0xffffffff);
+        HAL_UART_Transmit(&huart2, (uint8_t*)"233\r\n", 5, 0xffffffff);
         while (true) {
             read_queue(controller);
             set_control_msg(controller);
@@ -50,7 +50,8 @@ namespace ostask_vehicle_controller {
 
         // HAL_UART_Transmit(&huart2, tx_buffer, 13, HAL_MAX_DELAY);
         // send_msg((uint8_t)0x01, (uint8_t)(controller->get_self_id()&0xFF), flt_vx, flt_vy);
-        // send_msg_to_host(VELOCITY_CTRL, controller->get_self_id(), flt_vx, flt_vy);
+        // send velosity to upper.
+        send_msg_to_host(VELOCITY_CTRL, controller->get_self_id(), flt_vx, flt_vy);
         // char str[32];
         // snprintf(str, sizeof(str), "vx: %.3f, vy: %.3f\r\n", flt_vx, flt_vy);
         // HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
@@ -83,7 +84,8 @@ namespace ostask_vehicle_controller {
                 return;
             }
 
-            // send_msg_to_host(POSITION_CTRL, source_id&0xFF, x, y);
+            // send position to upper.
+            send_msg_to_host(POSITION_CTRL, source_id&0xFF, x, y);
 
             cart_point point = {x, y};
             controller->push_back(source_id, point);

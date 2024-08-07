@@ -29,7 +29,7 @@
 #include "queue.h"
 
 #define BUFFER_SIZE_WITH_TIMESTAMP 27
-#define REMOTE_RX_MAX_SIZE 13
+#define REMOTE_RX_MAX_SIZE 12
 
 // DEFINE A LARGE BUFFER.
 uint8_t u1_rx_buffer[BUFFER_SIZE<<3];
@@ -218,9 +218,10 @@ void USART1_IRQHandler(void) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     HAL_UART_IRQHandler(&huart1);
 
-
     if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
         HAL_UART_Receive(&huart1, &received_byte, 1, 0);
+
+        // HAL_UART_Transmit(&huart2, &received_byte, 1, 0xffffffff);
         if (flag == 0) {
             if (received_byte == 0x5A && last_receive_byte == 0x7F) {
                 flag = 1;
@@ -239,6 +240,10 @@ void USART1_IRQHandler(void) {
                 buffer[26] = 0x7F;
                 if (xQueueSendFromISR(S_Queue, buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
                     Error_Handler();
+                }else {
+
+                    static uint8_t s2[] = {'d','b','\r','\n'};
+                    HAL_UART_Transmit(&huart2, s2, 4, 0xffffffff);
                 }
             }else {
                 flag = 0;
@@ -269,8 +274,7 @@ void USART2_IRQHandler(void) {
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     HAL_UART_IRQHandler(&huart2);
-    static uint8_t s2[] = {'d','b','\r','\n'};
-    HAL_UART_Transmit(&huart2, s2, 4, 0xffffffff);
+
     if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE)) {
         HAL_UART_Receive(&huart2, &received_byte, 1, 0);
         if (flag == 0) {

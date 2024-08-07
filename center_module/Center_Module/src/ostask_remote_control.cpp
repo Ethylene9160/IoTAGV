@@ -16,23 +16,23 @@ namespace ostask_remote_control {
     }
 
     void read_queue(vehicle_controller* controller) {
-        uint8_t buffer[13];
+        uint8_t buffer[12];
 
         while(get_xQueueReceive(buffer, 20) == pdTRUE) {
             /**
              * 0: 0x5A
              * 1: msg_type
              * 2: id
-             * 3-7: float1
-             * 8-11: float2
-             * 12: 0x7F
-             * total length: 13.
+             * 3-6: float1
+             * 7-10: float2
+             * 11: 0x7F
+             * total length: 12.
              */
             uint8_t msg_type = buffer[1];
             uint8_t id = buffer[2];
             float f1 = 0.0f, f2 = 0.0f;
             memcpy(&f1, buffer + 3, 4);
-            memcpy(&f2, buffer + 8, 4);
+            memcpy(&f2, buffer + 7, 4);
 
             if (id != controller->get_self_id()) {
                 send_msg_to_uwb(msg_type, id, f1, f2);
