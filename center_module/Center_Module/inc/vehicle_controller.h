@@ -4,6 +4,7 @@
 #include <map>
 #include <cstdint>
 #include "cmsis_os.h"
+#include "filter.h"
 #include <memory.h>
 
 /**
@@ -38,6 +39,7 @@ public:
     static float v_cons;
     static float v_k;
     static float kp;
+    static float ki;
     static float collision_radius;
     static float large_bias;
 
@@ -78,6 +80,8 @@ public:
 
     void set_current_alpha(float alpha);
 
+    ~vehicle_controller();
+
 private:
     uint16_t self_id;
     cart_point target_point;
@@ -87,6 +91,9 @@ private:
 
     float init_alpha;
     float current_alpha;
+
+    center_filter::Filter *filter1;
+    center_filter::Filter *filter2;
 
     std::map<uint16_t, cart_point> vehicle_position;
 
