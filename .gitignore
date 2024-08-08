@@ -1,13 +1,15 @@
 center_module/**/Backup/
 uwb_module/**/Backup/
 center_uwb/**/Backup/
-
 .idea/
 uwb_module/.idea/
 /doc/
+.settings/
+*.log
 
 *.ioc
 
+# ignore cmake files
 .cmake/
 CMakeFiles/
 *.bin
@@ -20,3 +22,8 @@ CMakeFiles/
 *.obj
 CMakeCache.txt
 Makefile
+
+# ignore cubeMX files
+*.cproject
+*.mxproject
+*.project
