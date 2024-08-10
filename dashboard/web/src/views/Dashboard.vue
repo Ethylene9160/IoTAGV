@@ -19,6 +19,15 @@
                             ></el-option>
                         </el-select>
                     </el-col>
+                    <el-col :span="8" class="button-col">
+                        <el-input v-model="serialBaudRate" type="number" placeholder="波特率"></el-input>
+                    </el-col>
+                    <el-col :span="8" class="button-col">
+                        <el-input v-model="serialDataBits" type="number" placeholder="数据位"></el-input>
+                    </el-col>
+                    <el-col :span="8" class="button-col">
+                        <el-input v-model="serialStopBits" type="number" placeholder="停止位"></el-input>
+                    </el-col>
                     <el-col :span="12" class="button-col">
                         <el-button type="primary" @click="scanPorts" class="full-width">扫描</el-button>
                     </el-col>
@@ -35,7 +44,7 @@
             </collapsible-card>
 
             <collapsible-card class="primary-card" title="属性" :default-open="true">
-                <el-select v-model="selected_agent_id" placeholder="选择 Agent ID" class="full-width">
+                <el-select v-model="selected_agent_id" placeholder="选择终端编号" class="full-width">
                     <el-option
                         v-for="agent in agents"
                         :key="agent.id"
@@ -115,6 +124,9 @@ export default {
         return {
             serialPorts: [],
             selectedPort: '',
+            serialBaudRate: 115200,
+            serialDataBits: 8,
+            serialStopBits: 1,
             isConnected: false,
             selected_agent_id: null,
             selected_agent: {},
@@ -242,10 +254,10 @@ export default {
             const serialArgs = {
                 opt: this.isConnected ? 'close' : 'open',
                 port: this.selectedPort,
-                baudrate: 115200,
-                bytesize: 8,
+                baudrate: this.serialBaudRate,
+                bytesize: this.serialDataBits,
                 parity: 'N',
-                stopbits: 1
+                stopbits: this.serialStopBits
             };
 
             try {
@@ -393,7 +405,7 @@ export default {
         async sendCommand() {
             if (!this.selected_agent_id) {
                 ElMessage({
-                    message: '请先选择一个 Agent ID',
+                    message: '请先选择一个终端编号',
                     type: 'warning'
                 });
                 return;
