@@ -137,7 +137,9 @@ export default {
             for (const [key, value] of Object.entries(this.selected_agent)) {
                 if (Object.keys(name_mapping).includes(key)) {
                     if (key === 'position' || key === 'velocity' || key === 'target_position') {
-                        formattedAgent[name_mapping[key]] = value[0].toFixed(2) + ', ' + value[1].toFixed(2)
+                        if (Array.isArray(value) && value.length === 2) {
+                            formattedAgent[name_mapping[key]] = value[0].toFixed(2) + ', ' + value[1].toFixed(2);
+                        }
                     } else {
                         formattedAgent[name_mapping[key]] = value;
                     }

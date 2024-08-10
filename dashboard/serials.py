@@ -54,14 +54,22 @@ class SerialManager:
         return self.ser.in_waiting
     
     def read(self, size = 1):
+        if not self.is_ready():
+            return False
         return self.ser.read(size = size)
     
     def readline(self):
+        if not self.is_ready():
+            return False
         return self.ser.readline()
 
     def readall(self):
+        if not self.is_ready():
+            return False
         return self.ser.read(self.ser.in_waiting)
 
     def write(self, data):
+        if not self.is_ready():
+            return False
         self.ser.write(data)
 
