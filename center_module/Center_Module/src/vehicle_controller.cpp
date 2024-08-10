@@ -8,8 +8,9 @@
 float vehicle_controller::v_cons = 48.5f;
 float vehicle_controller::v_k = 16.5f;
 
-float vehicle_controller::kp = 0.12f;
-float vehicle_controller::ki = 0.006f;
+float vehicle_controller::kp = 0.025f;
+float vehicle_controller::ki = 0.001f;
+float vehicle_controller::kd = 0.02f;
 
 float vehicle_controller::collision_radius = 0.30f;
 float vehicle_controller::large_bias = 100.0f;  // 用于处理重合时的很大偏置
@@ -30,7 +31,7 @@ isTerminal(0) { // DONE: 之后改为初始默认停止 (isTerminal = 1)，由�
     // DONE: change current alpha.
     this->init_alpha = 0.0f;
     this->current_alpha = init_alpha;
-    this->filter1 = new center_filter::LBF(0.35);
+    this->filter1 = new center_filter::LBF(0.5, init_alpha);
     this->filter2 = new center_filter::AverageFilter(10, init_alpha);
 }
 
@@ -226,7 +227,7 @@ float vehicle_controller::get_delta_alpha() {
     }else if (res < -179.99f) {
         res += 360.0f;
     }
-    return res;
+    return std::abs(res) < 2.33f? 0.0f:res;
 }
 
 void vehicle_controller::set_init_alpha(float init_alpha) {
@@ -234,8 +235,8 @@ void vehicle_controller::set_init_alpha(float init_alpha) {
     this->current_alpha = init_alpha;
     delete this->filter1;
     delete this->filter2;
-    this->filter1 = new center_filter::LBF(0.35);
-    this->filter2 = new center_filter::AverageFilter(10, init_alpha);
+    this->filter1 = new center_filter::LBF(0.6, init_alpha);
+    this->filter2 = new center_filter::AverageFilter(7, init_alpha);
 }
 
 void vehicle_controller::set_current_alpha(float alpha) {
@@ -247,12 +248,16 @@ void vehicle_controller::set_current_alpha(float alpha) {
 
 void vehicle_controller::_update_w() {
     static float error = 0.0f;
-    // apply PI control.
-    error += this->get_delta_alpha();
-    float ctrl_w = vehicle_controller::kp * this->get_delta_alpha() + vehicle_controller::ki * error;
+    static float last_error = 0.0f;
+    // apply PID control.
+    // float current_error = this->get_delta_alpha();
+    // error += current_error;
+    // float ctrl_w = vehicle_controller::kp * current_error + vehicle_controller::ki * error + vehicle_controller::kd * (current_error - last_error);
+    // last_error = current_error;
+    float ctrl_w = vehicle_controller::kp * this->get_delta_alpha();
     if (ctrl_w > 6.0f) {
         ctrl_w = 6.0f;
-    }else if(ctrl_w < 6.0f) {
+    }else if(ctrl_w < -6.0f) {
         ctrl_w = -6.0f;
     }
     this->self_vel.w = ctrl_w;
@@ -261,4 +266,12 @@ void vehicle_controller::_update_w() {
 vehicle_controller::~vehicle_controller() {
     delete this->filter1;
     delete this->filter2;
+}
+
+float vehicle_controller::get_init_alpha() {
+    return this->init_alpha;
+}
+
+float vehicle_controller::get_current_alpha() {
+    return this->current_alpha;
 }

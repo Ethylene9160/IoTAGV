@@ -23,7 +23,7 @@ typedef struct {
     uint16_t id;
 } _vehicle_config;
 
-#define V0
+#define V2
 
 #ifdef V0
 _vehicle_config vehicle_config_default = {
@@ -36,7 +36,9 @@ _vehicle_config vehicle_config_default = {
 #ifdef V1
 _vehicle_config vehicle_config_default = {
         .start = {1.6f, 2.0f},
-        .terminal = {3.0f, 1.5f},
+        // .terminal = {3.0f, 1.5f},
+
+    .terminal = {1.6f, 5.5f},
         .id = 0x81
 };
 #endif
@@ -55,6 +57,8 @@ void startThreads() {
     // 下发 CAN 指令到 controller_module 的任务
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 
+    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, new msgs::Twist2D(0.0f, 0.0f, 0.0f)));
+
     // 处理算法控制的任务
     osThreadNew(ostask_vehicle_controller::taskProcedure, vehicle_controller_ptr, &ostask_vehicle_controller::task_attributes);
 
@@ -63,6 +67,7 @@ void startThreads() {
 
     // OLED GUI 显示任务
     osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
+
 }
 
 /*

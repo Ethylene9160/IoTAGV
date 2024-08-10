@@ -40,6 +40,7 @@ public:
     static float v_k;
     static float kp;
     static float ki;
+    static float kd;
     static float collision_radius;
     static float large_bias;
 
@@ -79,6 +80,10 @@ public:
     void set_init_alpha(float init_alpha);
 
     void set_current_alpha(float alpha);
+
+    float get_init_alpha();
+
+    float get_current_alpha();
 
     ~vehicle_controller();
 

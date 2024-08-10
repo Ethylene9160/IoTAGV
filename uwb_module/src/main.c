@@ -7,6 +7,7 @@
 #include "msgs.h"
 #include "dwt.h"
 #include "adc.h"
+#include "tiny_io.h"
 
 #include "uwb_module_config.h"
 
@@ -43,9 +44,6 @@ void USART1_IRQHandler(void) {
         uint8_t received_byte = USART_ReceiveData(USART1);
         USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 
-        // return;
-
-        // uart_send_byte(u1_flag);
         if (u1_flag == 0) {
             if (received_byte == 0x5A && last_receive_byte == 0x7F) {
                 u1_flag = 1;
@@ -64,6 +62,7 @@ void USART1_IRQHandler(void) {
                 memcpy(&ctrl_msgs, u1_rx_buffer[3], 8);
                 ctrl_msg_type = u1_rx_buffer[1];
                 ctrl_id = u1_rx_buffer[2];
+                // debug_printf("rec: %d %d\r\n", ctrl_msg_type, ctrl_id);
             }else {
                 u1_flag = 0;
             }
