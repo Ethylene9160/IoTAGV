@@ -70,18 +70,12 @@ void MX_USART1_UART_Init(void) {
     // Enable the UART Data Register not empty Interrupt
     __HAL_UART_ENABLE_IT(&huart1, UART_IT_RXNE);
     /* USER CODE BEGIN USART1_Init 2 */
+    // 创建队列 TODO 要在这里吗
     S_Queue = xQueueCreate(25, BUFFER_SIZE_WITH_TIMESTAMP * sizeof(uint8_t));
-
     const osMutexAttr_t USART_MutexAttr = {
         .name = "USART_Mutex"
     };
     USART1_MutexHandle = osMutexNew(&USART_MutexAttr);
-
-    Remote_Queue = xQueueCreate(25, REMOTE_RX_MAX_SIZE * sizeof(uint8_t));
-    const osMutexAttr_t USART2_MutexAttr = {
-        .name = "USART2_Mutex"
-    };
-    USART2_MutexHandle = osMutexNew(&USART2_MutexAttr);
     /* USER CODE END USART1_Init 2 */
 }
 
@@ -95,9 +89,6 @@ void MX_USART2_UART_Init(void) {
     /* USER CODE BEGIN USART2_Init 1 */
 
     /* USER CODE END USART2_Init 1 */
-
-    /* USER CODE BEGIN USART2_Init 2 */
-
     huart2.Instance = USART2;
     huart2.Init.BaudRate = 115200;
     huart2.Init.WordLength = UART_WORDLENGTH_8B;
@@ -109,8 +100,16 @@ void MX_USART2_UART_Init(void) {
     if (HAL_UART_Init(&huart2) != HAL_OK) {
         Error_Handler();
     }
+
     // Enable the UART Data Register not empty Interrupt
     __HAL_UART_ENABLE_IT(&huart2, UART_IT_RXNE);
+    /* USER CODE BEGIN USART2_Init 2 */
+    // 创建队列 TODO 要在这里吗
+    Remote_Queue = xQueueCreate(25, REMOTE_RX_MAX_SIZE * sizeof(uint8_t));
+    const osMutexAttr_t USART2_MutexAttr = {
+        .name = "USART2_Mutex"
+    };
+    USART2_MutexHandle = osMutexNew(&USART2_MutexAttr);
     /* USER CODE END USART2_Init 2 */
 }
 
@@ -240,12 +239,12 @@ void USART1_IRQHandler(void) {
                 buffer[26] = 0x7F;
                 if (xQueueSendFromISR(S_Queue, buffer, &xHigherPriorityTaskWoken) != pdTRUE) {
                     Error_Handler();
-                }else {
-
+                } else {
+                    // TODO
                     // static uint8_t s2[] = {'d','b','\r','\n'};
                     // HAL_UART_Transmit(&huart2, s2, 4, 0xffffffff);
                 }
-            }else {
+            } else {
                 flag = 0;
             }
         }

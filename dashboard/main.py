@@ -25,10 +25,6 @@ anchors = AnchorsPool()
 anchors.append(Anchor(0x00, [0.0, 0.0]))
 anchors.append(Anchor(0x01, [2.0, 0.0]))
 
-# TODO: mock agents
-# agents.append(Agent(0x80, [1.0, 2.0], [-0.3, 1.0], [3.0, 4.0]))
-# agents.append(Agent(0x81, [2.0, 2.0], [-0.3, -0.4], [-0.5, 3.0]))
-
 
 """
     跨域请求处理中间件
@@ -123,6 +119,10 @@ async def command(request: Request):
         cmd = CommandUtils.pack_pause_command(id)
     elif msg_type == 4: # 继续
         cmd = CommandUtils.pack_resume_command(id)
+    elif msg_type == 5: # 略微左转
+        cmd = CommandUtils.pack_turn_left_a_bit_command(id)
+    elif msg_type == 6: # 略微右转
+        cmd = CommandUtils.pack_turn_right_a_bit_command(id)
     else:
         return response.json({'status': False})
     
@@ -174,7 +174,7 @@ async def execute_datagram_update(content):
         0x 0x 0x 0x (ty, float)
         0x7F (结束)
     """
-    print(f'datagram executed: {content}')
+    # print(f'datagram received: {content}')
     
     msg_type = content[0]
     if msg_type in [1, 2, 3] and len(content) == 10:
@@ -200,7 +200,9 @@ async def serial_listener():
     while True:
         if serials.is_ready(): # 串口处于开启状态
             if serials.is_received(): # 输入缓存中有数据
-                await fsm.parse(serials.readall())
+                raw_datagram = serials.readall()
+                # print(f'raw datagram received: {raw_datagram}')
+                await fsm.parse(raw_datagram)
         else: # 串口关闭, 清空状态
             fsm.reset()
         await asyncio.sleep(SERIAL_POLL_INTERVAL) # 间隔取 buffer, 每次处理取的部分
@@ -210,7 +212,7 @@ async def serial_talker_mock():
         if serials.is_ready():
             serials.write(CommandUtils.pack_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
             serials.write(CommandUtils.pack_velocity_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
-            # serials.write(CommandUtils.pack_target_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
+            serials.write(CommandUtils.pack_target_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
         await asyncio.sleep(0.2)
 
 
@@ -220,7 +222,11 @@ async def serial_talker_mock():
 @app.listener('before_server_start')
 async def setup_background_task(app, loop):
     loop.create_task(serial_listener())
-    loop.create_task(serial_talker_mock())
+
+    # TODO: mock
+    # agents.append(Agent(0x80, [1.0, 2.0], [-0.3, 1.0], [3.0, 4.0]))
+    # agents.append(Agent(0x81, [2.0, 2.0], [-0.3, -0.4], [-0.5, 3.0]))
+    # loop.create_task(serial_talker_mock())
 
 if __name__ == '__main__':
     app.run(host = APP_HOST, port = APP_PORT)

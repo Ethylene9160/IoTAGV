@@ -1,12 +1,6 @@
 <template>
     <div class="dashboard">
         <div class="left-panel">
-            <collapsible-card class="primary-card" title="坐标面板" :default-open="true">
-                <div ref="plotlyContainer" id="plotly-container" class="plotly-container"></div>
-            </collapsible-card>
-        </div>
-        <div style="width: 2%"></div>
-        <div class="right-panel">
             <collapsible-card class="primary-card" title="串口管理" :default-open="true">
                 <el-row :gutter="20" class="serial-port-controls">
                     <el-col :span="24">
@@ -18,6 +12,15 @@
                                 :value="item.port"
                             ></el-option>
                         </el-select>
+                    </el-col>
+                    <el-col :span="8" class="button-col">
+                        <el-input v-model="serialBaudRate" type="number" placeholder="波特率"></el-input>
+                    </el-col>
+                    <el-col :span="8" class="button-col">
+                        <el-input v-model="serialDataBits" type="number" placeholder="数据位"></el-input>
+                    </el-col>
+                    <el-col :span="8" class="button-col">
+                        <el-input v-model="serialStopBits" type="number" placeholder="停止位"></el-input>
                     </el-col>
                     <el-col :span="12" class="button-col">
                         <el-button type="primary" @click="scanPorts" class="full-width">扫描</el-button>
@@ -34,8 +37,27 @@
                 </el-row>
             </collapsible-card>
 
-            <collapsible-card class="primary-card" title="属性" :default-open="true">
-                <el-select v-model="selected_agent_id" placeholder="选择 Agent ID" class="full-width">
+            <collapsible-card class="primary-card" title="参数配置" :default-open="true">
+                <el-row :gutter="20" class="param-inputs">
+                    <el-col :span="12">
+                        速度向量长度缩放
+                    </el-col>
+                    <el-col :span="12">
+                        <el-input v-model="arrowLengthFactor" type="number" placeholder="缩放因子"></el-input>
+                    </el-col>
+                </el-row>
+            </collapsible-card>
+        </div>
+        <div style="width: 2%"></div>
+        <div class="middle-panel">
+            <collapsible-card class="primary-card" title="坐标面板" :default-open="true">
+                <div ref="plotlyContainer" id="plotly-container" class="plotly-container"></div>
+            </collapsible-card>
+        </div>
+        <div style="width: 2%"></div>
+        <div class="right-panel">
+            <collapsible-card class="primary-card" title="终端管理" :default-open="true">
+                <el-select v-model="selected_agent_id" placeholder="选择终端编号" class="full-width">
                     <el-option
                         v-for="agent in agents"
                         :key="agent.id"
@@ -43,54 +65,63 @@
                         :value="agent.id"
                     ></el-option>
                 </el-select>
-                <div class="properties-content">
-                    <div class="property-row" v-for="(value, key) in formattedSelectedAgent" :key="key" >
-                        <div class="property-name">{{ key }}</div>
-                        <div class="property-value">
-                            <span v-if="key !== '颜色'">{{ value }}</span>
-                            <span v-else :style="{ backgroundColor: value, display: 'inline-block', width: '20px', height: '20px' }"></span>
+                <div v-if="selected_agent_id !== null">
+                    <p style="text-align: center; font-weight: bold;">终端信息</p>
+                    <div class="properties-content">
+                        <div class="property-row" v-for="(value, key) in formattedSelectedAgent" :key="key" >
+                            <div class="property-name">{{ key }}</div>
+                            <div class="property-value">
+                                <span v-if="key !== '颜色'">{{ value }}</span>
+                                <span v-else :style="{ backgroundColor: value, display: 'inline-block', width: '20px', height: '20px' }"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <hr />
-                <div class="command-section">
-                    <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
-                        <el-option label="设置目标位置" value="1"></el-option>
-                        <el-option label="设置速度因子" value="2"></el-option>
-                        <el-option label="暂停" value="3"></el-option>
-                        <el-option label="启动" value="4"></el-option>
-                    </el-select>
-                    <div v-if="selectedCommand === '1'">
-                        <el-row :gutter="20" class="command-inputs">
+
+                    <div class="command-section">
+                        <p style="text-align: center; font-weight: bold;">发送指令</p>
+                        <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
+                            <el-option label="设置目标位置" value="1"></el-option>
+                            <el-option label="设置速度因子" value="2"></el-option>
+<!--                            <el-option label="暂停" value="3"></el-option>-->
+<!--                            <el-option label="启动" value="4"></el-option>-->
+                        </el-select>
+                        <div v-if="selectedCommand === '1'">
+                            <el-row :gutter="20" class="command-inputs">
+                                <el-col :span="12">
+                                    <el-input v-model="targetPositionX" type="number" placeholder="X"></el-input>
+                                </el-col>
+                                <el-col :span="12">
+                                    <el-input v-model="targetPositionY" type="number" placeholder="Y"></el-input>
+                                </el-col>
+                            </el-row>
+                        </div>
+                        <div v-if="selectedCommand === '2'">
+                            <el-row :gutter="20" class="command-inputs">
+                                <el-col :span="24">
+                                    <el-input v-model="velocityRatio" type="number" placeholder="速度系数"></el-input>
+                                </el-col>
+                            </el-row>
+                        </div>
+                        <el-row :gutter="20" class="button-row">
+                            <el-col :span="24">
+                                <el-button type="primary" @click="sendCommand(this.selectedCommand)" class="full-width">确认</el-button>
+                            </el-col>
+                        </el-row>
+                        <p style="text-align: center; font-weight: bold;">快捷指令</p>
+                        <el-row :gutter="20" class="button-row">
                             <el-col :span="12">
-                                <el-input v-model="targetPositionX" type="number" placeholder="X"></el-input>
+                                <el-button type="primary" @click="sendCommand('3')" class="full-width">暂停</el-button>
                             </el-col>
                             <el-col :span="12">
-                                <el-input v-model="targetPositionY" type="number" placeholder="Y"></el-input>
+                                <el-button type="primary" @click="sendCommand('4')" class="full-width">启动</el-button>
                             </el-col>
                         </el-row>
                         <el-row :gutter="20" class="button-row">
-                            <el-col :span="24">
-                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                            <el-col :span="12">
+                                <el-button type="primary" @click="sendCommand('5')" class="full-width">←</el-button>
                             </el-col>
-                        </el-row>
-                    </div>
-                    <div v-if="selectedCommand === '2'">
-                        <el-row :gutter="20" class="command-inputs">
-                            <el-col :span="24">
-                                <el-input v-model="velocityRatio" type="number" placeholder="速度系数"></el-input>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="20" class="button-row">
-                            <el-col :span="24">
-                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
-                            </el-col>
-                        </el-row>
-                    </div>
-                    <div v-if="selectedCommand === '3' || selectedCommand === '4'">
-                        <el-row :gutter="20" class="button-row">
-                            <el-col :span="24">
-                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                            <el-col :span="12">
+                                <el-button type="primary" @click="sendCommand('6')" class="full-width">→</el-button>
                             </el-col>
                         </el-row>
                     </div>
@@ -115,10 +146,14 @@ export default {
         return {
             serialPorts: [],
             selectedPort: '',
+            serialBaudRate: 115200,
+            serialDataBits: 8,
+            serialStopBits: 1,
             isConnected: false,
             selected_agent_id: null,
             selected_agent: {},
             agents: [],
+            arrowLengthFactor: 0.01,
             selectedCommand: '1',
             targetPositionX: null,
             targetPositionY: null,
@@ -137,7 +172,9 @@ export default {
             for (const [key, value] of Object.entries(this.selected_agent)) {
                 if (Object.keys(name_mapping).includes(key)) {
                     if (key === 'position' || key === 'velocity' || key === 'target_position') {
-                        formattedAgent[name_mapping[key]] = value[0].toFixed(2) + ', ' + value[1].toFixed(2)
+                        if (Array.isArray(value) && value.length === 2) {
+                            formattedAgent[name_mapping[key]] = value[0].toFixed(2) + ', ' + value[1].toFixed(2);
+                        }
                     } else {
                         formattedAgent[name_mapping[key]] = value;
                     }
@@ -228,7 +265,7 @@ export default {
             }
         },
         async toggleConnection() {
-            if (!this.selectedPort) {
+            if (!this.selectedPort && !this.isConnected) {
                 ElMessage({
                     message: '请选择一个串口',
                     type: 'warning'
@@ -239,10 +276,10 @@ export default {
             const serialArgs = {
                 opt: this.isConnected ? 'close' : 'open',
                 port: this.selectedPort,
-                baudrate: 115200,
-                bytesize: 8,
+                baudrate: this.serialBaudRate,
+                bytesize: this.serialDataBits,
                 parity: 'N',
-                stopbits: 1
+                stopbits: this.serialStopBits
             };
 
             try {
@@ -273,11 +310,15 @@ export default {
             const layout = {
                 xaxis: {
                     title: 'x (m)',
-                    range: [-1.75, 3.75]
+                    range: [-1.75, 3.75],
+                    scaleanchor: 'y',
+                    scaleratio: 1,
                 },
                 yaxis: {
                     title: 'y (m)',
-                    range: [-0.5, 5.5]
+                    range: [-0.5, 5.5],
+                    // scaleanchor: 'x',
+                    // scaleratio: 1,
                 },
                 dragmode: 'pan'
             };
@@ -345,8 +386,8 @@ export default {
                     if ('id' in item && 'position' in item && 'velocity' in item && item.velocity) {
                         const [x, y] = item.position;
                         const [vx, vy] = item.velocity;
-                        const endX = x + vx;
-                        const endY = y + vy;
+                        const endX = x + vx * this.arrowLengthFactor;
+                        const endY = y + vy * this.arrowLengthFactor;
                         const arrowColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.6)` : 'rgba(128, 128, 128, 0.6)');
 
                         return {
@@ -383,25 +424,25 @@ export default {
             const selected = this.agents.find(agent => agent.id === this.selected_agent_id);
             this.selected_agent = selected ? selected : {};
         },
-        async sendCommand() {
+        async sendCommand(sel_cmd) {
             if (!this.selected_agent_id) {
                 ElMessage({
-                    message: '请先选择一个 Agent ID',
+                    message: '请先选择一个终端编号',
                     type: 'warning'
                 });
                 return;
             }
 
             var commandArgs = {
-                type: Number(this.selectedCommand),
+                type: Number(sel_cmd),
                 id: Number(this.selected_agent_id),
                 opt1: 0,
                 opt2: 0
             };
-            if (this.selectedCommand === '1') {
+            if (sel_cmd === '1') {
                 commandArgs.opt1 = Number(this.targetPositionX);
                 commandArgs.opt2 = Number(this.targetPositionY);
-            } else if (this.selectedCommand === '2') {
+            } else if (sel_cmd === '2') {
                 commandArgs.opt1 = Number(this.velocityRatio);
             }
 
@@ -438,11 +479,13 @@ export default {
     padding: 0 1rem;
 }
 .left-panel {
-    width: 60%;
-    margin-right: 1rem;
+    width: 25%;
+}
+.middle-panel {
+    width: 40%;
 }
 .right-panel {
-    width: 30%;
+    width: 25%;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -481,7 +524,7 @@ export default {
 .property-name {
     flex: 1;
     color: #333;
-    font-weight: bold;
+    /*font-weight: bold;*/
 }
 .property-value {
     flex: 1;

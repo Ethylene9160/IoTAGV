@@ -1,21 +1,14 @@
 #include <ios>
-#include <memory>
 
 #include "cmsis_os.h"
 
 #include "main.h"
 
-#include "port_uart.h"
-#include "vehicle_controller.h"
-
 #include "ostask_controller_module_port.h"
 #include "ostask_vehicle_controller.h"
-#include "ostask_oled_ui.h"
 #include "ostask_remote_control.h"
-#include "ostask_uwb_module_port.h"
-#include "ostask_usart_transformer.h"
-#include "ostask_mpu6050.h"
-#include "mpu.h"
+
+#include "vehicle_controller.h"
 
 typedef struct {
     cart_point start;
@@ -37,8 +30,7 @@ _vehicle_config vehicle_config_default = {
 _vehicle_config vehicle_config_default = {
         .start = {1.6f, 2.0f},
         // .terminal = {3.0f, 1.5f},
-
-    .terminal = {1.6f, 5.5f},
+        .terminal = {1.6f, 5.5f},
         .id = 0x81
 };
 #endif
@@ -53,10 +45,10 @@ _vehicle_config vehicle_config_default = {
 
 void startThreads() {
     auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
+    vehicle_controller_ptr->stop();
 
     // 下发 CAN 指令到 controller_module 的任务
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
-
     ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, new msgs::Twist2D(0.0f, 0.0f, 0.0f)));
 
     // 处理算法控制的任务
@@ -65,9 +57,8 @@ void startThreads() {
     // 接收上位机指令控制的任务
     osThreadNew(ostask_remote_control::taskProcedure, vehicle_controller_ptr, &ostask_remote_control::task_attributes);
 
-    // OLED GUI 显示任务
-    osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
-
+    // OLED GUI 显示任务 (里面还有磁力计的处理)
+//    osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
 }
 
 /*

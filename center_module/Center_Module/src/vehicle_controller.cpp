@@ -208,7 +208,7 @@ void vehicle_controller::stop() {
     isTerminal = 1;
 }
 
-void vehicle_controller::start() {
+void vehicle_controller:: start() {
     isTerminal = 0;
 }
 

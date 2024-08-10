@@ -9,6 +9,13 @@
 
 namespace ostask_vehicle_controller{
 
+    enum RC_DATAGRAM {
+        RC_DATAGRAM_NONE = 0,
+        RC_DATAGRAM_POSITION = 1,
+        RC_DATAGRAM_VELOCITY = 2,
+        RC_DATAGRAM_TARGET_POSITION = 3
+    };
+
     BaseType_t get_xQueueReceive(uint8_t*buffer, TickType_t xTicksToWait);
 
     const osThreadAttr_t task_attributes = {
@@ -24,4 +31,4 @@ namespace ostask_vehicle_controller{
     void read_queue(vehicle_controller* controller);
 }
 
-#endif //OSTASK_VEHICLE_CONTROLLER_H
+#endif

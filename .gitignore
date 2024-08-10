@@ -18,5 +18,6 @@ CMakeFiles/
 *.map
 *.cmake
 *.obj
+*.log
 CMakeCache.txt
 Makefile
