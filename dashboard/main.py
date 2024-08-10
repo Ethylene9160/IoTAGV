@@ -119,6 +119,10 @@ async def command(request: Request):
         cmd = CommandUtils.pack_pause_command(id)
     elif msg_type == 4: # 继续
         cmd = CommandUtils.pack_resume_command(id)
+    elif msg_type == 5: # 略微左转
+        cmd = CommandUtils.pack_turn_left_a_bit_command(id)
+    elif msg_type == 6: # 略微右转
+        cmd = CommandUtils.pack_turn_right_a_bit_command(id)
     else:
         return response.json({'status': False})
     

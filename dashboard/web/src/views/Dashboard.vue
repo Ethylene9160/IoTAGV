@@ -1,12 +1,6 @@
 <template>
     <div class="dashboard">
         <div class="left-panel">
-            <collapsible-card class="primary-card" title="坐标面板" :default-open="true">
-                <div ref="plotlyContainer" id="plotly-container" class="plotly-container"></div>
-            </collapsible-card>
-        </div>
-        <div style="width: 2%"></div>
-        <div class="right-panel">
             <collapsible-card class="primary-card" title="串口管理" :default-open="true">
                 <el-row :gutter="20" class="serial-port-controls">
                     <el-col :span="24">
@@ -43,6 +37,25 @@
                 </el-row>
             </collapsible-card>
 
+            <collapsible-card class="primary-card" title="参数配置" :default-open="true">
+                <el-row :gutter="20" class="param-inputs">
+                    <el-col :span="12">
+                        速度向量长度缩放
+                    </el-col>
+                    <el-col :span="12">
+                        <el-input v-model="arrowLengthFactor" type="number" placeholder="缩放因子"></el-input>
+                    </el-col>
+                </el-row>
+            </collapsible-card>
+        </div>
+        <div style="width: 2%"></div>
+        <div class="middle-panel">
+            <collapsible-card class="primary-card" title="坐标面板" :default-open="true">
+                <div ref="plotlyContainer" id="plotly-container" class="plotly-container"></div>
+            </collapsible-card>
+        </div>
+        <div style="width: 2%"></div>
+        <div class="right-panel">
             <collapsible-card class="primary-card" title="终端管理" :default-open="true">
                 <el-select v-model="selected_agent_id" placeholder="选择终端编号" class="full-width">
                     <el-option
@@ -69,8 +82,8 @@
                         <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
                             <el-option label="设置目标位置" value="1"></el-option>
                             <el-option label="设置速度因子" value="2"></el-option>
-                            <el-option label="暂停" value="3"></el-option>
-                            <el-option label="启动" value="4"></el-option>
+<!--                            <el-option label="暂停" value="3"></el-option>-->
+<!--                            <el-option label="启动" value="4"></el-option>-->
                         </el-select>
                         <div v-if="selectedCommand === '1'">
                             <el-row :gutter="20" class="command-inputs">
@@ -103,6 +116,14 @@
                                 <el-button type="primary" @click="sendCommand('4')" class="full-width">启动</el-button>
                             </el-col>
                         </el-row>
+                        <el-row :gutter="20" class="button-row">
+                            <el-col :span="12">
+                                <el-button type="primary" @click="sendCommand('5')" class="full-width">←</el-button>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-button type="primary" @click="sendCommand('6')" class="full-width">→</el-button>
+                            </el-col>
+                        </el-row>
                     </div>
                 </div>
             </collapsible-card>
@@ -132,7 +153,7 @@ export default {
             selected_agent_id: null,
             selected_agent: {},
             agents: [],
-            arrowLengthFactor: 0.2,
+            arrowLengthFactor: 0.01,
             selectedCommand: '1',
             targetPositionX: null,
             targetPositionY: null,
@@ -296,8 +317,8 @@ export default {
                 yaxis: {
                     title: 'y (m)',
                     range: [-0.5, 5.5],
-                    scaleanchor: 'x',
-                    scaleratio: 1,
+                    // scaleanchor: 'x',
+                    // scaleratio: 1,
                 },
                 dragmode: 'pan'
             };
@@ -458,11 +479,13 @@ export default {
     padding: 0 1rem;
 }
 .left-panel {
-    width: 60%;
-    margin-right: 1rem;
+    width: 25%;
+}
+.middle-panel {
+    width: 40%;
 }
 .right-panel {
-    width: 30%;
+    width: 25%;
     display: flex;
     flex-direction: column;
     gap: 1rem;
