@@ -52,56 +52,58 @@
                         :value="agent.id"
                     ></el-option>
                 </el-select>
-                <div class="properties-content">
-                    <div class="property-row" v-for="(value, key) in formattedSelectedAgent" :key="key" >
-                        <div class="property-name">{{ key }}</div>
-                        <div class="property-value">
-                            <span v-if="key !== '颜色'">{{ value }}</span>
-                            <span v-else :style="{ backgroundColor: value, display: 'inline-block', width: '20px', height: '20px' }"></span>
+                <div v-if="selected_agent_id !== null">
+                    <div class="properties-content">
+                        <div class="property-row" v-for="(value, key) in formattedSelectedAgent" :key="key" >
+                            <div class="property-name">{{ key }}</div>
+                            <div class="property-value">
+                                <span v-if="key !== '颜色'">{{ value }}</span>
+                                <span v-else :style="{ backgroundColor: value, display: 'inline-block', width: '20px', height: '20px' }"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <hr />
-                <div class="command-section">
-                    <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
-                        <el-option label="设置目标位置" value="1"></el-option>
-                        <el-option label="设置速度因子" value="2"></el-option>
-                        <el-option label="暂停" value="3"></el-option>
-                        <el-option label="启动" value="4"></el-option>
-                    </el-select>
-                    <div v-if="selectedCommand === '1'">
-                        <el-row :gutter="20" class="command-inputs">
-                            <el-col :span="12">
-                                <el-input v-model="targetPositionX" type="number" placeholder="X"></el-input>
-                            </el-col>
-                            <el-col :span="12">
-                                <el-input v-model="targetPositionY" type="number" placeholder="Y"></el-input>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="20" class="button-row">
-                            <el-col :span="24">
-                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
-                            </el-col>
-                        </el-row>
-                    </div>
-                    <div v-if="selectedCommand === '2'">
-                        <el-row :gutter="20" class="command-inputs">
-                            <el-col :span="24">
-                                <el-input v-model="velocityRatio" type="number" placeholder="速度系数"></el-input>
-                            </el-col>
-                        </el-row>
-                        <el-row :gutter="20" class="button-row">
-                            <el-col :span="24">
-                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
-                            </el-col>
-                        </el-row>
-                    </div>
-                    <div v-if="selectedCommand === '3' || selectedCommand === '4'">
-                        <el-row :gutter="20" class="button-row">
-                            <el-col :span="24">
-                                <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
-                            </el-col>
-                        </el-row>
+                    <hr />
+                    <div class="command-section">
+                        <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
+                            <el-option label="设置目标位置" value="1"></el-option>
+                            <el-option label="设置速度因子" value="2"></el-option>
+                            <el-option label="暂停" value="3"></el-option>
+                            <el-option label="启动" value="4"></el-option>
+                        </el-select>
+                        <div v-if="selectedCommand === '1'">
+                            <el-row :gutter="20" class="command-inputs">
+                                <el-col :span="12">
+                                    <el-input v-model="targetPositionX" type="number" placeholder="X"></el-input>
+                                </el-col>
+                                <el-col :span="12">
+                                    <el-input v-model="targetPositionY" type="number" placeholder="Y"></el-input>
+                                </el-col>
+                            </el-row>
+                            <el-row :gutter="20" class="button-row">
+                                <el-col :span="24">
+                                    <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                                </el-col>
+                            </el-row>
+                        </div>
+                        <div v-if="selectedCommand === '2'">
+                            <el-row :gutter="20" class="command-inputs">
+                                <el-col :span="24">
+                                    <el-input v-model="velocityRatio" type="number" placeholder="速度系数"></el-input>
+                                </el-col>
+                            </el-row>
+                            <el-row :gutter="20" class="button-row">
+                                <el-col :span="24">
+                                    <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                                </el-col>
+                            </el-row>
+                        </div>
+                        <div v-if="selectedCommand === '3' || selectedCommand === '4'">
+                            <el-row :gutter="20" class="button-row">
+                                <el-col :span="24">
+                                    <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
+                                </el-col>
+                            </el-row>
+                        </div>
                     </div>
                 </div>
             </collapsible-card>
@@ -243,7 +245,7 @@ export default {
             }
         },
         async toggleConnection() {
-            if (!this.selectedPort) {
+            if (!this.selectedPort && !this.isConnected) {
                 ElMessage({
                     message: '请选择一个串口',
                     type: 'warning'
