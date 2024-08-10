@@ -119,6 +119,7 @@ export default {
             selected_agent_id: null,
             selected_agent: {},
             agents: [],
+            arrowLengthFactor: 0.2,
             selectedCommand: '1',
             targetPositionX: null,
             targetPositionY: null,
@@ -275,11 +276,15 @@ export default {
             const layout = {
                 xaxis: {
                     title: 'x (m)',
-                    range: [-1.75, 3.75]
+                    range: [-1.75, 3.75],
+                    scaleanchor: 'y',
+                    scaleratio: 1,
                 },
                 yaxis: {
                     title: 'y (m)',
-                    range: [-0.5, 5.5]
+                    range: [-0.5, 5.5],
+                    scaleanchor: 'x',
+                    scaleratio: 1,
                 },
                 dragmode: 'pan'
             };
@@ -347,8 +352,8 @@ export default {
                     if ('id' in item && 'position' in item && 'velocity' in item && item.velocity) {
                         const [x, y] = item.position;
                         const [vx, vy] = item.velocity;
-                        const endX = x + vx;
-                        const endY = y + vy;
+                        const endX = x + vx * this.arrowLengthFactor;
+                        const endY = y + vy * this.arrowLengthFactor;
                         const arrowColor = ('color' in item ? `rgba(${item.color[0]}, ${item.color[1]}, ${item.color[2]}, 0.6)` : 'rgba(128, 128, 128, 0.6)');
 
                         return {

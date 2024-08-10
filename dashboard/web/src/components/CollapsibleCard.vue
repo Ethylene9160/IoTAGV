@@ -3,7 +3,7 @@
         <template #header>
             <div slot="header" class="header-content">
                 <span>{{ title }}</span>
-                <el-button @click="togglePanel" type="text">{{ collapsed ? '展开' : '折叠' }}</el-button>
+<!--                <el-button @click="togglePanel" type="text">{{ collapsed ? '展开' : '折叠' }}</el-button>-->
             </div>
         </template>
         <div v-show="isOpen" class="content">

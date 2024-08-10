@@ -174,7 +174,7 @@ async def execute_datagram_update(content):
         0x 0x 0x 0x (ty, float)
         0x7F (结束)
     """
-    print(f'datagram executed: {content}')
+    # print(f'datagram received: {content}')
     
     msg_type = content[0]
     if msg_type in [1, 2, 3] and len(content) == 10:
@@ -210,7 +210,7 @@ async def serial_talker_mock():
         if serials.is_ready():
             serials.write(CommandUtils.pack_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
             serials.write(CommandUtils.pack_velocity_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
-            # serials.write(CommandUtils.pack_target_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
+            serials.write(CommandUtils.pack_target_position_datagram(233, random.uniform(-1, 3), random.uniform(0, 4)))
         await asyncio.sleep(0.2)
 
 
