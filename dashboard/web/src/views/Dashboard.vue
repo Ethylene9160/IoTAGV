@@ -43,7 +43,7 @@
                 </el-row>
             </collapsible-card>
 
-            <collapsible-card class="primary-card" title="属性" :default-open="true">
+            <collapsible-card class="primary-card" title="终端管理" :default-open="true">
                 <el-select v-model="selected_agent_id" placeholder="选择终端编号" class="full-width">
                     <el-option
                         v-for="agent in agents"
@@ -53,6 +53,7 @@
                     ></el-option>
                 </el-select>
                 <div v-if="selected_agent_id !== null">
+                    <p style="text-align: center; font-weight: bold;">终端信息</p>
                     <div class="properties-content">
                         <div class="property-row" v-for="(value, key) in formattedSelectedAgent" :key="key" >
                             <div class="property-name">{{ key }}</div>
@@ -62,8 +63,9 @@
                             </div>
                         </div>
                     </div>
-                    <hr />
+
                     <div class="command-section">
+                        <p style="text-align: center; font-weight: bold;">发送指令</p>
                         <el-select v-model="selectedCommand" placeholder="选择指令" class="full-width">
                             <el-option label="设置目标位置" value="1"></el-option>
                             <el-option label="设置速度因子" value="2"></el-option>
@@ -79,11 +81,6 @@
                                     <el-input v-model="targetPositionY" type="number" placeholder="Y"></el-input>
                                 </el-col>
                             </el-row>
-                            <el-row :gutter="20" class="button-row">
-                                <el-col :span="24">
-                                    <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
-                                </el-col>
-                            </el-row>
                         </div>
                         <div v-if="selectedCommand === '2'">
                             <el-row :gutter="20" class="command-inputs">
@@ -91,19 +88,21 @@
                                     <el-input v-model="velocityRatio" type="number" placeholder="速度系数"></el-input>
                                 </el-col>
                             </el-row>
-                            <el-row :gutter="20" class="button-row">
-                                <el-col :span="24">
-                                    <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
-                                </el-col>
-                            </el-row>
                         </div>
-                        <div v-if="selectedCommand === '3' || selectedCommand === '4'">
-                            <el-row :gutter="20" class="button-row">
-                                <el-col :span="24">
-                                    <el-button type="primary" @click="sendCommand" class="full-width">确认</el-button>
-                                </el-col>
-                            </el-row>
-                        </div>
+                        <el-row :gutter="20" class="button-row">
+                            <el-col :span="24">
+                                <el-button type="primary" @click="sendCommand(this.selectedCommand)" class="full-width">确认</el-button>
+                            </el-col>
+                        </el-row>
+                        <p style="text-align: center; font-weight: bold;">快捷指令</p>
+                        <el-row :gutter="20" class="button-row">
+                            <el-col :span="12">
+                                <el-button type="primary" @click="sendCommand('3')" class="full-width">暂停</el-button>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-button type="primary" @click="sendCommand('4')" class="full-width">启动</el-button>
+                            </el-col>
+                        </el-row>
                     </div>
                 </div>
             </collapsible-card>
@@ -404,7 +403,7 @@ export default {
             const selected = this.agents.find(agent => agent.id === this.selected_agent_id);
             this.selected_agent = selected ? selected : {};
         },
-        async sendCommand() {
+        async sendCommand(sel_cmd) {
             if (!this.selected_agent_id) {
                 ElMessage({
                     message: '请先选择一个终端编号',
@@ -414,15 +413,15 @@ export default {
             }
 
             var commandArgs = {
-                type: Number(this.selectedCommand),
+                type: Number(sel_cmd),
                 id: Number(this.selected_agent_id),
                 opt1: 0,
                 opt2: 0
             };
-            if (this.selectedCommand === '1') {
+            if (sel_cmd === '1') {
                 commandArgs.opt1 = Number(this.targetPositionX);
                 commandArgs.opt2 = Number(this.targetPositionY);
-            } else if (this.selectedCommand === '2') {
+            } else if (sel_cmd === '2') {
                 commandArgs.opt1 = Number(this.velocityRatio);
             }
 
@@ -502,7 +501,7 @@ export default {
 .property-name {
     flex: 1;
     color: #333;
-    font-weight: bold;
+    /*font-weight: bold;*/
 }
 .property-value {
     flex: 1;

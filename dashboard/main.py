@@ -25,10 +25,6 @@ anchors = AnchorsPool()
 anchors.append(Anchor(0x00, [0.0, 0.0]))
 anchors.append(Anchor(0x01, [2.0, 0.0]))
 
-# TODO: mock agents
-# agents.append(Agent(0x80, [1.0, 2.0], [-0.3, 1.0], [3.0, 4.0]))
-# agents.append(Agent(0x81, [2.0, 2.0], [-0.3, -0.4], [-0.5, 3.0]))
-
 
 """
     跨域请求处理中间件
@@ -220,7 +216,11 @@ async def serial_talker_mock():
 @app.listener('before_server_start')
 async def setup_background_task(app, loop):
     loop.create_task(serial_listener())
-    loop.create_task(serial_talker_mock())
+
+    # TODO: mock
+    # agents.append(Agent(0x80, [1.0, 2.0], [-0.3, 1.0], [3.0, 4.0]))
+    # agents.append(Agent(0x81, [2.0, 2.0], [-0.3, -0.4], [-0.5, 3.0]))
+    # loop.create_task(serial_talker_mock())
 
 if __name__ == '__main__':
     app.run(host = APP_HOST, port = APP_PORT)
