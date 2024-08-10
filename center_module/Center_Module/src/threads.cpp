@@ -37,8 +37,7 @@ _vehicle_config vehicle_config_default = {
 _vehicle_config vehicle_config_default = {
         .start = {1.6f, 2.0f},
         // .terminal = {3.0f, 1.5f},
-
-    .terminal = {1.6f, 5.5f},
+        .terminal = {1.6f, 5.5f},
         .id = 0x81
 };
 #endif

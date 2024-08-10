@@ -253,16 +253,18 @@ namespace msgs {
         uwb_buffer[2] = id;
         memcpy(uwb_buffer+3, &f1, 4);
         memcpy(uwb_buffer+7, &f2, 4);
-        // char str[32];
+        // char str[64];
         HAL_UART_Transmit(&huart1, uwb_buffer, 12, HAL_MAX_DELAY);
         //
-        // snprintf(str, sizeof(str), "send uwb: %d, %d, %f, %f, row: ", type, id, f1, f2);
+        // snprintf(str, sizeof(str), "send uwb: %d, %d, [%d%d%d%d], [%d%d%d%d], %.2f, %.2f", type, id,
+        //     uwb_buffer[3], uwb_buffer[4], uwb_buffer[5], uwb_buffer[6], uwb_buffer[7], uwb_buffer[8], uwb_buffer[9], uwb_buffer[10],
+        //     *(float*)(uwb_buffer+3), *(float*)(uwb_buffer+7));
         // HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
         // HAL_UART_Transmit(&huart2, uwb_buffer, 12, HAL_MAX_DELAY);
         // HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
         // for (int i = 0; i < 12; ++i) {
-        //     // snprintf(str, sizeof(str), "%d, ", uwb_buffer[i]);
-        //     // 通过usart1 一个字节一个字节的发送。
+            // snprintf(str, sizeof(str), "%d, ", uwb_buffer[i]);
+            // 通过usart1 一个字节一个字节的发送。
         //     HAL_UART_Transmit(&huart1, uwb_buffer + i, 1, HAL_MAX_DELAY);
         // }
     }

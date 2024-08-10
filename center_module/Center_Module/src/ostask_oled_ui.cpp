@@ -226,7 +226,7 @@ namespace ostask_oled_ui {
                     updateSettingPage();
                     break;
             }
-            osDelay(6);
+            osDelay(20);
 
             /*
              * TODO Test Magnetic Sensor Begin

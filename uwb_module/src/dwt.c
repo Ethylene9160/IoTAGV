@@ -8,6 +8,7 @@
 #include "tiny_io.h"
 #include "msgs.h"
 #include "tool.h"
+#include <math.h>
 
 
 uwb_mode_t JudgeModeFromID(uint8_t module_id) {
@@ -404,7 +405,9 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     double Db = (double) (tag_resp_tx - tag_poll_rx);
                     double tof = ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db)) * DWT_TIME_UNITS;
                     float distance = (float) (tof * SPEED_OF_LIGHT);
-                    if (distance < 20.0 && distance > 0.1)
+                    // 如果distance是nan，返回
+
+                    if ((!isnan(distance)) && distance < 20.0 && distance > 0.1)
                         put_distance(&tag_storage, src_id, distance);
                 // Print the result
 //                debug_printf("   Tag: %lu, \t%lu, \t%lu\n", poll_rx, resp_tx, final_rx);

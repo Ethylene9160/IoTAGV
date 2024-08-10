@@ -56,7 +56,7 @@ namespace ostask_vehicle_controller {
         // snprintf(str, sizeof(str), "current delta: %.3f, w: %.3f\r\n", controller->get_init_alpha() - controller->get_current_alpha(), v.w);
         // HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
         // msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
-        msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w);
+        msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, 0.0f);
         auto command = msgs::Command(CTRL_CMD_SET_TWIST, t);
 
         ostask_controller_module_port::pushCommand(command);
@@ -77,29 +77,41 @@ namespace ostask_vehicle_controller {
             memcpy(&d1, buffer + 16, 4);
             memcpy(&d2, buffer + 20, 4);
             // char str[64];
-            // snprintf(str, sizeof(str), "srid: %d, target: %d, ctrl: %d, x: %.3f, y: %.3f, d1: %.3f, d2: %.3f\r\n", source_id ,target_id, ctrl_type, x, y, d1, d2);
-            // HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+            // int len = sprintf(str, "\r\nsrid: %d, target: %d, ctrl: %d, x: %.3f, y: %.3f, d1: %.3f, d2: %.3f\r\n", source_id ,target_id, ctrl_type, x, y, d1, d2);
+            // HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
             // nan, return.
             if (std::isnan(x) || std::isnan(y) || std::isnan(d1) || std::isnan(d2)) {
                 return;
             }
+            // if (ctrl_type == 1 && target_id != controller->get_self_id())
+            //     send_msg_to_host(ctrl_type, uint8_t(source_id&0xFF), d1, d2);
+            // if (ctrl_type > 1 && ctrl_type < 4)
+            //     send_msg_to_host(ctrl_type, uint8_t(source_id&0xFF), d1, d2);
 
-            if (ctrl_type >= 1 && ctrl_type <= 3)
-                send_msg_to_host(ctrl_type, source_id&0xFF, d1, d2);
             // send position to upper.
-            else
-                send_msg_to_host(POSITION_CTRL, source_id&0xFF, x, y);
-
+            // else
+            send_msg_to_host(POSITION_CTRL, uint8_t(source_id&0xFF), x, y);
+            // char c1 = 'a';
             cart_point point = {x, y};
             controller->push_back(source_id, point);
+            // char c2 = 'b';
+            // HAL_UART_Transmit(&huart2, (uint8_t*)"before set pos\r\n", 18, HAL_MAX_DELAY);
             if (target_id == controller->get_self_id()) {
                 switch (ctrl_type) {
-                    case POSITION_CTRL:
+                    case POSITION_CTRL: {
                         // set target position
-                            controller->set_target_point({d1, d2});
-                            break;
+                        // send_msg_to_host(POSITION_CTRL, )
+                        // send_msg_to_host(3, target_id, d1,d2);
+                        // char s2[32];
+                        // int len = sprintf(s2, "2333 set pos(%d,%d)\r\n", d1, d2);
+                        // HAL_UART_Transmit(&huart2, (uint8_t*)s2, len, HAL_MAX_DELAY);
+                        controller->set_target_point({d1, d2});
+                    }
+                    break;
+
                     case VELOCITY_CTRL:
                         vehicle_controller::v_cons = d1;
+                        vehicle_controller::v_k = d1 *  vehicle_controller::v_k/ vehicle_controller::v_cons;
                         break;
                     case STOP_CTRL:
                         controller->stop();

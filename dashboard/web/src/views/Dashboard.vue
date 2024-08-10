@@ -132,7 +132,7 @@ export default {
             selected_agent_id: null,
             selected_agent: {},
             agents: [],
-            arrowLengthFactor: 0.2,
+            arrowLengthFactor: 0.005,
             selectedCommand: '1',
             targetPositionX: null,
             targetPositionY: null,

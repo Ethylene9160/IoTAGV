@@ -30,15 +30,16 @@ namespace ostask_remote_control {
              */
             uint8_t msg_type = buffer[1];
             uint8_t id = buffer[2];
-            float f1 = 0.0f, f2 = 0.0f;
+            float f1 = 0.0f;
+            float f2 = 0.0f;
             memcpy(&f1, buffer + 3, 4);
             memcpy(&f2, buffer + 7, 4);
 
             if (id != controller->get_self_id()) {
-                char str[32];
+                // char str[64];
                 // HAL_UART_Transmit(&huart2, buffer, 12, HAL_MAX_DELAY);
-                snprintf(str, sizeof(str), "id not match: %d, %d, ctrl: %d\r\n", id, controller->get_self_id(), msg_type);
-                HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+                // int len = sprintf(str, "id not match: %d, %d, ctrl: %d, f1: %.2f, f2: %.2f\r\n", id, controller->get_self_id(), msg_type, f1, f2);
+                // HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
 
                 send_msg_to_uwb(msg_type, id, f1, f2);
                 // HAL_UART_Transmit(&huart1, buffer, 12, HAL_MAX_DELAY);
@@ -48,9 +49,9 @@ namespace ostask_remote_control {
             switch(msg_type) {
                 case POSITION_CTRL: {
                     // set position
-                    char chs[48];
-                    int len = sprintf(chs, "set self p: .2%f, %.2f\r\n", f1, f2);
-                    HAL_UART_Transmit(&huart2, (uint8_t*)chs, len, HAL_MAX_DELAY);
+                    // char chs[48];
+                    // int len = sprintf(chs, "set self p: .2%f, %.2f\r\n", f1, f2);
+                    // HAL_UART_Transmit(&huart2, (uint8_t*)chs, len, HAL_MAX_DELAY);
                     controller->set_target_point({f1, f2});
                     break;
                 }
