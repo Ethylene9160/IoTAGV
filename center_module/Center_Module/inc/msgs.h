@@ -253,10 +253,18 @@ namespace msgs {
         uwb_buffer[2] = id;
         memcpy(uwb_buffer+3, &f1, 4);
         memcpy(uwb_buffer+7, &f2, 4);
-        char str[32];
-        snprintf(str, sizeof(str), "send uwb: %d, %d, %f, %f\r\n", type, id, f1, f2);
-        HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+        // char str[32];
         HAL_UART_Transmit(&huart1, uwb_buffer, 12, HAL_MAX_DELAY);
+        //
+        // snprintf(str, sizeof(str), "send uwb: %d, %d, %f, %f, row: ", type, id, f1, f2);
+        // HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+        // HAL_UART_Transmit(&huart2, uwb_buffer, 12, HAL_MAX_DELAY);
+        // HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+        // for (int i = 0; i < 12; ++i) {
+        //     // snprintf(str, sizeof(str), "%d, ", uwb_buffer[i]);
+        //     // 通过usart1 一个字节一个字节的发送。
+        //     HAL_UART_Transmit(&huart1, uwb_buffer + i, 1, HAL_MAX_DELAY);
+        // }
     }
 }
 

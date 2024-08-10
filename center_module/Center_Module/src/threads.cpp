@@ -53,7 +53,7 @@ _vehicle_config vehicle_config_default = {
 
 void startThreads() {
     auto* vehicle_controller_ptr = new vehicle_controller(vehicle_config_default.id, vehicle_config_default.start, vehicle_config_default.terminal);
-
+    vehicle_controller_ptr->stop();
     // 下发 CAN 指令到 controller_module 的任务
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
 

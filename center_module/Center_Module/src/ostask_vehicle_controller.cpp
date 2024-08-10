@@ -76,16 +76,19 @@ namespace ostask_vehicle_controller {
             memcpy(&y, buffer + 12, 4);
             memcpy(&d1, buffer + 16, 4);
             memcpy(&d2, buffer + 20, 4);
-            char str[64];
-            snprintf(str, sizeof(str), "srid: %d, target: %d, ctrl: %d, x: %.3f, y: %.3f, d1: %.3f, d2: %.3f\r\n", source_id ,target_id, ctrl_type, x, y, d1, d2);
-            HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+            // char str[64];
+            // snprintf(str, sizeof(str), "srid: %d, target: %d, ctrl: %d, x: %.3f, y: %.3f, d1: %.3f, d2: %.3f\r\n", source_id ,target_id, ctrl_type, x, y, d1, d2);
+            // HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
             // nan, return.
             if (std::isnan(x) || std::isnan(y) || std::isnan(d1) || std::isnan(d2)) {
                 return;
             }
 
+            if (ctrl_type >= 1 && ctrl_type <= 3)
+                send_msg_to_host(ctrl_type, source_id&0xFF, d1, d2);
             // send position to upper.
-            send_msg_to_host(ctrl_type, source_id&0xFF, x, y);
+            else
+                send_msg_to_host(POSITION_CTRL, source_id&0xFF, x, y);
 
             cart_point point = {x, y};
             controller->push_back(source_id, point);

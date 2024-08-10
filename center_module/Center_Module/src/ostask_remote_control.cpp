@@ -36,16 +36,21 @@ namespace ostask_remote_control {
 
             if (id != controller->get_self_id()) {
                 char str[32];
-                snprintf(str, sizeof(str), "id not match: %d, %d\r\n", id, controller->get_self_id());
+                // HAL_UART_Transmit(&huart2, buffer, 12, HAL_MAX_DELAY);
+                snprintf(str, sizeof(str), "id not match: %d, %d, ctrl: %d\r\n", id, controller->get_self_id(), msg_type);
                 HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
 
                 send_msg_to_uwb(msg_type, id, f1, f2);
+                // HAL_UART_Transmit(&huart1, buffer, 12, HAL_MAX_DELAY);
                 return;
             }
             //相同id，直接设置。
             switch(msg_type) {
                 case POSITION_CTRL: {
                     // set position
+                    char chs[48];
+                    int len = sprintf(chs, "set self p: .2%f, %.2f\r\n", f1, f2);
+                    HAL_UART_Transmit(&huart2, (uint8_t*)chs, len, HAL_MAX_DELAY);
                     controller->set_target_point({f1, f2});
                     break;
                 }
