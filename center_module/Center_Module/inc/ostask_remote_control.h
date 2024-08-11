@@ -11,14 +11,6 @@
 
 namespace ostask_remote_control {
 
-    enum RC_CMD {
-        RC_CMD_NONE = 0,
-        RC_CMD_SET_TARGET_POSITION = 1,
-        RC_CMD_SET_VELOCITY = 2,
-        RC_CMD_PAUSE = 3,
-        RC_CMD_RESUME = 4
-    };
-
     BaseType_t get_xQueueReceive(uint8_t*buffer, TickType_t xTicksToWait);
 
     void read_queue(vehicle_controller* controller);

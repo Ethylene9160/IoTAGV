@@ -49,7 +49,7 @@ void startThreads() {
 
     // 下发 CAN 指令到 controller_module 的任务
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
-    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, new msgs::Twist2D(0.0f, 0.0f, 0.0f)));
+    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, new msgs::Twist2D(0.0f, 0.0f, 0.2f)));
 
     // 处理算法控制的任务
     osThreadNew(ostask_vehicle_controller::taskProcedure, vehicle_controller_ptr, &ostask_vehicle_controller::task_attributes);

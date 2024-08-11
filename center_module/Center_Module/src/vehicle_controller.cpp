@@ -74,9 +74,8 @@ void vehicle_controller::tick() {
     //     }
     // }
 
-    // set w:
-    // this->self_vel.w = vehicle_controller::kp * get_delta_alpha();
-    this->_update_w();
+    // 更新角速度 (yaw 保持)
+//    this->_update_w();
 }
 
 inline bool vehicle_controller::_is_obstacle_near(const cart_point &obstacle, float vx, float vy) {
@@ -179,7 +178,7 @@ bool vehicle_controller::is_terminal() {
 
 cart_velocity vehicle_controller::get_self_velocity() const {
     if (isTerminal) {
-        return {0.0f, 0.0f, 0.0f};
+        return {0.0f, 0.0f, this->self_vel.w};
     }
     return self_vel;
 }
@@ -224,10 +223,10 @@ float vehicle_controller::get_delta_alpha() {
     float res = this->init_alpha - this->current_alpha;
     if (res > 179.99f) {
         res -= 360.0f;
-    }else if (res < -179.99f) {
+    } else if (res < -179.99f) {
         res += 360.0f;
     }
-    return std::abs(res) < 2.33f? 0.0f:res;
+    return std::abs(res) < 2.33f ? 0.0f : res;
 }
 
 void vehicle_controller::set_init_alpha(float init_alpha) {
@@ -257,7 +256,7 @@ void vehicle_controller::_update_w() {
     float ctrl_w = vehicle_controller::kp * this->get_delta_alpha();
     if (ctrl_w > 6.0f) {
         ctrl_w = 6.0f;
-    }else if(ctrl_w < -6.0f) {
+    } else if (ctrl_w < -6.0f) {
         ctrl_w = -6.0f;
     }
     this->self_vel.w = ctrl_w;
@@ -274,4 +273,45 @@ float vehicle_controller::get_init_alpha() {
 
 float vehicle_controller::get_current_alpha() {
     return this->current_alpha;
+}
+
+void vehicle_controller::process_remote_command(uint8_t cmd_type, float opt1, float opt2) {
+    switch (cmd_type) {
+        case RC_CMD_SET_TARGET_POSITION: {
+            this->set_target_point({opt1, opt2});
+            break;
+        }
+        case RC_CMD_SET_VELOCITY:
+            vehicle_controller::v_cons = opt1;
+            if (std::abs(opt1) < 1.0f) {
+                vehicle_controller::v_cons = 0.0f;
+                vehicle_controller::v_k = 0.0f;
+            }else {
+                vehicle_controller::v_k = opt1 * vehicle_controller::v_k / vehicle_controller::v_cons;
+            }
+            break;
+        case RC_CMD_PAUSE:
+            this->stop();
+            break;
+        case RC_CMD_RESUME:
+            this->start();
+            break;
+
+        case RC_CMD_TURN_LEFT_A_BIT:
+            this->self_vel.w = -1.0f;
+//            char str[32];
+//            snprintf(str, sizeof(str), "turn left: %.2f\r\n", this->self_vel.w);
+//            HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+            break;
+        case RC_CMD_TURN_RIGHT_A_BIT:
+            this->self_vel.w = 1.0f;
+            HAL_UART_Transmit(&huart2, (uint8_t*)"turn right\r\n", 12, HAL_MAX_DELAY);
+            break;
+        case RC_CMD_STOP_TURNING:
+            this->self_vel.w = 0.0f;
+            HAL_UART_Transmit(&huart2, (uint8_t*)"stop turning\r\n", 14, HAL_MAX_DELAY);
+            break;
+        default:
+            break;
+    }
 }
