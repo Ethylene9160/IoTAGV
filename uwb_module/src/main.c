@@ -4,10 +4,9 @@
 #include "gpio.h"
 #include "spi.h"
 #include "usart.h"
-#include "msgs.h"
+
 #include "dwt.h"
 #include "adc.h"
-#include "tiny_io.h"
 
 #include "uwb_module_config.h"
 
