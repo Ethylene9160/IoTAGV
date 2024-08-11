@@ -3,7 +3,7 @@
 
 #include <cstdio>
 
-#include "../../../../../Users/glver/Desktop/tmp/center_module (未完成的磁力计)/Center_Module/inc/user_i2c.h"
+#include "user_i2c.h"
 
 #ifdef __cplusplus
 extern "C" {

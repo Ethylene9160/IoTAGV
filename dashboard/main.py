@@ -200,7 +200,9 @@ async def serial_listener():
     while True:
         if serials.is_ready(): # 串口处于开启状态
             if serials.is_received(): # 输入缓存中有数据
-                await fsm.parse(serials.readall())
+                raw_datagram = serials.readall()
+                # print(f'raw datagram received: {raw_datagram}')
+                await fsm.parse(raw_datagram)
         else: # 串口关闭, 清空状态
             fsm.reset()
         await asyncio.sleep(SERIAL_POLL_INTERVAL) # 间隔取 buffer, 每次处理取的部分

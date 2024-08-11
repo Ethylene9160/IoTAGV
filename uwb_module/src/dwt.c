@@ -8,6 +8,7 @@
 #include "tiny_io.h"
 #include "msgs.h"
 #include "tool.h"
+#include <math.h>
 
 
 uwb_mode_t JudgeModeFromID(uint8_t module_id) {
@@ -404,7 +405,9 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     double Db = (double) (tag_resp_tx - tag_poll_rx);
                     double tof = ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db)) * DWT_TIME_UNITS;
                     float distance = (float) (tof * SPEED_OF_LIGHT);
-                    if (distance < 20.0 && distance > 0.1)
+                    // 如果distance是nan，返回
+
+                    if ((!isnan(distance)) && distance < 20.0 && distance > 0.1)
                         put_distance(&tag_storage, src_id, distance);
                 // Print the result
 //                debug_printf("   Tag: %lu, \t%lu, \t%lu\n", poll_rx, resp_tx, final_rx);
@@ -433,6 +436,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                         p.y,
                         ctrl1,
                         ctrl2);
+                    // if (module_config.ranging_exchange_debug_output)
+                    // debug_printf("id %d,t %d,xy:%f,%f\r\n", ctrl_id, ctrl_msg_type, ctrl1, ctrl2);
 
                     // Broadcast the position
                     uint8_t payload[18] = {0x00};
@@ -444,8 +449,8 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     payload[16] = ctrl_msg_type;
                     payload[17] = ctrl_id;
 
-                    ctrl_msg_type= 0.0f;
-                    ctrl_id = 0.0f;
+                    // ctrl_msg_type= 0.0f;
+                    // ctrl_id = 0.0f;
 
                     tx_len = gen_ranging_exchange_msg(
                         tx_buffer,
@@ -490,6 +495,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 uint8_t rec_ctrl_type = *(rx_buffer+payload_head_index+16);
                 uint8_t rec_ctrl_id = *(rx_buffer+payload_head_index+17);
 //
+                // debug_printf("rec: ctrlid %d, type %d\r\n", rec_ctrl_id, rec_ctrl_type);
                 // Upload the position
                 // if (module_config.ranging_exchange_debug_output)
                     // debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));

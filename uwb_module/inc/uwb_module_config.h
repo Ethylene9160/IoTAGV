@@ -52,7 +52,7 @@ static uwb_module_config_t module_config = {
 #ifdef T2
 static uwb_module_config_t module_config = {
     .module_id = 0x82, /* 0x00 - 0x7F: Anchor; 0x80 - 0xFF: Tag. */
-    .ranging_exchange_debug_output = 1,
+    .ranging_exchange_debug_output = 0,
 //    .ranging_exchange_poll_interval = 0,
     .distance_expired_time = 1000
 };

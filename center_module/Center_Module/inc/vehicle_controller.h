@@ -4,6 +4,7 @@
 #include <map>
 #include <cstdint>
 #include "cmsis_os.h"
+#include "filter.h"
 #include <memory.h>
 
 /**
@@ -37,6 +38,9 @@ class vehicle_controller {
 public:
     static float v_cons;
     static float v_k;
+    static float kp;
+    static float ki;
+    static float kd;
     static float collision_radius;
     static float large_bias;
 
@@ -71,12 +75,30 @@ public:
 
     bool is_terminal();
 
+    float get_delta_alpha();
+
+    void set_init_alpha(float init_alpha);
+
+    void set_current_alpha(float alpha);
+
+    float get_init_alpha();
+
+    float get_current_alpha();
+
+    ~vehicle_controller();
+
 private:
     uint16_t self_id;
     cart_point target_point;
     cart_point self_point;
     cart_velocity self_vel;
     bool isTerminal;
+
+    float init_alpha;
+    float current_alpha;
+
+    center_filter::Filter *filter1;
+    center_filter::Filter *filter2;
 
     std::map<uint16_t, cart_point> vehicle_position;
 
@@ -90,6 +112,9 @@ private:
     void _add_noise_to_velocity(float &vx, float &vy);
 
     bool _is_near_target(const cart_point& target);
+
+    void _update_w();
+
 };
 
 #endif // CENTER_MODULE_VEHICLE_MANAGER_H_
