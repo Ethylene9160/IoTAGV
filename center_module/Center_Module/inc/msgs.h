@@ -2,6 +2,7 @@
 #define CENTER_MODULE_MSGS_H_
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <vector>
@@ -9,12 +10,6 @@
 
 #include "crc.h"
 #include "vehicle_controller.h"
-
-#define NONE_CTRL 0
-#define POSITION_CTRL 1
-#define VELOCITY_CTRL 2
-#define STOP_CTRL 3
-#define START_CTRL 4
 
 namespace msgs {
     typedef struct _serials {
@@ -165,8 +160,7 @@ namespace msgs {
 
         serials serialize() override {
             auto ser = data_ref_->serialize();
-            return makePacketBySerials(recv_type_, recv_id_, send_type_, send_id_, seq_, cmd_id_,
-                                       ser);
+            return makePacketBySerials(recv_type_, recv_id_, send_type_, send_id_, seq_, cmd_id_, ser);
         }
 
     public:
@@ -175,7 +169,7 @@ namespace msgs {
         Serializable* data_ref_;
     };
 
-    class uwb_data : public msgs::Serializable {
+    class uwb_data: public msgs::Serializable {
     public:
         uwb_data(uint16_t self_id, uint16_t target_id, uint64_t timestamp, uint8_t CRC8);
 
@@ -228,32 +222,17 @@ namespace msgs {
         uint8_t ender;
     };
 
-
     // inline void _send_tx_msg(UART_HandleTypeDef *huart,uint8_t type, uint8_t id, float f1, float f2) {
     //     host_buffer[8] = type;
     //     host_buffer[9] = id;
-    //     memcpy(host_buffer+10, &f1, 4);
-    //     memcpy(host_buffer+14, &f2, 4);
+    //     memcpy(host_buffer + 10, &f1, 4);
+    //     memcpy(host_buffer + 14, &f2, 4);
     //     HAL_UART_Transmit(huart, host_buffer, 19, HAL_MAX_DELAY);
     // }
 
-    inline void send_msg_to_host(uint8_t type, uint8_t id, float f1, float f2) {
-        uint8_t host_buffer[19] = {0x5A, 0x5A,0x5A,0x5A,0x5A,0xFF, 0x0A,0,0,0,0,0,0,0,0,0,0,0,0x7F};
-        host_buffer[8] = type;
-        host_buffer[9] = id;
-        memcpy(host_buffer+10, &f1, 4);
-        memcpy(host_buffer+14, &f2, 4);
-        HAL_UART_Transmit(&huart2, host_buffer, 19, HAL_MAX_DELAY);
-    }
+    void send_msg_to_host(uint8_t type, uint8_t id, float f1, float f2);
 
-    inline void send_msg_to_uwb(uint8_t type, uint8_t id, float f1, float f2) {
-        static uint8_t uwb_buffer[12] = {0x5A, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x7F};
-        uwb_buffer[1] = type;
-        uwb_buffer[2] = id;
-        memcpy(uwb_buffer+3, &f1, 4);
-        memcpy(uwb_buffer+7, &f2, 4);
-        HAL_UART_Transmit(&huart2, uwb_buffer, 12, HAL_MAX_DELAY);
-    }
+    void send_msg_to_uwb(uint8_t type, uint8_t id, float f1, float f2);
 }
 
-#endif // CENTER_MODULE_MSGS_H_
+#endif

@@ -2,8 +2,10 @@
 
 using msgs::send_msg_to_uwb;
 
+
 namespace ostask_remote_control {
-    BaseType_t get_xQueueReceive(uint8_t*buffer, TickType_t xTicksToWait) {
+
+    BaseType_t get_xQueueReceive(uint8_t* buffer, TickType_t xTicksToWait) {
         osStatus_t status = osMutexAcquire(USART2_MutexHandle, osWaitForever);
         if (status == osOK) {
             if (xQueueReceive(Remote_Queue, buffer, xTicksToWait) == pdTRUE) {
@@ -18,7 +20,7 @@ namespace ostask_remote_control {
     void read_queue(vehicle_controller* controller) {
         uint8_t buffer[12];
 
-        while(get_xQueueReceive(buffer, 20) == pdTRUE) {
+        while (get_xQueueReceive(buffer, 20) == pdTRUE) {
             /**
              * 0: 0x5A
              * 1: msg_type
@@ -30,33 +32,44 @@ namespace ostask_remote_control {
              */
             uint8_t msg_type = buffer[1];
             uint8_t id = buffer[2];
-            float f1 = 0.0f, f2 = 0.0f;
+            float f1 = 0.0f;
+            float f2 = 0.0f;
             memcpy(&f1, buffer + 3, 4);
             memcpy(&f2, buffer + 7, 4);
 
+            // 非自身 ID, 通过 UWB 转发
             if (id != controller->get_self_id()) {
+                // char str[64];
+                // HAL_UART_Transmit(&huart2, buffer, 12, HAL_MAX_DELAY);
+                // int len = sprintf(str, "id not match: %d, %d, ctrl: %d, f1: %.2f, f2: %.2f\r\n", id, controller->get_self_id(), msg_type, f1, f2);
+                // HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
+
                 send_msg_to_uwb(msg_type, id, f1, f2);
+                // HAL_UART_Transmit(&huart1, buffer, 12, HAL_MAX_DELAY);
+
                 return;
             }
-            //相同id，直接设置。
-            switch(msg_type) {
-                case POSITION_CTRL: {
-                    // set position
+
+            // 为自身 ID, 直接处理
+            switch (msg_type) {
+                case RC_CMD_SET_TARGET_POSITION: {
+                    // char chs[48];
+                    // int len = sprintf(chs, "set self p: .2%f, %.2f\r\n", f1, f2);
+                    // HAL_UART_Transmit(&huart2, (uint8_t*)chs, len, HAL_MAX_DELAY);
+
                     controller->set_target_point({f1, f2});
                     break;
                 }
-
-                case VELOCITY_CTRL: {
+                case RC_CMD_SET_VELOCITY: {
                     vehicle_controller::v_cons = f1;
                     break;
                 }
-
-                case STOP_CTRL: {
+                case RC_CMD_PAUSE: {
                     // force stop
                     controller -> stop();
                     break;
                 }
-                case START_CTRL: {
+                case RC_CMD_RESUME: {
                     // force start
                     controller -> start();
                     break;
@@ -68,11 +81,12 @@ namespace ostask_remote_control {
     }
 
     [[noreturn]] void taskProcedure(void *argument) {
-        vehicle_controller* controller = (vehicle_controller*)argument;
+        vehicle_controller* controller = (vehicle_controller*) argument;
         // todo.
-        while(1){
+        while (true) {
             read_queue(controller);
-            osDelay(100);// delay 100 ms.
+            osDelay(100); // delay 100 ms.
         }
     }
+
 }

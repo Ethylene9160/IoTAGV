@@ -6,6 +6,9 @@
 #include "cmsis_os.h"
 #include <memory.h>
 
+#include "filter.h"
+
+
 /**
  * Polar position.
  */
@@ -33,11 +36,14 @@ typedef struct {
     cart_point target_point;
 } vehicle_info;
 
+
 class vehicle_controller {
 public:
     static float v_cons;
     static float v_k;
     static float kp;
+    static float ki;
+    static float kd;
     static float collision_radius;
     static float large_bias;
 
@@ -78,6 +84,12 @@ public:
 
     void set_current_alpha(float alpha);
 
+    float get_init_alpha();
+
+    float get_current_alpha();
+
+    ~vehicle_controller();
+
 private:
     uint16_t self_id;
     cart_point target_point;
@@ -88,12 +100,14 @@ private:
     float init_alpha;
     float current_alpha;
 
+    center_filter::Filter *filter1;
+    center_filter::Filter *filter2;
+
     std::map<uint16_t, cart_point> vehicle_position;
 
     osMutexId_t vehicle_controller_mutex;
 
-    void _update_self_vel(const cart_point &obstacle, float &bias_x, float &bias_y, float &total_weight_x,
-                          float &total_weight_y);
+    void _update_self_vel(const cart_point &obstacle, float &bias_x, float &bias_y, float &total_weight_x, float &total_weight_y);
 
     bool _is_obstacle_near(const cart_point &obstacle, float vx, float vy);
 
@@ -105,4 +119,4 @@ private:
 
 };
 
-#endif // CENTER_MODULE_VEHICLE_MANAGER_H_
+#endif

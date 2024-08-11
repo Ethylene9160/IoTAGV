@@ -203,7 +203,13 @@ namespace ostask_oled_ui {
          * TODO Test Magnetic Sensor Begin
          */
         hmc5883l_Init();
-        controller->set_init_alpha(hmc5883l_GetAngle());
+        osDelay(100);
+        float init_alpha = 0.0f;
+        for(int i = 0; i < 100; ++i) {
+            init_alpha += hmc5883l_GetAngle()/100.0f;
+            osDelay(10);
+        }
+        controller->set_init_alpha(init_alpha);
         /*
          * TODO Test Magnetic Sensor End
          */
@@ -220,7 +226,7 @@ namespace ostask_oled_ui {
                     updateSettingPage();
                     break;
             }
-            osDelay(10);
+            osDelay(20);
 
             /*
              * TODO Test Magnetic Sensor Begin
