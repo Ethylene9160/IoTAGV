@@ -55,7 +55,7 @@ namespace ostask_vehicle_controller {
 //         msgs::Twist2D* t = new msgs::Twist2D(v.vx, v.vy, v.w);
 
         // 发送自身目标速度信息给上位机
-//        send_msg_to_host(RC_DATAGRAM_VELOCITY, controller->get_self_id(), flt_vx, flt_vy); // TODO
+        send_msg_to_host(RC_DATAGRAM_VELOCITY, controller->get_self_id(), flt_vx, flt_vy);
 
 //         char str[48];
 //         snprintf(str, sizeof(str), "current delta: %.3f, w: %.3f\r\n", controller->get_init_alpha() - controller->get_current_alpha(), v.w);

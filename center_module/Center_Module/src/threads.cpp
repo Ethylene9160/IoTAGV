@@ -16,7 +16,7 @@ typedef struct {
     uint16_t id;
 } _vehicle_config;
 
-#define V1
+#define V2
 
 #ifdef V0
 _vehicle_config vehicle_config_default = {
