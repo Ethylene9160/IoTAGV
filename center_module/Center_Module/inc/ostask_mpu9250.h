@@ -23,5 +23,5 @@ namespace ostask_mpu9250 {
 
 }
 
-extern float pitch_inside, roll_inside, yaw_inside;
+// extern float pitch_inside, roll_inside, yaw_inside;
 #endif // OSTASK_MPU9250_H

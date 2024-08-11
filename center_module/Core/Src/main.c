@@ -25,7 +25,7 @@
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
-#include "mpu.h"
+#include "mpu9250.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -104,6 +104,7 @@ int main(void)
 
   // HAL_UART_Transmit(&huart2, (uint8_t*)"100\r\n", 5, 0xffffffff);
   // MPU_Init();
+  MPU9250_Init();
   /* USER CODE END 2 */
 
   // HAL_UART_Transmit(&huart2, (uint8_t*)"113\r\n", 5, 0xffffffff);
