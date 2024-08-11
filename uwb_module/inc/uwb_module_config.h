@@ -13,7 +13,7 @@ typedef struct _uwb_module_config_t {
     uint64_t distance_expired_time; /* In milliseconds, for Tag. */
 } uwb_module_config_t;
 
-#define A0
+#define T2
 
 #ifdef A0
 static uwb_module_config_t module_config = {

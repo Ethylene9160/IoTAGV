@@ -40,6 +40,9 @@ typedef struct _tag_info_t{
 
 uwb_mode_t JudgeModeFromID(uint8_t module_id);
 
+extern uint8_t ctrl_msgs[8];
+extern uint8_t ctrl_msg_type;
+extern uint8_t ctrl_id;
 
 static dwt_config_t dwt_config = {
     2,               /* Channel number. */

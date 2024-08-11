@@ -1,5 +1,7 @@
 #include "dwt.h"
 
+#include <math.h>
+
 #include "string.h"
 
 #include "systick.h"
@@ -34,6 +36,10 @@ uwb_mode_t JudgeModeFromID(uint8_t module_id) {
 
 #define MAX_ANCHOR_NUMBER 4
 #define MAX_TASK_NUMBER 128
+
+uint8_t ctrl_msgs[8] = {0};
+uint8_t ctrl_msg_type = 0;
+uint8_t ctrl_id = 0;
 
 inline uint32_t random_generator(uint32_t low, uint32_t high) {
     srand(GetSystickMs());//随机数种子设置
@@ -401,7 +407,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                     double Db = (double) (tag_resp_tx - tag_poll_rx);
                     double tof = ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db)) * DWT_TIME_UNITS;
                     float distance = (float) (tof * SPEED_OF_LIGHT);
-                    if (distance < 10.0 && distance > 0.1)
+                    if (!isnan(distance) && distance < 10.0 && distance > 0.1)
                         put_distance(&tag_storage, src_id, distance);
                 // Print the result
 //                debug_printf("   Tag: %lu, \t%lu, \t%lu\n", poll_rx, resp_tx, final_rx);
@@ -419,19 +425,15 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
 
                     if (module_config.ranging_exchange_debug_output)
                         debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
-                    send_upload_position_msg(
-                        module_config.module_id,
-                        p.x,
-                        p.y,
-                        tag_storage.d1,
-                        tag_storage.d2);
+                    send_upload_position_msg(module_config.module_id, ctrl_id, ctrl_msg_type, p.x, p.y, ctrl_msgs);
 
                     // Broadcast the position
-                    uint8_t payload[16] = {0x00};
+                    uint8_t payload[18] = {0x00};
                     memcpy(payload, &p.x, 4);
                     memcpy(payload + 4, &p.y, 4);
-                    memcpy(payload + 8, &(tag_storage.d1), 4);
-                    memcpy(payload + 12, &(tag_storage.d2), 4);
+                    memcpy(payload+8, ctrl_msgs, 8); // 发送control消息
+                    payload[16] = ctrl_msg_type;
+                    payload[17] = ctrl_id;
                     tx_len = gen_ranging_exchange_msg(
                         tx_buffer,
                         MSG_PAN_ID,
@@ -439,8 +441,7 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                         module_config.module_id,
                         0xFF,
                         STAGE_SHARE_POSITION,
-                        payload,
-                        sizeof(payload));
+                        payload, sizeof(payload));
                     dwt_writetxdata(tx_len, tx_buffer, 0);
                     dwt_writetxfctrl(tx_len, 0, 1);
                     dwt_starttx(DWT_START_TX_IMMEDIATE);
@@ -467,19 +468,22 @@ static void TagRXOkCallback(const dwt_cb_data_t *data) {
                 if (module_config.ranging_exchange_debug_output) debug_printf("[Debug] Received position from %d.\n", src_id);
 
                 // Unpack the position
-                float x, y, d1, d2;
+                float x, y;
+                uint8_t rec_ctrl_msgs[8];
                 uint16_t payload_head_index = re_get_payload_head_index();
                 memcpy(&x, rx_buffer + payload_head_index, 4);
                 memcpy(&y, rx_buffer + payload_head_index + 4, 4);
-                memcpy(&d1, rx_buffer + payload_head_index + 8, 4);
-                memcpy(&d2, rx_buffer + payload_head_index + 12, 4);
+                memcpy(rec_ctrl_msgs, rx_buffer + payload_head_index + 8, 8);
+                // memcpy(&d1, rx_buffer + payload_head_index + 8, 4);
+                // memcpy(&d2, rx_buffer + payload_head_index + 12, 4);
+                uint8_t rec_ctrl_type = *(rx_buffer+payload_head_index+16);
+                uint8_t rec_ctrl_id = *(rx_buffer+payload_head_index+17);
+                // Upload the position
+                //                debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (x * 10000), (int) (y * 10000));
+                send_upload_position_msg(src_id, rec_ctrl_id, rec_ctrl_type, x, y, rec_ctrl_msgs);
 //
                 // Upload the position
-                if (module_config.ranging_exchange_debug_output)
-                    // debug_printf("%dself dis: %d, %d\r\n", module_config.module_id, (int) (tag_storage.d1 * 10000), (int)(tag_storage.d2 * 10000));
-
-                    debug_printf("Position of %d: (%d, %d).\n", src_id, (int) (d1 * 10000), (int) (d2 * 10000));
-                send_upload_position_msg(src_id, x, y, d1, d2);
+                // send_upload_position_msg(src_id, x, y, d1, d2);
                 // debug_printf("src_id: %d, x: %f, y: %f, d1: %f, d2: %f\r\n", src_id, x, y, d1, d2);
             }
         }

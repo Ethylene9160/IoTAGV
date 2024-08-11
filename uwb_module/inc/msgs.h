@@ -22,7 +22,7 @@ uint8_t re_get_msg_type(const uint8_t *buf);
 uint16_t re_get_payload_head_index();
 
 
-void send_upload_position_msg(uint8_t src_id, float x, float y, float d0, float d1); // TODO
+void send_upload_position_msg(uint8_t src_id, uint8_t dest_id, uint8_t msg_type, float x, float y, uint8_t* ctrl_info); // TODO
 
 // void print_msg_string(uint8_t* buffer, uint32_t len); // for debug
 //
