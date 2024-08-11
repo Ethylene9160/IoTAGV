@@ -102,6 +102,10 @@ class CommandUtils:
     @staticmethod
     def pack_turn_right_a_bit_command(id): # to agent
         return b'\x5A' + struct.pack('<BBff', 6, id, 0, 0) + b'\x7F'
+    
+    @staticmethod
+    def pack_stop_turning_command(id): # to agent
+        return b'\x5A' + struct.pack('<BBff', 7, id, 0, 0) + b'\x7F'
 
 class CommandFSM:
     def __init__(self, func):

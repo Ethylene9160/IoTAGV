@@ -10,6 +10,20 @@
 
 
 /**
+ * Remote control command type.
+ */
+enum RC_CMD {
+    RC_CMD_NONE = 0,
+    RC_CMD_SET_TARGET_POSITION = 1,
+    RC_CMD_SET_VELOCITY = 2,
+    RC_CMD_PAUSE = 3,
+    RC_CMD_RESUME = 4,
+    RC_CMD_TURN_LEFT_A_BIT = 5,
+    RC_CMD_TURN_RIGHT_A_BIT = 6,
+    RC_CMD_STOP_TURNING = 7
+};
+
+/**
  * Polar position.
  */
 typedef struct {
@@ -87,6 +101,8 @@ public:
     float get_init_alpha();
 
     float get_current_alpha();
+
+    void process_remote_command(uint8_t cmd_type, float opt1, float opt2);
 
     ~vehicle_controller();
 
