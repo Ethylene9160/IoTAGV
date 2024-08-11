@@ -4,8 +4,10 @@
 #include <map>
 #include <cstdint>
 #include "cmsis_os.h"
-#include "filter.h"
 #include <memory.h>
+
+#include "filter.h"
+
 
 /**
  * Polar position.
@@ -33,6 +35,7 @@ typedef struct {
     cart_point current_point;
     cart_point target_point;
 } vehicle_info;
+
 
 class vehicle_controller {
 public:
@@ -104,8 +107,7 @@ private:
 
     osMutexId_t vehicle_controller_mutex;
 
-    void _update_self_vel(const cart_point &obstacle, float &bias_x, float &bias_y, float &total_weight_x,
-                          float &total_weight_y);
+    void _update_self_vel(const cart_point &obstacle, float &bias_x, float &bias_y, float &total_weight_x, float &total_weight_y);
 
     bool _is_obstacle_near(const cart_point &obstacle, float vx, float vy);
 
@@ -117,4 +119,4 @@ private:
 
 };
 
-#endif // CENTER_MODULE_VEHICLE_MANAGER_H_
+#endif
