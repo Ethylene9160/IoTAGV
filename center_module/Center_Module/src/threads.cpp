@@ -49,7 +49,7 @@ void startThreads() {
 
     // 下发 CAN 指令到 controller_module 的任务
     osThreadNew(ostask_controller_module_port::taskProcedure, nullptr, &ostask_controller_module_port::task_attributes);
-    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, new msgs::Twist2D(0.0f, 0.0f, 0.0f)));
+    ostask_controller_module_port::pushCommand(msgs::Command(CTRL_CMD_SET_TWIST, new msgs::Twist2D(0.0f, 0.0f, 0.2f)));
 
     // 处理算法控制的任务
     osThreadNew(ostask_vehicle_controller::taskProcedure, vehicle_controller_ptr, &ostask_vehicle_controller::task_attributes);
@@ -57,7 +57,7 @@ void startThreads() {
     // 接收上位机指令控制的任务
     osThreadNew(ostask_remote_control::taskProcedure, vehicle_controller_ptr, &ostask_remote_control::task_attributes);
 
-    // OLED GUI 显示任务 (里面还有磁力计的处理)
+    // OLED GUI 显示任务
 //    osThreadNew(ostask_oled_ui::taskProcedure, vehicle_controller_ptr, &ostask_oled_ui::task_attributes);
 }
 

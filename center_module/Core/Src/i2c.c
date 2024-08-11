@@ -25,7 +25,6 @@
 #include <string.h>
 
 #include "usart.h"
-#include "mpu.h"
 /* USER CODE END 0 */
 
 I2C_HandleTypeDef hi2c2;

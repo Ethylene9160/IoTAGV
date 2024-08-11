@@ -1,11 +1,13 @@
-# IoTAGV
+# IoTAGV-定位通信协同一体的智慧网联车系统
 
 ![Static STM](https://img.shields.io/badge/STM-32-green)
 ![Static C++](https://img.shields.io/badge/C++-11-blue)
 ![Static License](https://img.shields.io/badge/License-NO-orange)
-![Static Date](https://img.shields.io/badge/Date-2024--08--03-lightgrey)
+![Static Date](https://img.shields.io/badge/Date-2024--08--12-lightgrey)
 
 应用 UWB 通信技术，构建去中心化的多车定位及车间通信系统，实现多车协同运动与自动防撞。
+
+该项目为[全国大学生嵌入式芯片与系统设计大赛](https://socchina.net)（应用赛道）**全国一等奖**-*定位通信协同一体的智慧网联车系统*项目。
 
 ## 演示
 
@@ -46,24 +48,24 @@ TODO.
 
 * STM32 SWD Wires
 
-| Pin | Desc |
-| :--: | :--: |
+| Pin  | Desc  |
+| :--: | :---: |
 | PA13 | SWDIO |
 | PA14 | SWCLK |
 
 * Center Module UART1 (with UWB Module)
 
-| Pin | Desc |
-| :--: | :--: |
-| PA9 | USART1_TX |
+| Pin  |   Desc    |
+| :--: | :-------: |
+| PA9  | USART1_TX |
 | PA10 | USART1_RX |
 
 * Center Module UART2 (with PC, debug)
 
-| Pin | Desc |
-| :--: | :--: |
-| PA2 | USART2_TX |
-| PA3 | USART2_RX |
+| Pin  |   Desc    |
+| :--: | :-------: |
+| PA2  | USART2_TX |
+| PA3  | USART2_RX |
 
 ## 使用手册
 
@@ -79,7 +81,12 @@ TODO.
 * **充电宝**尽可能多
 * 2.5mm螺丝刀*2
 * 2.0mm螺丝刀*2
-* 
+
+
+
+## 前端
+
+![image-20240813191409580](README.assets/image-20240813191409580.png)
 
 # Contributors
 
@@ -142,23 +149,23 @@ TODO.
 
 * UWB -> UWB 全长64位
 
-|  位  |    0     |  1-2   |   3   |    4    |   5    |
-| :--: | :------: | :----: | :-----: | :-----: | :------: |
-| 内容 |   0x5A   | pan_id | dest_id |  src_id  | task_id |
-| 说明 | 同步帧头 |  网络ID  | 目标id  | 源id | 任务id |
-|  **位**  | **6** |  7-7+len  |  | **** |****|
-| 内容 | msg_type |  | float d1 |float d2|0x7F|
-| 说明 | 消息类型 |    |   到基站0的距离   |到基站1的距离|帧尾|
+|   位   |    0     |   1-2   |       3       |       4       |    5    |
+| :----: | :------: | :-----: | :-----------: | :-----------: | :-----: |
+|  内容  |   0x5A   | pan_id  |    dest_id    |    src_id     | task_id |
+|  说明  | 同步帧头 | 网络ID  |    目标id     |     源id      | 任务id  |
+| **位** |  **6**   | 7-7+len |               |     ****      |  ****   |
+|  内容  | msg_type |         |   float d1    |   float d2    |  0x7F   |
+|  说明  | 消息类型 |         | 到基站0的距离 | 到基站1的距离 |  帧尾   |
 
 * UWB -> Center
 
-|  位  |    0     |  1-2   |   3-4   |    5    |   6-7    |
-| :--: | :------: | :----: | :-----: | :-----: | :------: |
-| 内容 |   0x5A   | src_id | dest_id |  CRC8（msg type）  | data_len |
-| 说明 | 同步帧头 |  源id  | 目标id  | CRC校验 (消息类型) | 数据长度 |
-|  **位**  | **8-11** |  **12-15**  | **16-19** | **20-23** |**24**|
-| 内容 | float x | float y | float d1 |float d2|0x7F|
-| 说明 | x坐标  |  y坐标  |   到基站0的距离   |到基站1的距离|帧尾|
+|   位   |    0     |    1-2    |      3-4      |         5          |   6-7    |
+| :----: | :------: | :-------: | :-----------: | :----------------: | :------: |
+|  内容  |   0x5A   |  src_id   |    dest_id    |  CRC8（msg type）  | data_len |
+|  说明  | 同步帧头 |   源id    |    目标id     | CRC校验 (消息类型) | 数据长度 |
+| **位** | **8-11** | **12-15** |   **16-19**   |     **20-23**      |  **24**  |
+|  内容  | float x  |  float y  |   float d1    |      float d2      |   0x7F   |
+|  说明  |  x坐标   |   y坐标   | 到基站0的距离 |   到基站1的距离    |   帧尾   |
 
 第五位消息msg type类型解析：
 
@@ -168,17 +175,17 @@ TODO.
 
 * Center -> 远程上位机
 
-| 位 | 0-4 | 5 | 6-7 | 8 | 9 |10-13| 14-17|18|
-| :--: | :--: | :--: | :--: | :--: | :--: |:-:|:-:|:-:|
-|内容|0x5A|0xFF|uint16_t,10|msg_type|id|float f1|float f2|0x7F|
-|说明|同步帧头|开始标记|长度，假设为10|消息类型|id|浮点数1|浮点数2|帧尾|
+|  位  |   0-4    |    5     |      6-7       |    8     |  9   |  10-13   |  14-17   |  18  |
+| :--: | :------: | :------: | :------------: | :------: | :--: | :------: | :------: | :--: |
+| 内容 |   0x5A   |   0xFF   |  uint16_t,10   | msg_type |  id  | float f1 | float f2 | 0x7F |
+| 说明 | 同步帧头 | 开始标记 | 长度，假设为10 | 消息类型 |  id  | 浮点数1  | 浮点数2  | 帧尾 |
 
 
 
 * 远程上位机 -> Center
 
-| 位 | 0 | 1 | 2 | 3-7 | 8-11 |12|
-| :--: | :--: | :--: | :--: | :--: | :--: |:-:|
-| 内容 | 0x5A | msg_type | id | float f1 | float f2 |0x7F|
-| 说明 | 帧头 | 消息类型 | id | 浮点数1  | 浮点数2         |帧尾|
+|  位  |  0   |    1     |  2   |   3-7    |   8-11   |  12  |
+| :--: | :--: | :------: | :--: | :------: | :------: | :--: |
+| 内容 | 0x5A | msg_type |  id  | float f1 | float f2 | 0x7F |
+| 说明 | 帧头 | 消息类型 |  id  | 浮点数1  | 浮点数2  | 帧尾 |
 

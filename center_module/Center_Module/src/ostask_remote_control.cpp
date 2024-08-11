@@ -42,7 +42,7 @@ namespace ostask_remote_control {
                 // char str[64];
                 // HAL_UART_Transmit(&huart2, buffer, 12, HAL_MAX_DELAY);
                 // int len = sprintf(str, "id not match: %d, %d, ctrl: %d, f1: %.2f, f2: %.2f\r\n", id, controller->get_self_id(), msg_type, f1, f2);
-                // HAL_UART_Transmit(&huart2, (uint8_t*)str, len, HAL_MAX_DELAY);
+                // HAL_UART_Transmit(&huart2, (uint8_t*) str, len, HAL_MAX_DELAY);
 
                 send_msg_to_uwb(msg_type, id, f1, f2);
                 // HAL_UART_Transmit(&huart1, buffer, 12, HAL_MAX_DELAY);
@@ -51,32 +51,7 @@ namespace ostask_remote_control {
             }
 
             // 为自身 ID, 直接处理
-            switch (msg_type) {
-                case RC_CMD_SET_TARGET_POSITION: {
-                    // char chs[48];
-                    // int len = sprintf(chs, "set self p: .2%f, %.2f\r\n", f1, f2);
-                    // HAL_UART_Transmit(&huart2, (uint8_t*)chs, len, HAL_MAX_DELAY);
-
-                    controller->set_target_point({f1, f2});
-                    break;
-                }
-                case RC_CMD_SET_VELOCITY: {
-                    vehicle_controller::v_cons = f1;
-                    break;
-                }
-                case RC_CMD_PAUSE: {
-                    // force stop
-                    controller -> stop();
-                    break;
-                }
-                case RC_CMD_RESUME: {
-                    // force start
-                    controller -> start();
-                    break;
-                }
-                default:
-                    break;
-            }
+            controller->process_remote_command(msg_type, f1, f2);
         }
     }
 

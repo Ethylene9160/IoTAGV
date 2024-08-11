@@ -11,7 +11,6 @@
 #include "vehicle_controller.h"
 
 using msgs::send_msg_to_host;
-using ostask_remote_control::RC_CMD;
 
 
 namespace ostask_vehicle_controller {
@@ -46,8 +45,6 @@ namespace ostask_vehicle_controller {
     }
 
     void set_control_msg(vehicle_controller* controller) {
-        // static uint8_t tx_buffer[13] = {0x5A, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x7F}; // TODO ?
-
         // 获取目标速度与滤波
         cart_velocity v = controller -> get_self_velocity();
         flt_vx = alpha * v.vx + (1 - alpha) * flt_vx;
@@ -58,10 +55,11 @@ namespace ostask_vehicle_controller {
         send_msg_to_host(RC_DATAGRAM_VELOCITY, controller->get_self_id(), flt_vx, flt_vy);
 
 //         char str[48];
-//         snprintf(str, sizeof(str), "current delta: %.3f, w: %.3f\r\n", controller->get_init_alpha() - controller->get_current_alpha(), v.w);
+//         snprintf(str, sizeof(str), "\r\ncurrent delta: %.3f, w: %.3f\r\n", controller->get_init_alpha() - controller->get_current_alpha(), v.w);
 //         HAL_UART_Transmit(&huart2, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
-//         msgs::Twist2D *t = new msgs::Twist2D(v.vy, -v.vx, v.w);
-        msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, 0.0f); // TODO ?
+
+        msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, v.w); // 负号是坐标系的问题
+//        msgs::Twist2D *t = new msgs::Twist2D(flt_vy, -flt_vx, 0.0f);
 
         // 到 controller_module 的控制指令
         auto command = msgs::Command(CTRL_CMD_SET_TWIST, t);
@@ -101,31 +99,7 @@ namespace ostask_vehicle_controller {
 
             // 处理指令转发
             if (target_id == controller->get_self_id()) {
-                switch (ctrl_type) {
-                    case RC_CMD::RC_CMD_SET_TARGET_POSITION: {
-                        // send_msg_to_host(POSITION_CTRL, );
-                        // send_msg_to_host(3, target_id, opt1, opt2); // 转发来的指令说明自己没连上位机，这里肯定不会用到 send_msg_to_host
-
-                        // char s2[32];
-                        // int len = sprintf(s2, "2333 set pos(%d,%d)\r\n", opt1, opt2);
-                        // HAL_UART_Transmit(&huart2, (uint8_t*)s2, len, HAL_MAX_DELAY);
-
-                        controller->set_target_point({opt1, opt2});
-                        break;
-                    }
-                    case RC_CMD::RC_CMD_SET_VELOCITY:
-                        vehicle_controller::v_cons = opt1;
-                        vehicle_controller::v_k = opt1 * vehicle_controller::v_k / vehicle_controller::v_cons;
-                        break;
-                    case RC_CMD::RC_CMD_PAUSE:
-                        controller->stop();
-                        break;
-                    case RC_CMD::RC_CMD_RESUME:
-                        controller->start();
-                        break;
-                    default:
-                        break;
-                }
+                controller->process_remote_command(ctrl_type, opt1, opt2);
             }
         }
     }

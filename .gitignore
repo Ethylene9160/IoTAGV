@@ -5,6 +5,7 @@ center_uwb/**/Backup/
 .idea/
 uwb_module/.idea/
 /doc/
+/.vite/
 
 *.ioc
 
