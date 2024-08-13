@@ -117,10 +117,13 @@
                             </el-col>
                         </el-row>
                         <el-row :gutter="20" class="button-row">
-                            <el-col :span="12">
+                            <el-col :span="8">
                                 <el-button type="primary" @click="sendCommand('5')" class="full-width">←</el-button>
                             </el-col>
-                            <el-col :span="12">
+                            <el-col :span="8">
+                                <el-button type="primary" @click="sendCommand('7')" class="full-width">×</el-button>
+                            </el-col>
+                            <el-col :span="8">
                                 <el-button type="primary" @click="sendCommand('6')" class="full-width">→</el-button>
                             </el-col>
                         </el-row>
