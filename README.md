@@ -79,7 +79,12 @@ TODO.
 * **充电宝**尽可能多
 * 2.5mm螺丝刀*2
 * 2.0mm螺丝刀*2
-* 
+
+
+
+## 前端
+
+![image-20240813191409580](README.assets/image-20240813191409580.png)
 
 # Contributors
 
