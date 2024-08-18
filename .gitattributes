@@ -9,7 +9,22 @@
 *.out linguist-vendored
 
 # ignore folder named Drivers, Middlewares, references and Third_Party
+<<<<<<< HEAD
 Drivers/* linguist-vendored
 Middlewares/* linguist-vendored
 Third_Party/* linguist-vendored
 references/* linguist-vendored
+=======
+center_module/Drivers/** linguist-vendored
+controller_module/Drivers/** linguist-vendored
+center_module/Middlewares/** linguist-vendored
+controller_module/Middlewares/** linguist-vendored
+center_module/Third_Party/** linguist-vendored
+controller_module/Third_Party/** linguist-vendored
+center_module/Core/** linguist-vendored
+controller_module/Core/** linguist-vendored
+references/** linguist-vendored
+
+uwb_module/core/** linguist-vendored
+uwb_module/drivers/** linguist-vendored
+>>>>>>> 09061c2e114633cd91a44b4d212c8d126a476b78
