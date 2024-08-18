@@ -1,5 +1,15 @@
-# ignore .c
-*.c linguist-language=ignore
-*.h linguist-language=ignore
 # .ipynb -> .py
 *.ipynb linguist-language=Python
+
+# ignore assembly
+*.a linguist-vendored
+*.asm linguist-vendored
+*.s linguist-vendored
+*.o linguist-vendored
+*.out linguist-vendored
+
+# ignore folder named Drivers, Middlewares, references and Third_Party
+Drivers/* linguist-vendored
+Middlewares/* linguist-vendored
+Third_Party/* linguist-vendored
+references/* linguist-vendored
