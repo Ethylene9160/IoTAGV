@@ -20,6 +20,11 @@
 #define filter_high 0.8f
 #define filter_low  0.2f
 
+// 磁力计校准
+#define CALIBRATION_SAMPLES 200
+#define CALIBRATION_DURATION 10000 // 校准持续时间10秒，单位为毫秒
+#define CALIBRATION_INTERVAL 50    // 每隔50毫秒采集一次数据
+
 // extern I2C_HandleTypeDef hi2c2;
 
 // Variables for calibration and filtering
@@ -36,6 +41,12 @@ float k20 = 0.0f, k21 = 0.0f, k22 = 0.0f, k23 = 0.0f;
 float k30 = 0.0f, k31 = 0.0f, k32 = 0.0f, k33 = 0.0f;
 float k40 = 0.0f, k41 = 0.0f, k42 = 0.0f, k43 = 0.0f;
 
+// 磁力计校准参数
+float magBias[3] = {0.0f, 0.0f, 0.0f};
+float magScale[3] = {1.0f, 1.0f, 1.0f};
+int16_t magData[CALIBRATION_SAMPLES][3];
+
+// I2C读写函数
 static HAL_StatusTypeDef I2C_WriteByte(uint16_t DevAddress, uint8_t RegAddress, uint8_t Data) {
     uint8_t buffer[2] = {RegAddress, Data};
     return HAL_I2C_Master_Transmit(&hi2c2, DevAddress, buffer, 2, HAL_MAX_DELAY);
@@ -50,6 +61,7 @@ static HAL_StatusTypeDef I2C_ReadByte(uint16_t DevAddress, uint8_t RegAddress, u
     return HAL_I2C_Master_Receive(&hi2c2, DevAddress, Data, 1, HAL_MAX_DELAY);
 }
 
+// MPU初始化函数
 void MPU9250_GPIO_Init(void) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
@@ -91,13 +103,8 @@ void MPU9250_Init(void) {
     I2C_WriteByte(GYRO_ADDRESS, ACCEL_CONFIG, 0x01);
     I2C_WriteByte(GYRO_ADDRESS, 0x37, 0x02);
 
-    // uint8_t mag_id = I2C_ReadByte(MAG_ADDRESS, 0x00, &mag_id);
-    // char msg[128];
-    // snprintf(msg, sizeof(msg), "ID: 0x%02X\n", mag_id);
-    // HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
-
     // 初始化磁力计
-    I2C_WriteByte(MAG_ADDRESS, 0x0A, 0x11);  // 设置磁力计为单次测量模式2
+    I2C_WriteByte(MAG_ADDRESS, 0x0A, 0x11);
 
     // 校准陀螺仪
     calibrate();
@@ -131,6 +138,7 @@ float invSqrt(float number) {
     return y;
 }
 
+// MPU获取数据
 uint8_t MPU_Get_Gyroscope(int16_t *gy, int16_t *gx, int16_t *gz) {
     uint8_t buf[6], res;
     res = I2C_ReadByte(GYRO_ADDRESS, GYRO_XOUT_H, &buf[0]);
@@ -239,123 +247,222 @@ uint8_t MPU_Get_Mag(int16_t *imx, int16_t *imy, int16_t *imz, float *mx, float *
     return res;
 }
 
-// Quaternion update function
 void AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float *roll, float *pitch, float *yaw) {
+    float norm; //用于单位化
+    float hx, hy, hz, bx, bz;
+    float vx, vy, vz, wx, wy, wz;
+    float ex, ey, ez;
+    // float tmp0,tmp1,tmp2,tmp3;
 
-           float norm;									//用于单位化
-           float hx, hy, hz, bx, bz;		//
-           float vx, vy, vz, wx, wy, wz;
-           float ex, ey, ez;
-//					 float tmp0,tmp1,tmp2,tmp3;
+    // auxiliary variables to reduce number of repeated operations  辅助变量减少重复操作次数
+    float q0q0 = q0*q0;
+    float q0q1 = q0*q1;
+    float q0q2 = q0*q2;
+    float q0q3 = q0*q3;
+    float q1q1 = q1*q1;
+    float q1q2 = q1*q2;
+    float q1q3 = q1*q3;
+    float q2q2 = q2*q2;
+    float q2q3 = q2*q3;
+    float q3q3 = q3*q3;
 
-           // auxiliary variables to reduce number of repeated operations  辅助变量减少重复操作次数
-           float q0q0 = q0*q0;
-           float q0q1 = q0*q1;
-           float q0q2 = q0*q2;
-           float q0q3 = q0*q3;
-           float q1q1 = q1*q1;
-           float q1q2 = q1*q2;
-           float q1q3 = q1*q3;
-           float q2q2 = q2*q2;
-           float q2q3 = q2*q3;
-           float q3q3 = q3*q3;
+    // normalise the measurements  对加速度计和磁力计数据进行规范化
+    norm = invSqrt(ax*ax + ay*ay + az*az);
+    ax = ax * norm;
+    ay = ay * norm;
+    az = az * norm;
+    norm = invSqrt(mx*mx + my*my + mz*mz);
+    mx = mx * norm;
+    my = my * norm;
+    mz = mz * norm;
 
-           // normalise the measurements  对加速度计和磁力计数据进行规范化
-           norm = invSqrt(ax*ax + ay*ay + az*az);
-           ax = ax * norm;
-           ay = ay * norm;
-           az = az * norm;
-           norm = invSqrt(mx*mx + my*my + mz*mz);
-           mx = mx * norm;
-           my = my * norm;
-           mz = mz * norm;
+    // compute reference direction of magnetic field  计算磁场的参考方向
+            // hx,hy,hz是mx,my,mz在参考坐标系的表示
+    hx = 2*mx*(0.50 - q2q2 - q3q3) + 2*my*(q1q2 - q0q3) + 2*mz*(q1q3 + q0q2);
+    hy = 2*mx*(q1q2 + q0q3) + 2*my*(0.50 - q1q1 - q3q3) + 2*mz*(q2q3 - q0q1);
+    hz = 2*mx*(q1q3 - q0q2) + 2*my*(q2q3 + q0q1) + 2*mz*(0.50 - q1q1 -q2q2);
+            //bx,by,bz是地球磁场在参考坐标系的表示
+    bx = sqrt((hx*hx) + (hy*hy));
+    bz = hz;
 
-           // compute reference direction of magnetic field  计算磁场的参考方向
-					 //hx,hy,hz是mx,my,mz在参考坐标系的表示
-           hx = 2*mx*(0.50 - q2q2 - q3q3) + 2*my*(q1q2 - q0q3) + 2*mz*(q1q3 + q0q2);
-           hy = 2*mx*(q1q2 + q0q3) + 2*my*(0.50 - q1q1 - q3q3) + 2*mz*(q2q3 - q0q1);
-           hz = 2*mx*(q1q3 - q0q2) + 2*my*(q2q3 + q0q1) + 2*mz*(0.50 - q1q1 -q2q2);
-						//bx,by,bz是地球磁场在参考坐标系的表示
-           bx = sqrt((hx*hx) + (hy*hy));
-           bz = hz;
+    // estimated direction of gravity and magnetic field (v and w)  //估计重力和磁场的方向
+            //vx,vy,vz是重力加速度在物体坐标系的表示
+    vx = 2*(q1q3 - q0q2);
+    vy = 2*(q0q1 + q2q3);
+    vz = q0q0 - q1q1 - q2q2 + q3q3;
+		     //wx,wy,wz是地磁场在物体坐标系的表示
+    wx = 2*bx*(0.5 - q2q2 - q3q3) + 2*bz*(q1q3 - q0q2);
+    wy = 2*bx*(q1q2 - q0q3) + 2*bz*(q0q1 + q2q3);
+    wz = 2*bx*(q0q2 + q1q3) + 2*bz*(0.5 - q1q1 - q2q2);
 
-// estimated direction of gravity and magnetic field (v and w)  //估计重力和磁场的方向
-//vx,vy,vz是重力加速度在物体坐标系的表示
-           vx = 2*(q1q3 - q0q2);
-           vy = 2*(q0q1 + q2q3);
-           vz = q0q0 - q1q1 - q2q2 + q3q3;
-					 //wx,wy,wz是地磁场在物体坐标系的表示
-           wx = 2*bx*(0.5 - q2q2 - q3q3) + 2*bz*(q1q3 - q0q2);
-           wy = 2*bx*(q1q2 - q0q3) + 2*bz*(q0q1 + q2q3);
-           wz = 2*bx*(q0q2 + q1q3) + 2*bz*(0.5 - q1q1 - q2q2);
+    // error is sum ofcross product between reference direction of fields and directionmeasured by sensors
+    //ex,ey,ez是加速度计与磁力计测量出的方向与实际重力加速度与地磁场方向的误差，误差用叉积来表示，且加速度计与磁力计的权重是一样的
+    ex = (ay*vz - az*vy) + (my*wz - mz*wy);
+    ey = (az*vx - ax*vz) + (mz*wx - mx*wz);
+    ez = (ax*vy - ay*vx) + (mx*wy - my*wx);
 
-// error is sum ofcross product between reference direction of fields and directionmeasured by sensors
-//ex,ey,ez是加速度计与磁力计测量出的方向与实际重力加速度与地磁场方向的误差，误差用叉积来表示，且加速度计与磁力计的权重是一样的
-           ex = (ay*vz - az*vy) + (my*wz - mz*wy);
-           ey = (az*vx - ax*vz) + (mz*wx - mx*wz);
-           ez = (ax*vy - ay*vx) + (mx*wy - my*wx);
+    // integral error scaled integral gain
+		     //积分误差
+    exInt = exInt + ex*Ki*dt;
+    eyInt = eyInt + ey*Ki*dt;
+    ezInt = ezInt + ez*Ki*dt;
+		    // printf("exInt=%0.1f eyInt=%0.1f ezInt=%0.1f ",exInt,eyInt,ezInt);
+    // adjusted gyroscope measurements
+		     //PI调节陀螺仪数据
+    gx = gx + Kp*ex + exInt;
+    gy = gy + Kp*ey + eyInt;
+    gz = gz + Kp*ez + ezInt;
+	        //printf("gx=%0.1f gy=%0.1f gz=%0.1f",gx,gy,gz);
 
-           // integral error scaled integral gain
-					 //积分误差
-           exInt = exInt + ex*Ki*dt;
-           eyInt = eyInt + ey*Ki*dt;
-           ezInt = ezInt + ez*Ki*dt;
-					// printf("exInt=%0.1f eyInt=%0.1f ezInt=%0.1f ",exInt,eyInt,ezInt);
-           // adjusted gyroscope measurements
-					 //PI调节陀螺仪数据
-           gx = gx + Kp*ex + exInt;
-           gy = gy + Kp*ey + eyInt;
-           gz = gz + Kp*ez + ezInt;
-					 //printf("gx=%0.1f gy=%0.1f gz=%0.1f",gx,gy,gz);
-
-           // integrate quaernion rate aafnd normalaizle
-					 //欧拉法解微分方程
-//           tmp0 = q0 + (-q1*gx - q2*gy - q3*gz)*halfT;
-//           tmp1 = q1 + ( q0*gx + q2*gz - q3*gy)*halfT;
-//           tmp2 = q2 + ( q0*gy - q1*gz + q3*gx)*halfT;
-//           tmp3 = q3 + ( q0*gz + q1*gy - q2*gx)*halfT;
-//					 q0=tmp0;
-//					 q1=tmp1;
-//					 q2=tmp2;
-//					 q3=tmp3;
-					 //printf("q0=%0.1f q1=%0.1f q2=%0.1f q3=%0.1f",q0,q1,q2,q3);
+    // integrate quaernion rate aafnd normalaizle
+    //欧拉法解微分方程
+    //tmp0 = q0 + (-q1*gx - q2*gy - q3*gz)*halfT;
+    //tmp1 = q1 + ( q0*gx + q2*gz - q3*gy)*halfT;
+    //tmp2 = q2 + ( q0*gy - q1*gz + q3*gx)*halfT;
+    //tmp3 = q3 + ( q0*gz + q1*gy - q2*gx)*halfT;
+    //q0=tmp0;
+    //q1=tmp1;
+    //q2=tmp2;
+    //q3=tmp3;
+	//printf("q0=%0.1f q1=%0.1f q2=%0.1f q3=%0.1f",q0,q1,q2,q3);
 ////RUNGE_KUTTA 法解微分方程
-					  k10=0.5 * (-gx*q1 - gy*q2 - gz*q3);
-						k11=0.5 * ( gx*q0 + gz*q2 - gy*q3);
-						k12=0.5 * ( gy*q0 - gz*q1 + gx*q3);
-						k13=0.5 * ( gz*q0 + gy*q1 - gx*q2);
+    k10=0.5 * (-gx*q1 - gy*q2 - gz*q3);
+    k11=0.5 * ( gx*q0 + gz*q2 - gy*q3);
+    k12=0.5 * ( gy*q0 - gz*q1 + gx*q3);
+    k13=0.5 * ( gz*q0 + gy*q1 - gx*q2);
 
-						k20=0.5 * (halfT*(q0+halfT*k10) + (halfT-gx)*(q1+halfT*k11) + (halfT-gy)*(q2+halfT*k12) + (halfT-gz)*(q3+halfT*k13));
-						k21=0.5 * ((halfT+gx)*(q0+halfT*k10) + halfT*(q1+halfT*k11) + (halfT+gz)*(q2+halfT*k12) + (halfT-gy)*(q3+halfT*k13));
-						k22=0.5 * ((halfT+gy)*(q0+halfT*k10) + (halfT-gz)*(q1+halfT*k11) + halfT*(q2+halfT*k12) + (halfT+gx)*(q3+halfT*k13));
-						k23=0.5 * ((halfT+gz)*(q0+halfT*k10) + (halfT+gy)*(q1+halfT*k11) + (halfT-gx)*(q2+halfT*k12) + halfT*(q3+halfT*k13));
+    k20=0.5 * (halfT*(q0+halfT*k10) + (halfT-gx)*(q1+halfT*k11) + (halfT-gy)*(q2+halfT*k12) + (halfT-gz)*(q3+halfT*k13));
+    k21=0.5 * ((halfT+gx)*(q0+halfT*k10) + halfT*(q1+halfT*k11) + (halfT+gz)*(q2+halfT*k12) + (halfT-gy)*(q3+halfT*k13));
+    k22=0.5 * ((halfT+gy)*(q0+halfT*k10) + (halfT-gz)*(q1+halfT*k11) + halfT*(q2+halfT*k12) + (halfT+gx)*(q3+halfT*k13));
+    k23=0.5 * ((halfT+gz)*(q0+halfT*k10) + (halfT+gy)*(q1+halfT*k11) + (halfT-gx)*(q2+halfT*k12) + halfT*(q3+halfT*k13));
 
-						k30=0.5 * (halfT*(q0+halfT*k20) + (halfT-gx)*(q1+halfT*k21) + (halfT-gy)*(q2+halfT*k22) + (halfT-gz)*(q3+halfT*k23));
-						k31=0.5 * ((halfT+gx)*(q0+halfT*k20) + halfT*(q1+halfT*k21) + (halfT+gz)*(q2+halfT*k22) + (halfT-gy)*(q3+halfT*k23));
-						k32=0.5 * ((halfT+gy)*(q0+halfT*k20) + (halfT-gz)*(q1+halfT*k21) + halfT*(q2+halfT*k22) + (halfT+gx)*(q3+halfT*k23));
-						k33=0.5 * ((halfT+gz)*(q0+halfT*k20) + (halfT+gy)*(q1+halfT*k21) + (halfT-gx)*(q2+halfT*k22) + halfT*(q3+halfT*k23));
+    k30=0.5 * (halfT*(q0+halfT*k20) + (halfT-gx)*(q1+halfT*k21) + (halfT-gy)*(q2+halfT*k22) + (halfT-gz)*(q3+halfT*k23));
+    k31=0.5 * ((halfT+gx)*(q0+halfT*k20) + halfT*(q1+halfT*k21) + (halfT+gz)*(q2+halfT*k22) + (halfT-gy)*(q3+halfT*k23));
+    k32=0.5 * ((halfT+gy)*(q0+halfT*k20) + (halfT-gz)*(q1+halfT*k21) + halfT*(q2+halfT*k22) + (halfT+gx)*(q3+halfT*k23));
+    k33=0.5 * ((halfT+gz)*(q0+halfT*k20) + (halfT+gy)*(q1+halfT*k21) + (halfT-gx)*(q2+halfT*k22) + halfT*(q3+halfT*k23));
 
-						k40=0.5 * (dt*(q0+dt*k30) + (dt-gx)*(q1+dt*k31) + (dt-gy)*(q2+dt*k32) + (dt-gz)*(q3+dt*k33));
-						k41=0.5 * ((dt+gx)*(q0+dt*k30) + dt*(q1+dt*k31) + (dt+gz)*(q2+dt*k32) + (dt-gy)*(q3+dt*k33));
-						k42=0.5 * ((dt+gy)*(q0+dt*k30) + (dt-gz)*(q1+dt*k31) + dt*(q2+dt*k32) + (dt+gx)*(q3+dt*k33));
-						k43=0.5 * ((dt+gz)*(q0+dt*k30) + (dt+gy)*(q1+dt*k31) + (dt-gx)*(q2+dt*k32) + dt*(q3+dt*k33));
+    k40=0.5 * (dt*(q0+dt*k30) + (dt-gx)*(q1+dt*k31) + (dt-gy)*(q2+dt*k32) + (dt-gz)*(q3+dt*k33));
+    k41=0.5 * ((dt+gx)*(q0+dt*k30) + dt*(q1+dt*k31) + (dt+gz)*(q2+dt*k32) + (dt-gy)*(q3+dt*k33));
+    k42=0.5 * ((dt+gy)*(q0+dt*k30) + (dt-gz)*(q1+dt*k31) + dt*(q2+dt*k32) + (dt+gx)*(q3+dt*k33));
+    k43=0.5 * ((dt+gz)*(q0+dt*k30) + (dt+gy)*(q1+dt*k31) + (dt-gx)*(q2+dt*k32) + dt*(q3+dt*k33));
 
-						q0=q0 + dt/6.0 * (k10+2*k20+2*k30+k40);
-						q1=q1 + dt/6.0 * (k11+2*k21+2*k31+k41);
-						q2=q2 + dt/6.0 * (k12+2*k22+2*k32+k42);
-						q3=q3 + dt/6.0 * (k13+2*k23+2*k33+k43);
+    q0=q0 + dt/6.0 * (k10+2*k20+2*k30+k40);
+    q1=q1 + dt/6.0 * (k11+2*k21+2*k31+k41);
+    q2=q2 + dt/6.0 * (k12+2*k22+2*k32+k42);
+    q3=q3 + dt/6.0 * (k13+2*k23+2*k33+k43);
 
-           // normalise quaternion
-           norm = invSqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);
-           q0 = q0 * norm;
-           q1 = q1 * norm;
-           q2 = q2 * norm;
-           q3 = q3 * norm;
+    // normalise quaternion
+    norm = invSqrt(q0*q0 + q1*q1 + q2*q2 + q3*q3);
+    q0 = q0 * norm;
+    q1 = q1 * norm;
+    q2 = q2 * norm;
+    q3 = q3 * norm;
 
-					 *pitch = asin(-2 * q1 * q3 + 2 * q0 * q2)* 57.3;	// pitch
-					 *roll  = atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1)* 57.3;	// roll
-					 *yaw   = atan2(2*(q1*q2 + q0*q3),q0*q0+q1*q1-q2*q2-q3*q3) * 57.3;	//yaw
-           if (*yaw < 0) {
-               *yaw += 360.0f;
-           }
+    *pitch = asin(-2 * q1 * q3 + 2 * q0 * q2)* 57.3;	// pitch
+    *roll  = atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1)* 57.3;	// roll
+    *yaw   = atan2(2*(q1*q2 + q0*q3),q0*q0+q1*q1-q2*q2-q3*q3) * 57.3;	//yaw
+    if (*yaw < 0) {
+        *yaw += 360.0f;
+    }
+}
+
+// MPU校准函数
+void CollectMagData(void) {
+    for (int i = 0; i < CALIBRATION_SAMPLES; i++) {
+        MPU_Get_Magnetometer(&magData[i][0], &magData[i][1], &magData[i][2]);
+        HAL_Delay(10);  // 采样间隔
+    }
+}
+
+void CalibrateMagnetometer(void) {
+    int32_t magMin[3] = {32767, 32767, 32767};
+    int32_t magMax[3] = {-32768, -32768, -32768};
+
+    // Step 1: 计算磁力计数据的最大值和最小值
+    for (int i = 0; i < CALIBRATION_SAMPLES; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (magData[i][j] < magMin[j]) magMin[j] = magData[i][j];
+            if (magData[i][j] > magMax[j]) magMax[j] = magData[i][j];
+        }
+    }
+
+    // Step 2: 计算偏移量 (bias)
+    for (int i = 0; i < 3; i++) {
+        magBias[i] = (magMax[i] + magMin[i]) / 2.0f;
+    }
+
+    // Step 3: 计算缩放系数 (scale)
+    float magScaleTemp[3];
+    for (int i = 0; i < 3; i++) {
+        magScaleTemp[i] = (magMax[i] - magMin[i]) / 2.0f;
+    }
+
+    float avgRad = (magScaleTemp[0] + magScaleTemp[1] + magScaleTemp[2]) / 3.0f;
+    for (int i = 0; i < 3; i++) {
+        magScale[i] = avgRad / magScaleTemp[i];
+    }
+}
+
+void ApplyMagCalibration(int16_t *mx, int16_t *my, int16_t *mz) {
+    // 应用校准参数
+    float mx_f = (float)(*mx) - magBias[0];
+    float my_f = (float)(*my) - magBias[1];
+    float mz_f = (float)(*mz) - magBias[2];
+
+    *mx = (int16_t)(mx_f * magScale[0]);
+    *my = (int16_t)(my_f * magScale[1]);
+    *mz = (int16_t)(mz_f * magScale[2]);
+}
+
+void CalibrateMagnetometerTimed(void) {
+    char msg[128];
+    uint32_t startTime = HAL_GetTick();
+    uint32_t currentTime;
+    int sampleCount = 0;
+
+    int32_t magMin[3] = {32767, 32767, 32767};
+    int32_t magMax[3] = {-32768, -32768, -32768};
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)"Starting 10-second magnetometer calibration...\r\n", 49, HAL_MAX_DELAY);
+
+    // 持续采集数据直到时间达到10秒
+    while ((currentTime = HAL_GetTick()) - startTime < CALIBRATION_DURATION) {
+        int16_t mag[3];
+        MPU_Get_Magnetometer(&mag[0], &mag[1], &mag[2]);
+
+        // 更新每个轴的最小值和最大值
+        for (int i = 0; i < 3; i++) {
+            if (mag[i] < magMin[i]) magMin[i] = mag[i];
+            if (mag[i] > magMax[i]) magMax[i] = mag[i];
+        }
+
+        sampleCount++;
+        HAL_Delay(CALIBRATION_INTERVAL);
+    }
+
+    // 计算偏移量
+    for (int i = 0; i < 3; i++) {
+        magBias[i] = (magMax[i] + magMin[i]) / 2.0f;
+    }
+
+    // 计算缩放系数
+    float magScaleTemp[3];
+    for (int i = 0; i < 3; i++) {
+        magScaleTemp[i] = (magMax[i] - magMin[i]) / 2.0f;
+    }
+
+    float avgRad = (magScaleTemp[0] + magScaleTemp[1] + magScaleTemp[2]) / 3.0f;
+    for (int i = 0; i < 3; i++) {
+        magScale[i] = avgRad / magScaleTemp[i];
+    }
+
+    // 输出校准结果
+    snprintf(msg, sizeof(msg), "Mag Bias: X=%.3f, Y=%.3f, Z=%.3f\r\n", magBias[0], magBias[1], magBias[2]);
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+    snprintf(msg, sizeof(msg), "Mag Scale: X=%.3f, Y=%.3f, Z=%.3f\r\n", magScale[0], magScale[1], magScale[2]);
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+
+    snprintf(msg, sizeof(msg), "Calibration completed with %d samples.\r\n", sampleCount);
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
 }

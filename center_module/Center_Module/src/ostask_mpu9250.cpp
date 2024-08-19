@@ -12,9 +12,11 @@ namespace ostask_mpu9250 {
     [[noreturn]] void taskProcedure(void *argument) {
         char msg[128];
         float ax, ay, az, mx, my, mz, roll, pitch, yaw, gx, gy, gz;
-            int16_t iax, iay, iaz;
-            int16_t imx, imy, imz;
-            int16_t igx, igy, igz;
+        int16_t iax, iay, iaz;
+        int16_t imx, imy, imz;
+        int16_t igx, igy, igz;
+
+        CalibrateMagnetometerTimed();
 
         while (true) {
             // 获取并处理加速度计数据
@@ -22,6 +24,9 @@ namespace ostask_mpu9250 {
 
             // 获取并处理磁力计数据
             MPU_Get_Mag(&imx, &imy, &imz, &mx, &my, &mz);
+
+            // 将磁力计数据进行校准
+            ApplyMagCalibration(&imx, &imy, &imz);
 
             // 获取并处理陀螺仪数据
             MPU_Get_Gyro(&igx, &igy, &igz, &gx, &gy, &gz);
@@ -40,6 +45,5 @@ namespace ostask_mpu9250 {
             // 延时10毫秒
             osDelay(10);
         }
-
     }
 }

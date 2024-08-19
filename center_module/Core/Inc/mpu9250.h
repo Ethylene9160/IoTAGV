@@ -45,6 +45,12 @@ uint8_t MPU_Get_Gyro(int16_t *igx, int16_t *igy, int16_t *igz, float *gx, float 
 uint8_t MPU_Get_Accel(int16_t *iax, int16_t *iay, int16_t *iaz, float *ax, float *ay, float *az);
 uint8_t MPU_Get_Mag(int16_t *imx, int16_t *imy, int16_t *imz, float *mx, float *my, float *mz);
 
+//MPU校准函数
+void CollectMagData(void);
+void CalibrateMagnetometer(void);
+void ApplyMagCalibration(int16_t *mx, int16_t *my, int16_t *mz);
+void CalibrateMagnetometerTimed(void);
+
 // 外部变量声明
 extern I2C_HandleTypeDef hi2c2;
 extern float roll, pitch, yaw;
@@ -54,6 +60,8 @@ extern int16_t gyro_offsetx, gyro_offsety, gyro_offsetz;
 extern int16_t accoldx, accoldy, accoldz;
 extern int16_t magoldx, magoldy, magoldz;
 extern int16_t gyrooldx, gyrooldy, gyrooldz;
+extern float magBias[3];
+extern float magScale[3];
 
 #ifdef __cplusplus
 }
