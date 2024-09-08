@@ -9,7 +9,6 @@
 
 #include "u8g2.h"
 
-#include "hmc5883l.h"
 #include "usart.h"
 
 namespace ostask_oled_ui {
@@ -199,20 +198,9 @@ namespace ostask_oled_ui {
         initGPIO();
         initU8g2Platform();
 
-        /*
-         * TODO Test Magnetic Sensor Begin
-         */
-        hmc5883l_Init();
         osDelay(100);
         float init_alpha = 0.0f;
-        for(int i = 0; i < 100; ++i) {
-            init_alpha += hmc5883l_GetAngle()/100.0f;
-            osDelay(10);
-        }
         controller->set_init_alpha(init_alpha);
-        /*
-         * TODO Test Magnetic Sensor End
-         */
 
         while (true) {
             switch (currentPage) {
@@ -227,18 +215,6 @@ namespace ostask_oled_ui {
                     break;
             }
             osDelay(20);
-
-            /*
-             * TODO Test Magnetic Sensor Begin
-             */
-            float res = hmc5883l_GetAngle();
-            controller -> set_current_alpha(res);
-            // char buffer[20];
-            // snprintf(buffer, sizeof(buffer), "%6.2f\n", res);
-            // HAL_UART_Transmit(&huart2, (uint8_t*) buffer, 7, HAL_MAX_DELAY);
-            /*
-             * TODO Test Magnetic Sensor End
-             */
         }
     }
 
