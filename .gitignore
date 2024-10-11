@@ -6,6 +6,8 @@ center_uwb/**/Backup/
 uwb_module/.idea/
 /doc/
 
+/.vite/
+
 *.ioc
 
 .cmake/

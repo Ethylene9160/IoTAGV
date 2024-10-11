@@ -8,6 +8,7 @@
 #include "user_i2c.h"
 
 #include "u8g2.h"
+#include "usart.h"
 
 #include "usart.h"
 

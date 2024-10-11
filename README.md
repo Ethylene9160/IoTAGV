@@ -86,7 +86,7 @@ TODO.
 
 ## 前端
 
-![image-20240813191409580](README.assets/image-20240813191409580.png)
+![frontend](README.assets/frontend.png)
 
 # Contributors
 

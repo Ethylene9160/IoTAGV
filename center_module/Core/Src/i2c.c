@@ -18,6 +18,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include "i2c.h"
 
 /* USER CODE BEGIN 0 */
 #include <stdio.h>
@@ -136,4 +137,3 @@ void I2C2_EV_IRQHandler(void)
   /* USER CODE END I2C2_EV_IRQn 1 */
 }
 /* USER CODE END 1 */
-
